@@ -1,0 +1,62 @@
+{
+  "portfolio": {
+    "tickers": [
+      "AAPL", "META", "MSFT", "NVDA", "GOOGL",
+      "JPM", "BAC", "PG", "JNJ", "VTI", "SPY",
+      "SIEGY", "VWAGY", "SYIEY", "QTUM", "QBTS"
+    ],
+    "weights": {
+      "AAPL": 0.145,
+      "META": 0.026,
+      "MSFT": 0.020,
+      "NVDA": 0.013,
+      "GOOGL": 0.022,
+      "JPM": 0.077,
+      "BAC": 0.026,
+      "PG": 0.081,
+      "JNJ": 0.018,
+      "VTI": 0.062,
+      "SPY": 0.024,
+      "SIEGY": 0.167,
+      "VWAGY": 0.108,
+      "SYIEY": 0.069,
+      "QTUM": 0.062,
+      "QBTS": 0.062
+    },
+    "total_value": 19500,
+    "rebalance_threshold": 0.05
+  },
+  "signals": {
+    "min_confidence": 0.6,
+    "momentum_threshold": 60.0,
+    "mean_reversion_threshold": 70.0,
+    "update_interval_minutes": 30
+  },
+  "risk": {
+    "max_position_size": 0.20,
+    "max_sector_concentration": 0.40,
+    "var_confidence": 0.95,
+    "max_correlation": 0.70,
+    "volatility_limit": 0.25
+  },
+  "data": {
+    "database_path": "data/market_data.db",
+    "backup_enabled": true,
+    "backup_interval_hours": 24,
+    "data_retention_days": 730,
+    "cache_enabled": true
+  },
+  "notifications": {
+    "email_enabled": false,
+    "email_address": "",
+    "slack_enabled": false,
+    "slack_webhook": "",
+    "alert_threshold": 0.8
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "cors_enabled": true
+  }
+}
