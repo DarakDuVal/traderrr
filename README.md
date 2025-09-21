@@ -1,10 +1,12 @@
 # Trading Signals System
 
-A comprehensive algorithmic trading system built with Yahoo Finance data, advanced technical indicators, and machine learning-based signal generation. Designed for deployment on IBM Cloud with real-time monitoring and risk management.
+A comprehensive algorithmic trading system built with Yahoo Finance data, advanced technical indicators, and machine
+learning-based signal generation. Designed for deployment on IBM Cloud with real-time monitoring and risk management.
 
 ## 🚀 Features
 
 ### Core Functionality
+
 - **Real-time Data**: Yahoo Finance integration with caching and error handling
 - **Advanced Indicators**: 15+ technical indicators with regime detection
 - **Smart Signals**: Context-aware buy/sell signals with confidence scoring
@@ -13,6 +15,7 @@ A comprehensive algorithmic trading system built with Yahoo Finance data, advanc
 - **RESTful API**: Complete API for integration and automation
 
 ### Technical Highlights
+
 - **Regime Detection**: Automatically adapts strategy for trending vs mean-reverting markets
 - **Risk Management**: Position sizing, VAR calculation, and stress testing
 - **Performance Optimization**: Vectorized calculations and efficient data storage
@@ -28,30 +31,113 @@ A comprehensive algorithmic trading system built with Yahoo Finance data, advanc
 ## 🛠 Installation
 
 ### Quick Setup
+
 ```bash
-# Clone or download the system files
+# Clone repository (if not already done)
 cd trading-system
 
-# Run automated setup
-python deployment_utilities.py setup
-```
+# Create virtual environment
+python -m venv trading_env
+source trading_env/bin/activate  # On Windows: trading_env\Scripts\activate
 
-### Manual Setup
-```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Initialize database
-python -c "from data_manager import DataManager; dm = DataManager(); dm.close()"
+# Create environment file
+cat > .env << EOF
+FLASK_ENV=development
+DATABASE_PATH=data/market_data.db
+MIN_CONFIDENCE=0.6
+UPDATE_INTERVAL_MINUTES=30
+BACKUP_ENABLED=true
+SECRET_KEY=dev-secret-key-change-in-production
+API_HOST=127.0.0.1
+API_PORT=5000
+EOF
+```
 
-# Create configuration
-python -c "from testing_framework import ConfigManager; ConfigManager().save_config()"
+```bash
+# Run setup script
+python setup.py
 
-# Run tests
-python testing_framework.py
+# OR manual setup:
+mkdir -p data logs backups cache
+python -c "from config.database import DatabaseConfig; DatabaseConfig('data/market_data.db').init_database()"
+```
 
-# Start application
+```bash
+# Generate sample data for testing (optional)
+python utils/dev_tools.py --populate
+```
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run specific test categories
+python -m pytest tests/test_data_manager.py -v
+python -m pytest tests/test_indicators.py -v
+python -m pytest tests/test_signals.py -v
+python -m pytest tests/test_portfolio.py -v
+
+# Run tests with coverage
+pip install pytest-cov
+python -m pytest tests/ --cov=app --cov-report=html
+```
+
+```bash
+# Start the Flask application
 python main.py
+
+# Application will be available at:
+# Web Dashboard: http://localhost:5000
+# API Health: http://localhost:5000/api/health
+# API Signals: http://localhost:5000/api/signals
+```
+
+```bash
+# Test health endpoint
+curl http://localhost:5000/api/health
+
+# Test signals endpoint
+curl http://localhost:5000/api/signals
+
+# Test portfolio endpoint
+curl http://localhost:5000/api/portfolio
+
+# Trigger manual update
+curl -X POST http://localhost:5000/api/update
+```
+
+```bash
+# Quick backtest
+python scripts/backtest.py --tickers AAPL MSFT --capital 10000
+
+# Detailed backtest with output
+python scripts/backtest.py \
+  --tickers AAPL MSFT GOOGL VTI \
+  --start-date 2023-01-01 \
+  --end-date 2024-01-01 \
+  --capital 50000 \
+  --frequency weekly \
+  --output backtest_results.json
+```
+
+### Docker build
+
+```bash
+docker build -t trading-app .
+docker run -p 8080:8080 trading-app
+
+# Install IBM Cloud CLI and login
+ibmcloud login
+ibmcloud plugin install code-engine
+
+python scripts/deploy.py \
+  --registry-namespace your-namespace \
+  --project-name trading-signals \
+  --cpu 1 \
+  --memory 2G
 ```
 
 ## ⚙️ Configuration
@@ -61,7 +147,13 @@ Edit `config.json` to customize your setup:
 ```json
 {
   "portfolio": {
-    "tickers": ["AAPL", "MSFT", "GOOGL", "JPM", "VTI"],
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+      "JPM",
+      "VTI"
+    ],
     "weights": {
       "AAPL": 0.25,
       "MSFT": 0.20,
@@ -89,6 +181,7 @@ Edit `config.json` to customize your setup:
 ## 🎯 Usage Examples
 
 ### Basic Signal Generation
+
 ```python
 from data_manager import DataManager
 from signal_generator import SignalGenerator
@@ -110,6 +203,7 @@ if signal:
 ```
 
 ### Portfolio Analysis
+
 ```python
 from portfolio_analyzer import PortfolioAnalyzer
 
@@ -137,6 +231,7 @@ for risk in position_risks:
 ```
 
 ### Technical Indicators
+
 ```python
 from indicators import TechnicalIndicators, MarketRegimeDetector
 
@@ -165,12 +260,14 @@ print(f"Market Regime: {'Trending' if hurst > 0.5 else 'Mean Reverting'}")
 Access the web interface at `http://localhost:5000`
 
 ### Features:
+
 - **Real-time Signals**: Current buy/sell recommendations with confidence scores
-- **Portfolio Overview**: Holdings, performance metrics, and sector allocation  
+- **Portfolio Overview**: Holdings, performance metrics, and sector allocation
 - **Risk Monitoring**: VaR, correlation analysis, and stress test results
 - **System Health**: Database status, update times, and performance metrics
 
 ### API Endpoints:
+
 - `GET /api/signals` - Current trading signals
 - `GET /api/portfolio` - Portfolio overview
 - `POST /api/update` - Trigger signal update
@@ -179,6 +276,7 @@ Access the web interface at `http://localhost:5000`
 ## ☁️ IBM Cloud Deployment
 
 ### Prerequisites
+
 ```bash
 # Install IBM Cloud CLI
 curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
@@ -191,6 +289,7 @@ ibmcloud login
 ```
 
 ### Automated Deployment
+
 ```bash
 # Deploy to IBM Cloud Code Engine
 python deployment_utilities.py deploy --cpu 1 --memory 2G
@@ -204,12 +303,14 @@ docker push icr.io/your-namespace/trading-app
 ### Manual Deployment Steps
 
 1. **Create Code Engine Project**
+
 ```bash
 ibmcloud ce project create --name trading-signals
 ibmcloud ce project select --name trading-signals
 ```
 
 2. **Create Services**
+
 ```bash
 # Cloudant database
 ibmcloud resource service-instance-create trading-cloudant-db cloudantnosqldb lite us-south
@@ -219,6 +320,7 @@ ibmcloud resource service-instance-create trading-object-storage cloud-object-st
 ```
 
 3. **Deploy Application**
+
 ```bash
 ibmcloud ce application create \
     --name trading-app \
@@ -232,13 +334,16 @@ ibmcloud ce application create \
 ```
 
 4. **Bind Services**
+
 ```bash
 ibmcloud ce application bind --name trading-app --service-instance trading-cloudant-db
 ibmcloud ce application bind --name trading-app --service-instance trading-object-storage
 ```
 
 ### Environment Variables
+
 Set these in IBM Cloud Console or via CLI:
+
 ```bash
 ibmcloud ce application update trading-app \
     --env DATABASE_PATH=/app/data/market_data.db \
@@ -250,6 +355,7 @@ ibmcloud ce application update trading-app \
 ## 🔧 System Management
 
 ### Database Operations
+
 ```bash
 # Backup database
 python deployment_utilities.py database backup --file backup_20250120.db
@@ -268,6 +374,7 @@ python deployment_utilities.py database export --file portfolio_data.csv
 ```
 
 ### Monitoring
+
 ```bash
 # Check system health
 python deployment_utilities.py monitor
@@ -277,7 +384,9 @@ python deployment_utilities.py maintenance
 ```
 
 ### Scheduled Tasks
+
 The system automatically runs:
+
 - **Signal updates**: Every 30 minutes during market hours
 - **Data cleanup**: Daily at midnight
 - **Database backup**: Daily at 2 AM
@@ -286,18 +395,21 @@ The system automatically runs:
 ## 📊 Performance Optimization
 
 ### Data Caching
+
 - Database caching for frequently accessed data
 - 30-minute cache for intraday data
 - 6-hour cache for daily data
 - Automatic cache invalidation
 
 ### Computation Optimization
+
 - Vectorized pandas operations
 - Efficient indicator calculations
 - Parallel data downloads
 - SQLite database optimization
 
 ### Memory Management
+
 - Configurable data retention periods
 - Automatic cleanup of old records
 - Connection pooling
@@ -306,6 +418,7 @@ The system automatically runs:
 ## 🧪 Testing
 
 ### Run Test Suite
+
 ```bash
 # Full test suite
 python testing_framework.py
@@ -317,6 +430,7 @@ python -m unittest testing_framework.TestPortfolioAnalyzer
 ```
 
 ### Performance Benchmarks
+
 ```bash
 # Run performance tests
 python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchmark.benchmark_data_manager()"
@@ -327,6 +441,7 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 ### Signal Generation Logic
 
 **Momentum Strategy** (Trending Markets):
+
 - MACD bullish crossover
 - RSI in momentum range (45-75)
 - Price above moving averages
@@ -334,6 +449,7 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 - Volume surge confirmation
 
 **Mean Reversion Strategy** (Ranging Markets):
+
 - RSI oversold/overbought (< 30 or > 70)
 - Bollinger Band extremes
 - Stochastic oversold/overbought
@@ -341,6 +457,7 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 - Volume confirmation
 
 ### Risk Management
+
 - Position sizing based on volatility (ATR)
 - Maximum 20% allocation per position
 - Sector concentration limits (40% max)
@@ -348,6 +465,7 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 - Stress testing scenarios
 
 ### Market Regime Detection
+
 - Hurst Exponent calculation
 - Trend strength analysis
 - Volatility regime classification
@@ -356,12 +474,14 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 ## 🔐 Security & Privacy
 
 ### Data Security
+
 - Local database storage
 - No API keys in code
 - Environment variable configuration
 - Secure IBM Cloud deployment
 
 ### Privacy
+
 - No personal trading data stored
 - Only market data collection
 - Configurable data retention
@@ -372,6 +492,7 @@ python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchm
 ### Common Issues
 
 **Data Download Errors**:
+
 ```bash
 # Check Yahoo Finance connectivity
 python -c "import yfinance as yf; print(yf.Ticker('AAPL').history(period='1d'))"
@@ -381,6 +502,7 @@ python -c "from data_manager import DataManager; dm = DataManager(); print('OK')
 ```
 
 **Performance Issues**:
+
 ```bash
 # Check database size
 python deployment_utilities.py database stats
@@ -393,6 +515,7 @@ python -c "from deployment_utilities import DatabaseManager; DatabaseManager('ma
 ```
 
 **Signal Generation Problems**:
+
 ```bash
 # Test with minimal data
 python -c "
@@ -407,6 +530,7 @@ print(signal)
 ```
 
 ### Logs and Debugging
+
 - Application logs: Check console output
 - Database logs: SQLite error messages
 - IBM Cloud logs: `ibmcloud ce application logs trading-app`
@@ -415,18 +539,21 @@ print(signal)
 ## 📚 Additional Resources
 
 ### Documentation
+
 - [Yahoo Finance API](https://pypi.org/project/yfinance/)
 - [TA-Lib Documentation](https://ta-lib.org/)
 - [IBM Cloud Code Engine](https://cloud.ibm.com/docs/codeengine)
 - [Technical Analysis Basics](https://www.investopedia.com/technical-analysis-4689657)
 
 ### Customization Examples
+
 - Adding new indicators
-- Implementing custom strategies  
+- Implementing custom strategies
 - Extending the web dashboard
 - Integration with brokers
 
 ### Community
+
 - GitHub Issues for bug reports
 - Feature requests welcome
 - Trading strategy discussions
@@ -436,7 +563,8 @@ print(signal)
 
 This project is for educational and personal use. Not financial advice.
 
-**Disclaimer**: This system is for educational purposes only. Always consult with a financial advisor before making investment decisions. Past performance does not guarantee future results.
+**Disclaimer**: This system is for educational purposes only. Always consult with a financial advisor before making
+investment decisions. Past performance does not guarantee future results.
 
 ---
 
