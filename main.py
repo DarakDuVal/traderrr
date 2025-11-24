@@ -11,6 +11,10 @@ import threading
 import schedule
 import time
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.abspath(__file__))
