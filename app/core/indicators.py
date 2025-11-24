@@ -317,7 +317,7 @@ class MarketRegimeDetector:
             return 'normal'
 
         # Calculate rolling volatilities
-        returns = prices.pct_change().dropna()
+        returns = prices.pct_change(fill_method=None).dropna()
         short_vol = returns.rolling(short_period).std() * np.sqrt(252)  # Annualized
         long_vol = returns.rolling(long_period).std() * np.sqrt(252)
 

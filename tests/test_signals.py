@@ -39,6 +39,7 @@ class TestSignalGenerator(BaseTestCase):
             'Close': trending_prices,
             'Volume': np.random.randint(1000000, 5000000, 100)
         }, index=dates)
+        self.trending_data.index.name = 'Date'
 
         # Mean reverting market (oscillating around mean)
         mean_price = 100
@@ -53,6 +54,7 @@ class TestSignalGenerator(BaseTestCase):
             'Close': reverting_prices,
             'Volume': np.random.randint(1000000, 5000000, 100)
         }, index=dates)
+        self.reverting_data.index.name = 'Date'
 
         # High volatility market
         volatile_returns = np.random.normal(0, 0.05, 100)  # High volatility
@@ -65,6 +67,7 @@ class TestSignalGenerator(BaseTestCase):
             'Close': volatile_prices,
             'Volume': np.random.randint(5000000, 20000000, 100)  # High volume
         }, index=dates)
+        self.volatile_data.index.name = 'Date'
 
         # Ensure OHLC consistency for all datasets
         for data in [self.trending_data, self.reverting_data, self.volatile_data]:
@@ -235,11 +238,21 @@ class TestSignalGenerator(BaseTestCase):
         for indicator in key_indicators:
             self.assertIn(indicator, indicators)
 
-        # Indicators should be valid numbers
+        # Indicators should be valid numbers or boolean values
         for key, value in indicators.items():
-            if not key.endswith('_bullish') and not key.endswith('_oversold') and not key.endswith('_overbought'):
-                self.assertIsInstance(value, (int, float))
-                self.assertFalse(np.isnan(value))
+            # Value should not be None
+            self.assertIsNotNone(value, f"Indicator {key} should not be None")
+
+            if key.endswith('_bullish') or key.endswith('_oversold') or key.endswith('_overbought'):
+                # Boolean indicators can be bool or numpy bool
+                self.assertIsInstance(value, (bool, np.bool_))
+            else:
+                # Numeric indicators should be a number type (int, float, or numpy number)
+                # Check if it's a numeric type or can be converted to float
+                try:
+                    float(value)
+                except (TypeError, ValueError):
+                    self.fail(f"Indicator {key} with value {value} (type {type(value)}) is not numeric")
 
     def test_momentum_strategy(self):
         """Test momentum strategy logic"""

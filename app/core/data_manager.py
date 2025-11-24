@@ -256,7 +256,7 @@ class DataManager:
         data = data.dropna(how='all')
 
         # Forward fill missing values (max 3 consecutive)
-        data = data.fillna(method='ffill', limit=3)
+        data = data.ffill(limit=3)
 
         # Remove obvious outliers (price changes > 50% in one day)
         if 'Close' in data.columns and len(data) > 1:
@@ -419,18 +419,20 @@ class DataManager:
             self.logger.error(f"Error getting portfolio summary: {e}")
             return pd.DataFrame()
 
-    def cleanup_old_data(self, days_to_keep: int = 730):
+    def cleanup_old_data(self, days_to_keep: int = 730) -> int:
         """Clean up old data to manage database size"""
         try:
             cutoff_date = datetime.now() - timedelta(days=days_to_keep)
 
             cursor = self.conn.cursor()
+            total_deleted = 0
 
             # Clean daily data
             cursor.execute(
                 "DELETE FROM daily_data WHERE date < ?",
                 (cutoff_date.date(),)
             )
+            total_deleted += cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
@@ -438,6 +440,7 @@ class DataManager:
                 "DELETE FROM intraday_data WHERE datetime < ?",
                 (intraday_cutoff,)
             )
+            total_deleted += cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
@@ -445,12 +448,16 @@ class DataManager:
                 "DELETE FROM signal_history WHERE created_at < ?",
                 (signal_cutoff,)
             )
+            total_deleted += cursor.rowcount
 
             self.conn.commit()
-            self.logger.info(f"Cleaned data older than {days_to_keep} days")
+            self.logger.info(f"Cleaned data older than {days_to_keep} days. Deleted {total_deleted} records")
+
+            return total_deleted
 
         except Exception as e:
             self.logger.error(f"Error cleaning old data: {e}")
+            return 0
 
     def backup_database(self, backup_path: str):
         """Create database backup"""

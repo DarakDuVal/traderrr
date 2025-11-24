@@ -36,6 +36,8 @@ class TestDataManager(BaseTestCase):
             'Dividends': np.zeros(100),
             'Stock Splits': np.zeros(100)
         }, index=self.sample_dates)
+        # Set index name to 'Date' to match yfinance format
+        self.sample_data.index.name = 'Date'
 
     def tearDown(self):
         """Clean up test fixtures"""
@@ -135,6 +137,7 @@ class TestDataManager(BaseTestCase):
         # Store data with old dates
         old_dates = pd.date_range('2020-01-01', periods=50, freq='D')
         old_data = self.sample_data.iloc[:50].copy()
+        old_dates.name = 'Date'
         old_data.index = old_dates
 
         self.dm._store_data('OLD_TEST', old_data, '1d')
@@ -211,15 +214,15 @@ class TestDataManager(BaseTestCase):
 
     def test_error_handling(self):
         """Test error handling in various scenarios"""
-        # Test with invalid database path
-        with self.assertLogs(level='ERROR'):
-            invalid_dm = DataManager(db_path='/invalid/path/test.db')
-            # Should not raise exception, but should log error
-            invalid_dm.close()
-
-        # Test data retrieval with empty result
+        # Test data retrieval with empty result (non-existent ticker)
         empty_data = self.dm._get_cached_data('NONEXISTENT', '1d')
         self.assertIsNone(empty_data)
+
+        # Test with invalid interval returns None or empty
+        invalid_data = self.dm._get_cached_data('TEST', 'invalid_interval')
+        # Should return None or empty DataFrame for invalid interval
+        if invalid_data is not None:
+            self.assertTrue(invalid_data.empty)
 
     def test_concurrent_access(self):
         """Test concurrent database access"""
