@@ -79,69 +79,56 @@ class Config:
             }
         }
 
-    # Configuration properties as class properties
+    # Configuration properties as class methods
     @classmethod
-    @property
     def PORTFOLIO_TICKERS(cls) -> List[str]:
         return cls._load_config()["portfolio"]["tickers"]
 
     @classmethod
-    @property
     def PORTFOLIO_WEIGHTS(cls) -> Dict[str, float]:
         return cls._load_config()["portfolio"]["weights"]
 
     @classmethod
-    @property
     def PORTFOLIO_VALUE(cls) -> float:
         return cls._load_config()["portfolio"]["total_value"]
 
     @classmethod
-    @property
     def MIN_CONFIDENCE(cls) -> float:
         return cls._load_config()["signals"]["min_confidence"]
 
     @classmethod
-    @property
     def DATABASE_PATH(cls) -> str:
         return os.getenv('DATABASE_PATH', cls._load_config()["data"]["database_path"])
 
     @classmethod
-    @property
     def UPDATE_INTERVAL(cls) -> int:
         return cls._load_config()["signals"]["update_interval_minutes"]
 
     @classmethod
-    @property
     def MOMENTUM_THRESHOLD(cls) -> float:
         return cls._load_config()["signals"]["momentum_threshold"]
 
     @classmethod
-    @property
     def MEAN_REVERSION_THRESHOLD(cls) -> float:
         return cls._load_config()["signals"]["mean_reversion_threshold"]
 
     @classmethod
-    @property
     def MAX_POSITION_SIZE(cls) -> float:
         return cls._load_config()["risk"]["max_position_size"]
 
     @classmethod
-    @property
     def VOLATILITY_LIMIT(cls) -> float:
         return cls._load_config()["risk"]["volatility_limit"]
 
     @classmethod
-    @property
     def BACKUP_ENABLED(cls) -> bool:
         return cls._load_config()["data"]["backup_enabled"]
 
     @classmethod
-    @property
     def API_HOST(cls) -> str:
         return os.getenv('HOST', cls._load_config()["api"]["host"])
 
     @classmethod
-    @property
     def API_PORT(cls) -> int:
         return int(os.getenv('PORT', cls._load_config()["api"]["port"]))
 
@@ -197,12 +184,10 @@ class DevelopmentConfig(Config):
     TESTING = False
 
     @classmethod
-    @property
     def DATABASE_PATH(cls) -> str:
         return "data/dev_market_data.db"
 
     @classmethod
-    @property
     def API_PORT(cls) -> int:
         return 5000
 
@@ -213,7 +198,6 @@ class ProductionConfig(Config):
     TESTING = False
 
     @classmethod
-    @property
     def API_PORT(cls) -> int:
         return int(os.getenv('PORT', 8080))
 
@@ -224,12 +208,10 @@ class TestingConfig(Config):
     TESTING = True
 
     @classmethod
-    @property
     def DATABASE_PATH(cls) -> str:
         return "data/test_market_data.db"
 
     @classmethod
-    @property
     def MIN_CONFIDENCE(cls) -> float:
         return 0.3  # Lower threshold for testing
 

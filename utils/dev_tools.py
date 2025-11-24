@@ -24,6 +24,7 @@ def generate_sample_data(ticker: str, days: int = 252) -> pd.DataFrame:
 
     # Generate OHLCV data
     data = pd.DataFrame({
+        'Date': dates,
         'Open': prices * np.random.uniform(0.995, 1.005, days),
         'High': prices * np.random.uniform(1.005, 1.025, days),
         'Low': prices * np.random.uniform(0.975, 0.995, days),
@@ -31,7 +32,10 @@ def generate_sample_data(ticker: str, days: int = 252) -> pd.DataFrame:
         'Volume': np.random.randint(1000000, 10000000, days),
         'Dividends': np.zeros(days),
         'Stock Splits': np.zeros(days)
-    }, index=dates)
+    })
+
+    # Set Date as index to match yfinance format
+    data.set_index('Date', inplace=True)
 
     # Ensure OHLC consistency
     for i in range(len(data)):
@@ -58,7 +62,7 @@ def populate_sample_database():
         dm._store_data(ticker, sample_data, '1d')
 
     dm.close()
-    print("✓ Sample database populated")
+    print("[OK] Sample database populated")
 
 
 def quick_test():
@@ -75,21 +79,21 @@ def quick_test():
     retrieved = dm._get_cached_data('TEST', '1d')
 
     if retrieved is not None and len(retrieved) == 100:
-        print("✓ Data manager working")
+        print("[OK] Data manager working")
     else:
-        print("✗ Data manager failed")
+        print("[FAIL] Data manager failed")
 
     # Test signal generator
     sg = SignalGenerator(min_confidence=0.3)
     signal = sg.generate_signal('TEST', test_data)
 
     if signal is not None:
-        print(f"✓ Signal generator working: {signal.signal_type.value}")
+        print(f"[OK] Signal generator working: {signal.signal_type.value}")
     else:
-        print("✓ Signal generator working (no signal generated)")
+        print("[OK] Signal generator working (no signal generated)")
 
     dm.close()
-    print("✓ Quick test complete")
+    print("[OK] Quick test complete")
 
 
 if __name__ == '__main__':

@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 import logging
 import threading
+import numpy as np
 
 from app.core.data_manager import DataManager
 from app.core.signal_generator import SignalGenerator
@@ -16,8 +17,8 @@ api_bp = Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 # Global instances
-dm = DataManager(db_path=Config.DATABASE_PATH)
-signal_gen = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE)
+dm = DataManager(db_path=Config.DATABASE_PATH())
+signal_gen = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
 portfolio_analyzer = PortfolioAnalyzer()
 
 # Global state for signals
@@ -40,7 +41,7 @@ def health_check():
 
         # Test database connection
         try:
-            dm.get_portfolio_summary(Config.PORTFOLIO_TICKERS[:1])
+            dm.get_portfolio_summary(Config.PORTFOLIO_TICKERS()[:1])
         except Exception as e:
             health_status['database'] = f'error: {str(e)}'
             health_status['status'] = 'degraded'
@@ -99,7 +100,7 @@ def get_portfolio():
     """Get portfolio overview"""
     try:
         # Get recent data for portfolio overview
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS, period="30d")
+        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="30d")
 
         if not portfolio_data:
             return jsonify({'error': 'No portfolio data available'}), 500
@@ -108,7 +109,7 @@ def get_portfolio():
         try:
             metrics = portfolio_analyzer.analyze_portfolio(
                 portfolio_data,
-                Config.PORTFOLIO_WEIGHTS
+                Config.PORTFOLIO_WEIGHTS()
             )
 
             portfolio_metrics = {
@@ -132,8 +133,8 @@ def get_portfolio():
         try:
             position_risks = portfolio_analyzer.calculate_position_risks(
                 portfolio_data,
-                Config.PORTFOLIO_WEIGHTS,
-                Config.PORTFOLIO_VALUE
+                Config.PORTFOLIO_WEIGHTS(),
+                Config.PORTFOLIO_VALUE()
             )
 
             position_data = [
@@ -203,9 +204,8 @@ def trigger_update():
 
                 # Download fresh data
                 portfolio_data = dm.get_multiple_stocks(
-                    Config.PORTFOLIO_TICKERS,
-                    period="6mo",
-                    force_update=True
+                    Config.PORTFOLIO_TICKERS(),
+                    period="6mo"
                 )
 
                 if not portfolio_data:
@@ -307,7 +307,7 @@ def get_risk_report():
     """Get comprehensive risk report"""
     try:
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS, period="1y")
+        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="1y")
 
         if not portfolio_data:
             return jsonify({'error': 'No portfolio data available'}), 500
@@ -315,8 +315,8 @@ def get_risk_report():
         # Generate risk report
         risk_report = portfolio_analyzer.generate_risk_report(
             portfolio_data,
-            Config.PORTFOLIO_WEIGHTS,
-            Config.PORTFOLIO_VALUE
+            Config.PORTFOLIO_WEIGHTS(),
+            Config.PORTFOLIO_VALUE()
         )
 
         return jsonify(risk_report)
@@ -331,7 +331,7 @@ def get_correlation_matrix():
     """Get correlation matrix for portfolio"""
     try:
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS, period="6mo")
+        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="6mo")
 
         if not portfolio_data:
             return jsonify({'error': 'No portfolio data available'}), 500
@@ -377,17 +377,17 @@ def optimize_portfolio():
         # Optimize portfolio
         optimized_weights = portfolio_analyzer.optimize_portfolio(
             portfolio_data,
-            Config.PORTFOLIO_WEIGHTS,
+            Config.PORTFOLIO_WEIGHTS(),
             target_return=target_return,
             risk_tolerance=risk_tolerance
         )
 
         # Calculate comparison metrics
-        current_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, Config.PORTFOLIO_WEIGHTS)
+        current_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, Config.PORTFOLIO_WEIGHTS())
         optimized_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, optimized_weights)
 
         return jsonify({
-            'current_weights': Config.PORTFOLIO_WEIGHTS,
+            'current_weights': Config.PORTFOLIO_WEIGHTS(),
             'optimized_weights': optimized_weights,
             'current_metrics': {
                 'volatility': current_metrics.volatility,
@@ -419,7 +419,7 @@ def initialize_signals():
         logger.info("Initializing trading signals")
 
         # Get initial portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS[:5], period="3mo")  # Limit for faster startup
+        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS()[:5], period="3mo")  # Limit for faster startup
 
         if portfolio_data:
             # Generate initial signals

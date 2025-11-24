@@ -44,7 +44,7 @@ def initialize_database():
     logger = logging.getLogger(__name__)
 
     try:
-        db_config = DatabaseConfig(Config.DATABASE_PATH)
+        db_config = DatabaseConfig(Config.DATABASE_PATH())
 
         if not db_config.init_database():
             logger.error("Database initialization failed")
@@ -69,11 +69,11 @@ def initialize_data():
         logger.info("Initializing system data...")
 
         # Initialize components
-        dm = DataManager(db_path=Config.DATABASE_PATH)
-        sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE)
+        dm = DataManager(db_path=Config.DATABASE_PATH())
+        sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
 
         # Get initial data for a subset of tickers (faster startup)
-        initial_tickers = Config.PORTFOLIO_TICKERS[:5]
+        initial_tickers = Config.PORTFOLIO_TICKERS()[:5]
         logger.info(f"Loading initial data for {len(initial_tickers)} tickers")
 
         portfolio_data = dm.get_multiple_stocks(initial_tickers, period="3mo")
@@ -104,8 +104,8 @@ def run_scheduled_tasks():
             from app.core.data_manager import DataManager
             from app.core.signal_generator import SignalGenerator
 
-            dm = DataManager(db_path=Config.DATABASE_PATH)
-            sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE)
+            dm = DataManager(db_path=Config.DATABASE_PATH())
+            sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
 
             portfolio_data = update_portfolio_data(dm, force_update=False)
             signals = generate_signals(dm, sg, portfolio_data)
@@ -123,8 +123,8 @@ def run_scheduled_tasks():
             from scripts.daily_update import cleanup_database, create_backup
             from app.core.data_manager import DataManager
 
-            db_config = DatabaseConfig(Config.DATABASE_PATH)
-            dm = DataManager(db_path=Config.DATABASE_PATH)
+            db_config = DatabaseConfig(Config.DATABASE_PATH())
+            dm = DataManager(db_path=Config.DATABASE_PATH())
 
             cleanup_database(db_config)
             create_backup(dm)
@@ -136,7 +136,7 @@ def run_scheduled_tasks():
             logger.error(f"Daily cleanup failed: {e}")
 
     # Schedule tasks
-    schedule.every(Config.UPDATE_INTERVAL).minutes.do(update_portfolio_data)
+    schedule.every(Config.UPDATE_INTERVAL()).minutes.do(update_portfolio_data)
     schedule.every().day.at("02:00").do(cleanup_task)  # 2 AM daily cleanup
     schedule.every().day.at("09:00").do(update_portfolio_data)  # Market open
     schedule.every().day.at("15:30").do(update_portfolio_data)  # Before market close
@@ -213,12 +213,12 @@ def print_startup_info():
 🚀 Trading Signals System Starting
 {'=' * 60}
 Configuration: {config_name}
-Database: {Config.DATABASE_PATH}
-Portfolio Value: ${Config.PORTFOLIO_VALUE:,}
-Portfolio Tickers: {len(Config.PORTFOLIO_TICKERS)}
-Min Confidence: {Config.MIN_CONFIDENCE:.1%}
-Update Interval: {Config.UPDATE_INTERVAL} minutes
-Host: {Config.API_HOST}:{Config.API_PORT}
+Database: {Config.DATABASE_PATH()}
+Portfolio Value: ${Config.PORTFOLIO_VALUE():,}
+Portfolio Tickers: {len(Config.PORTFOLIO_TICKERS())}
+Min Confidence: {Config.MIN_CONFIDENCE():.1%}
+Update Interval: {Config.UPDATE_INTERVAL()} minutes
+Host: {Config.API_HOST()}:{Config.API_PORT()}
 {'=' * 60}
     """
 
@@ -256,7 +256,7 @@ def main():
         app.config.from_object(config_class)
 
         # Log system startup
-        db_config = DatabaseConfig(Config.DATABASE_PATH)
+        db_config = DatabaseConfig(Config.DATABASE_PATH())
         db_config.log_system_event(
             'SYSTEM_STARTUP',
             'Trading system started',
@@ -268,13 +268,13 @@ def main():
         start_scheduler()
 
         # Start Flask application
-        logger.info(f"Starting Flask application on {Config.API_HOST}:{Config.API_PORT}")
+        logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
 
         if os.getenv('FLASK_ENV') == 'development':
             # Development mode
             app.run(
-                host=Config.API_HOST,
-                port=Config.API_PORT,
+                host=Config.API_HOST(),
+                port=Config.API_PORT(),
                 debug=True,
                 use_reloader=False  # Disable reloader to avoid scheduler conflicts
             )
@@ -291,8 +291,8 @@ def main():
             except ImportError:
                 logger.warning("Gunicorn not available, running with Flask development server")
                 app.run(
-                    host=Config.API_HOST,
-                    port=Config.API_PORT,
+                    host=Config.API_HOST(),
+                    port=Config.API_PORT(),
                     debug=False
                 )
 

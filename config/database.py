@@ -5,6 +5,7 @@ config/database.py - Database configuration and utilities
 import sqlite3
 import logging
 import os
+import time
 from typing import Optional
 
 
@@ -263,6 +264,7 @@ class DatabaseConfig:
                 cursor.execute(query)
 
             results = cursor.fetchall()
+            conn.commit()
             conn.close()
 
             return results

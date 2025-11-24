@@ -291,15 +291,37 @@ class DataManager:
         if interval == "1d":
             table_name = "daily_data"
             data_copy['date'] = data_copy['Date'].dt.date
-            columns = ['ticker', 'date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+            columns_map = {
+                'ticker': 'ticker',
+                'date': 'date',
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Volume': 'volume',
+                'Dividends': 'dividends',
+                'Stock Splits': 'stock_splits'
+            }
         else:
             table_name = "intraday_data"
             data_copy['datetime'] = data_copy['Date']
-            columns = ['ticker', 'datetime', 'Open', 'High', 'Low', 'Close', 'Volume']
+            columns_map = {
+                'ticker': 'ticker',
+                'datetime': 'datetime',
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Volume': 'volume'
+            }
 
-        # Select only existing columns
-        available_columns = [col for col in columns if col in data_copy.columns]
-        data_to_store = data_copy[available_columns]
+        # Select only existing columns and rename to match database schema
+        available_columns = [col for col in columns_map.keys() if col in data_copy.columns]
+        data_to_store = data_copy[available_columns].copy()
+
+        # Rename columns to match database schema
+        rename_map = {col: columns_map[col] for col in available_columns}
+        data_to_store = data_to_store.rename(columns=rename_map)
 
         # Store with conflict resolution
         data_to_store.to_sql(table_name, self.conn, if_exists='append', index=False)
