@@ -513,11 +513,11 @@ def dashboard():
             from app.core.data_manager import DataManager
             from app.core.indicators import TechnicalIndicators
 
-            dm = DataManager(db_path=Config.DATABASE_PATH)
+            dm = DataManager(db_path=Config.DATABASE_PATH())
             ti = TechnicalIndicators()
 
             # Get basic overview for each ticker
-            for ticker in Config.PORTFOLIO_TICKERS[:10]:  # Limit for performance
+            for ticker in Config.PORTFOLIO_TICKERS()[:10]:  # Limit for performance
                 try:
                     data = dm.get_stock_data(ticker, period="5d")
                     if not data.empty:
@@ -529,7 +529,7 @@ def dashboard():
                             'price': current_price,
                             'daily_change': daily_change if not pd.isna(daily_change) else 0,
                             'volume_ratio': volume_ratio if not pd.isna(volume_ratio) else 1,
-                            'weight': Config.PORTFOLIO_WEIGHTS.get(ticker, 0)
+                            'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
                         }
                 except Exception as e:
                     logger.warning(f"Error getting data for {ticker}: {e}")
@@ -537,7 +537,7 @@ def dashboard():
                         'price': 0,
                         'daily_change': 0,
                         'volume_ratio': 1,
-                        'weight': Config.PORTFOLIO_WEIGHTS.get(ticker, 0)
+                        'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
                     }
 
             dm.close()
@@ -639,7 +639,7 @@ def portfolio_page():
         portfolio_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 2rem;">
             <h1>Portfolio Details</h1>
-            <h2>Holdings ({len(Config.PORTFOLIO_TICKERS)} positions)</h2>
+            <h2>Holdings ({len(Config.PORTFOLIO_TICKERS())} positions)</h2>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <tr>
                     <th style="padding: 8px;">Ticker</th>
@@ -648,8 +648,8 @@ def portfolio_page():
                 </tr>
         """
 
-        for ticker, weight in Config.PORTFOLIO_WEIGHTS.items():
-            value = weight * Config.PORTFOLIO_VALUE
+        for ticker, weight in Config.PORTFOLIO_WEIGHTS().items():
+            value = weight * Config.PORTFOLIO_VALUE()
             portfolio_html += f"""
                 <tr>
                     <td style="padding: 8px;">{ticker}</td>

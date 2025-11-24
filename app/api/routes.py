@@ -153,7 +153,7 @@ def get_portfolio():
 
         # Get simple overview for each ticker
         overview = {}
-        for ticker in Config.PORTFOLIO_TICKERS:
+        for ticker in Config.PORTFOLIO_TICKERS():
             try:
                 if ticker in portfolio_data:
                     data = portfolio_data[ticker]
@@ -166,7 +166,7 @@ def get_portfolio():
                             'price': current_price,
                             'daily_change': daily_change,
                             'volume_ratio': volume_ratio,
-                            'weight': Config.PORTFOLIO_WEIGHTS.get(ticker, 0)
+                            'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
                         }
             except Exception as e:
                 logger.warning(f"Error processing {ticker}: {e}")
@@ -174,14 +174,14 @@ def get_portfolio():
                     'price': 0,
                     'daily_change': 0,
                     'volume_ratio': 1,
-                    'weight': Config.PORTFOLIO_WEIGHTS.get(ticker, 0)
+                    'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
                 }
 
         return jsonify({
             'portfolio_metrics': portfolio_metrics,
             'position_risks': position_data,
             'portfolio_overview': overview,
-            'total_value': Config.PORTFOLIO_VALUE,
+            'total_value': Config.PORTFOLIO_VALUE(),
             'updated_at': datetime.now().isoformat()
         })
 
@@ -368,7 +368,7 @@ def optimize_portfolio():
         target_return = data.get('target_return')  # Optional
 
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS, period="1y")
+        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="1y")
 
         if not portfolio_data:
             return jsonify({'error': 'No portfolio data available'}), 500
