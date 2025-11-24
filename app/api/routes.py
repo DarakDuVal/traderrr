@@ -48,7 +48,6 @@ def health_check():
 
         # Check if data is stale
         if last_update:
-            from datetime import datetime
             time_since_update = datetime.now() - datetime.fromisoformat(last_update)
             if time_since_update.total_seconds() > 21600:  # 6 hours
                 health_status['status'] = 'degraded'
