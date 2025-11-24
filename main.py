@@ -210,7 +210,7 @@ def print_startup_info():
 
     startup_info = f"""
 {'=' * 60}
-🚀 Trading Signals System Starting
+>> Trading Signals System Starting
 {'=' * 60}
 Configuration: {config_name}
 Database: {Config.DATABASE_PATH()}
