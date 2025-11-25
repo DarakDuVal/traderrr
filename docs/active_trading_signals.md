@@ -1,6 +1,6 @@
-📊 Active Trading Signals: Complete Decision Flow
+# 📊 Active Trading Signals: Complete Decision Flow
 
-  Quick Answer
+## Quick Answer
 
   A ticker appears in the active signals list when:
   1. It has ≥50 periods of historical data
@@ -8,8 +8,9 @@
   3. The signal passes the confidence threshold (≥0.6 or 60%)
   4. Results are sorted by confidence (highest first)
 
-  ---
-  The Complete Decision Pipeline
+---
+
+## The Complete Decision Pipeline
 
   Step 1: DATA CHECK
   ├─ Is data length < 50?
@@ -46,8 +47,9 @@
   ├─ Sort by confidence DESC (line 152-153)
   └─ ✅ Return ordered list to API
 
-  ---
-  SECTION 1: The Data Requirement Filter
+---
+
+### SECTION 1: The Data Requirement Filter
 
   Code Location: app/core/signal_generator.py:80-82
 
@@ -64,8 +66,9 @@
   - Technical indicators need enough historical context
   - 50 days ≈ 2.5 months of trading history = statistical reliability
 
-  ---
-  SECTION 2: Market Regime Detection
+---
+
+### SECTION 2: Market Regime Detection
 
   Code Location: app/core/signal_generator.py:157-179
 
@@ -101,8 +104,9 @@
 
   Key Insight: The system adapts its strategy based on what the market is currently doing, not using a fixed approach for all conditions.
 
-  ---
-  SECTION 3A: Momentum Strategy (Trending Markets)
+---
+
+### SECTION 3A: Momentum Strategy (Trending Markets)
 
   Trigger Condition: Market regime is TRENDING_UP or TRENDING_DOWN
 
@@ -137,8 +141,9 @@
 
   Result: 5 conditions met → STRONG_BUY signal generated
 
-  ---
-  SECTION 3B: Mean Reversion Strategy (Ranging/Volatile Markets)
+---
+
+### SECTION 3B: Mean Reversion Strategy (Ranging/Volatile Markets)
 
   Trigger Condition: Market regime is MEAN_REVERTING, SIDEWAYS, or HIGH_VOLATILITY
 
@@ -171,8 +176,9 @@
 
   Result: 4 conditions met → STRONG_BUY signal generated
 
-  ---
-  SECTION 4: Confidence Score Calculation
+---
+
+### SECTION 4: Confidence Score Calculation
 
   Code Location: app/core/signal_generator.py:425-471
 
@@ -235,8 +241,9 @@
   if confidence < self.min_confidence:  # self.min_confidence = 0.6
       return None  # Signal rejected, ticker excluded from list
 
-  ---
-  SECTION 5: Position Sizing (Stop Loss & Target)
+---
+
+### SECTION 5: Position Sizing (Stop Loss & Target)
 
   Code Location: app/core/signal_generator.py:106-115
 
@@ -269,8 +276,9 @@
   Target = $250 + (10 × 2 × 2) = $290 (16% reward)
   Risk/Reward Ratio: 1:8
 
-  ---
-  SECTION 6: Portfolio Collection & Sorting
+---
+
+### SECTION 6: Portfolio Collection & Sorting
 
   Code Location: app/core/signal_generator.py:134-155
 
@@ -289,8 +297,9 @@
 
   Key Point: Only tickers where generate_signal() returns a non-None TradingSignal object appear in the list.
 
-  ---
-  SECTION 7: API Response Format
+---
+
+### SECTION 7: API Response Format
 
   Code Location: app/api/routes.py:67-94
 
@@ -322,8 +331,9 @@
     "total_count": 5
   }
 
-  ---
-  Why a Ticker DOESN'T Appear
+---
+
+### Why a Ticker DOESN'T Appear
 
   A ticker is excluded if:
 
@@ -335,8 +345,9 @@
   | Wrong regime match   | 434-440 | SELL signal in TRENDING_UP market              |
   | Weak indicators      | All     | No volume surge, RSI normal, MACD not bullish  |
 
-  ---
-  Summary Decision Tree
+---
+
+### Summary Decision Tree
 
   ┌─ Fetch data for all portfolio tickers
   │
@@ -362,8 +373,9 @@
   └─ Sort all signals by confidence (DESC)
      └─ Return to API
 
-  ---
-  Real-World Example: Complete Ticker Journey
+---
+
+### Real-World Example: Complete Ticker Journey
 
   Scenario: Checking MSFT on 2025-01-15
 
