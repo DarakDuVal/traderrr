@@ -584,6 +584,255 @@ class DataManager:
             self.logger.error(f"Error getting signal stats: {e}")
             return {}
 
+    def get_portfolio_performance(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict]:
+        """
+        Retrieve portfolio performance history from database.
+
+        Args:
+            start_date: Filter performance from this date (format: YYYY-MM-DD)
+            end_date: Filter performance until this date (format: YYYY-MM-DD)
+            limit: Maximum number of records to return (default: 100, max: 1000)
+
+        Returns:
+            List of performance dictionaries ordered by date descending
+        """
+        try:
+            query = "SELECT * FROM portfolio_performance WHERE 1=1"
+            params = []
+
+            if start_date:
+                query += " AND date >= ?"
+                params.append(start_date)
+
+            if end_date:
+                query += " AND date <= ?"
+                params.append(end_date)
+
+            # Order by date descending for latest first
+            query += " ORDER BY date DESC LIMIT ?"
+            params.append(min(limit, 1000))
+
+            cursor = self.conn.cursor()
+            cursor.execute(query, params)
+
+            columns = [
+                "id",
+                "date",
+                "portfolio_value",
+                "daily_return",
+                "volatility",
+                "sharpe_ratio",
+                "max_drawdown",
+                "created_at",
+            ]
+
+            performance = []
+            for row in cursor.fetchall():
+                perf_dict = dict(zip(columns, row))
+                performance.append(perf_dict)
+
+            return performance
+
+        except Exception as e:
+            self.logger.error(f"Error retrieving portfolio performance: {e}")
+            return []
+
+    def get_performance_summary(self, days: int = 30) -> Dict:
+        """
+        Get portfolio performance summary for recent period.
+
+        Args:
+            days: Number of days to look back (default: 30)
+
+        Returns:
+            Summary statistics including current value, returns, volatility, etc.
+        """
+        try:
+            from datetime import datetime, timedelta
+
+            cutoff_date = (datetime.now() - timedelta(days=days)).date()
+
+            query = """
+                SELECT
+                    COUNT(*) as total_records,
+                    MAX(date) as latest_date,
+                    MIN(date) as earliest_date,
+                    MAX(portfolio_value) as max_value,
+                    MIN(portfolio_value) as min_value,
+                    (SELECT portfolio_value FROM portfolio_performance
+                     ORDER BY date DESC LIMIT 1) as current_value,
+                    (SELECT portfolio_value FROM portfolio_performance
+                     WHERE date = (SELECT MIN(date) FROM portfolio_performance
+                                   WHERE date >= ?)
+                     LIMIT 1) as opening_value,
+                    AVG(daily_return) as avg_daily_return,
+                    AVG(volatility) as avg_volatility,
+                    MAX(volatility) as max_volatility,
+                    MIN(volatility) as min_volatility,
+                    AVG(sharpe_ratio) as avg_sharpe_ratio,
+                    MIN(max_drawdown) as worst_drawdown,
+                    MAX(sharpe_ratio) as best_sharpe_ratio
+                FROM portfolio_performance
+                WHERE date >= ?
+            """
+            params = [cutoff_date, cutoff_date]
+
+            cursor = self.conn.cursor()
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+            if row:
+                columns = [
+                    "total_records",
+                    "latest_date",
+                    "earliest_date",
+                    "max_value",
+                    "min_value",
+                    "current_value",
+                    "opening_value",
+                    "avg_daily_return",
+                    "avg_volatility",
+                    "max_volatility",
+                    "min_volatility",
+                    "avg_sharpe_ratio",
+                    "worst_drawdown",
+                    "best_sharpe_ratio",
+                ]
+                summary = dict(zip(columns, row))
+
+                # Calculate period return if we have opening and current values
+                if (
+                    summary["opening_value"]
+                    and summary["current_value"]
+                    and summary["opening_value"] != 0
+                ):
+                    summary["period_return"] = (
+                        summary["current_value"] - summary["opening_value"]
+                    ) / summary["opening_value"]
+                else:
+                    summary["period_return"] = None
+
+                return summary
+            return {}
+
+        except Exception as e:
+            self.logger.error(f"Error getting performance summary: {e}")
+            return {}
+
+    def get_daily_performance(self, limit: int = 30) -> List[Dict]:
+        """Get recent daily performance records"""
+        return self.get_portfolio_performance(limit=limit)
+
+    def get_performance_by_date_range(
+        self, start_date: str, end_date: str, limit: int = 1000
+    ) -> List[Dict]:
+        """Get performance data for a specific date range"""
+        return self.get_portfolio_performance(start_date=start_date, end_date=end_date, limit=limit)
+
+    def get_performance_metrics(self, days: int = 90) -> Dict:
+        """
+        Get aggregated performance metrics for analysis.
+
+        Args:
+            days: Number of days to analyze (default: 90)
+
+        Returns:
+            Aggregated metrics for performance analysis
+        """
+        try:
+            from datetime import datetime, timedelta
+
+            cutoff_date = (datetime.now() - timedelta(days=days)).date()
+
+            # Get all performance records for the period
+            query = """
+                SELECT
+                    date,
+                    portfolio_value,
+                    daily_return,
+                    volatility,
+                    sharpe_ratio,
+                    max_drawdown
+                FROM portfolio_performance
+                WHERE date >= ?
+                ORDER BY date ASC
+            """
+
+            cursor = self.conn.cursor()
+            cursor.execute(query, (cutoff_date,))
+            rows = cursor.fetchall()
+
+            if not rows:
+                return {}
+
+            # Calculate metrics from data
+            dates = [row[0] for row in rows]
+            values = [row[1] for row in rows]
+            daily_returns = [row[2] for row in rows]
+            volatilities = [row[3] for row in rows]
+            sharpe_ratios = [row[4] for row in rows]
+            max_drawdowns = [row[5] for row in rows]
+
+            # Filter out None values for calculations
+            daily_returns_filtered = [r for r in daily_returns if r is not None]
+            volatilities_filtered = [v for v in volatilities if v is not None]
+            sharpe_ratios_filtered = [s for s in sharpe_ratios if s is not None]
+            max_drawdowns_filtered = [d for d in max_drawdowns if d is not None]
+
+            metrics = {
+                "period_days": days,
+                "records_count": len(rows),
+                "start_date": dates[0] if dates else None,
+                "end_date": dates[-1] if dates else None,
+                "start_value": values[0] if values else None,
+                "end_value": values[-1] if values else None,
+                "min_value": min(values) if values else None,
+                "max_value": max(values) if values else None,
+                "avg_volatility": (
+                    sum(volatilities_filtered) / len(volatilities_filtered)
+                    if volatilities_filtered
+                    else None
+                ),
+                "max_volatility": (max(volatilities_filtered) if volatilities_filtered else None),
+                "min_volatility": (min(volatilities_filtered) if volatilities_filtered else None),
+                "avg_sharpe_ratio": (
+                    sum(sharpe_ratios_filtered) / len(sharpe_ratios_filtered)
+                    if sharpe_ratios_filtered
+                    else None
+                ),
+                "worst_sharpe_ratio": (
+                    min(sharpe_ratios_filtered) if sharpe_ratios_filtered else None
+                ),
+                "best_sharpe_ratio": (
+                    max(sharpe_ratios_filtered) if sharpe_ratios_filtered else None
+                ),
+                "avg_daily_return": (
+                    sum(daily_returns_filtered) / len(daily_returns_filtered)
+                    if daily_returns_filtered
+                    else None
+                ),
+                "worst_drawdown": (min(max_drawdowns_filtered) if max_drawdowns_filtered else None),
+            }
+
+            # Calculate total return if we have start and end values
+            if metrics["start_value"] and metrics["end_value"] and metrics["start_value"] != 0:
+                metrics["total_return"] = (metrics["end_value"] - metrics["start_value"]) / metrics[
+                    "start_value"
+                ]
+            else:
+                metrics["total_return"] = None
+
+            return metrics
+
+        except Exception as e:
+            self.logger.error(f"Error calculating performance metrics: {e}")
+            return {}
+
     def close(self):
         """Close database connection"""
         if self.conn:

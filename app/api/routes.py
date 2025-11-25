@@ -227,6 +227,185 @@ def get_signal_stats():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/portfolio-performance", methods=["GET"])
+def get_portfolio_performance():
+    """
+    Get historical portfolio performance data with optional date filtering.
+
+    Query Parameters:
+        start_date: Start date for filter (YYYY-MM-DD)
+        end_date: End date for filter (YYYY-MM-DD)
+        limit: Maximum records to return (default: 100, max: 1000)
+
+    Response includes:
+        - date: Performance record date
+        - portfolio_value: Total portfolio value
+        - daily_return: Daily return percentage
+        - volatility: Portfolio volatility
+        - sharpe_ratio: Risk-adjusted return metric
+        - max_drawdown: Maximum loss from peak
+    """
+    try:
+        start_date = request.args.get("start_date", type=str)
+        end_date = request.args.get("end_date", type=str)
+        limit = request.args.get("limit", default=100, type=int)
+
+        # Validate limit
+        limit = min(limit, 1000)
+
+        # Get performance data
+        performance = dm.get_portfolio_performance(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+        )
+
+        return (
+            jsonify(
+                {
+                    "performance": performance,
+                    "count": len(performance),
+                    "filters": {
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "limit": limit,
+                    },
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Portfolio performance API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio-performance/summary", methods=["GET"])
+def get_performance_summary():
+    """
+    Get portfolio performance summary for a period.
+
+    Query Parameters:
+        days: Number of days to look back (default: 30)
+
+    Response includes:
+        - total_records: Number of performance records
+        - current_value: Latest portfolio value
+        - opening_value: Value at start of period
+        - period_return: Total return for period
+        - min_value / max_value: Range during period
+        - avg_volatility: Average volatility
+        - avg_sharpe_ratio: Average Sharpe ratio
+        - worst_drawdown: Worst drawdown
+    """
+    try:
+        days = request.args.get("days", default=30, type=int)
+
+        # Validate days
+        days = max(1, min(days, 365))
+
+        summary = dm.get_performance_summary(days=days)
+
+        if not summary:
+            return (
+                jsonify({"message": "No performance data available for the specified period"}),
+                404,
+            )
+
+        return (
+            jsonify(
+                {
+                    "period_days": days,
+                    "summary": summary,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Performance summary API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio-performance/metrics", methods=["GET"])
+def get_performance_metrics():
+    """
+    Get comprehensive portfolio performance metrics.
+
+    Query Parameters:
+        days: Number of days to analyze (default: 90, max: 365)
+
+    Response includes:
+        - period_days: Number of days analyzed
+        - records_count: Number of data points
+        - start_date / end_date: Period boundaries
+        - start_value / end_value: Portfolio value at boundaries
+        - total_return: Total return percentage
+        - min_value / max_value: Portfolio range
+        - avg_volatility: Average volatility
+        - max_volatility / min_volatility: Volatility range
+        - avg_sharpe_ratio: Average risk-adjusted return
+        - worst_drawdown: Worst drawdown
+    """
+    try:
+        days = request.args.get("days", default=90, type=int)
+
+        # Validate days
+        days = max(1, min(days, 365))
+
+        metrics = dm.get_performance_metrics(days=days)
+
+        if not metrics:
+            return (
+                jsonify({"message": "No performance data available for the specified period"}),
+                404,
+            )
+
+        return (
+            jsonify(
+                {
+                    "period_days": days,
+                    "metrics": metrics,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Performance metrics API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio-performance/latest", methods=["GET"])
+def get_latest_performance():
+    """Get the latest portfolio performance record"""
+    try:
+        performance = dm.get_portfolio_performance(limit=1)
+
+        if not performance:
+            return (
+                jsonify(
+                    {
+                        "message": "No performance data available",
+                    }
+                ),
+                404,
+            )
+
+        return (
+            jsonify(
+                {
+                    "latest_performance": performance[0],
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Latest performance API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/portfolio", methods=["GET"])
 def get_portfolio():
     """Get portfolio overview"""
