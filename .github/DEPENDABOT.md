@@ -43,59 +43,69 @@ This workflow handles automatic merging of Dependabot PRs with the following log
 - Extracts Dependabot PR information using the official metadata action
 - Identifies dependency names, versions, and update types
 
-#### Step 2: Auto-Approval & Auto-Merge
+#### Step 2: Auto-Approval
 - Automatically approves all Dependabot PRs
-- Enables auto-merge (squash strategy) for dependency updates
+- Requires only `pull-requests: write` permission
+- Safe because CI/CD checks must pass before merge
 
-#### Step 3: Security Check
-- Analyzes PR title and labels for security indicators
-- Categorizes updates by severity: `critical`, `high`, `medium`, `unknown`
-- Adds automated comments on security-related updates
+#### Step 3: Smart Version-Based Merging
+- **Patch Updates** (e.g., 2.1.0 → 2.1.1): Auto-merge if all CI/CD checks pass
+- **Minor Updates** (e.g., 2.1.0 → 2.2.0): Auto-merge if all CI/CD checks pass
+- **Major Updates** (e.g., 1.0.0 → 2.0.0): Requires manual review with warning comment
 
-#### Step 4: Status Check Verification
-- Waits for all CI/CD checks to complete (max 10 minutes)
-- Monitors:
-  - `tests.yml` - Unit and integration tests
-  - `code-quality.yml` - Code formatting and linting
-  - `pylint.yml` - Python linting
-- Only auto-merges if **all checks pass**
+#### Step 4: CI/CD Checks
+GitHub's native checks automatically verify before merge:
+- `tests.yml` - Unit and integration tests
+- `code-quality.yml` - Code formatting and linting
+- `pylint.yml` - Python linting
+
+Only PRs that pass **all checks** will be merged by auto-merge.
 
 ## Merge Strategy
 
-### Auto-Merge Conditions
+### Auto-Merge (Automatic)
 
-Pull requests from Dependabot will be **automatically merged** if:
+Pull requests from Dependabot will be **automatically approved and merged** if:
 
-1. ✅ All CI/CD checks pass (tests, linting, code quality)
-2. ✅ The PR is for a dependency update
-3. ✅ The base branch is `main` or `develop`
+1. ✅ Update type is **patch** or **minor** version (semver)
+2. ✅ All CI/CD checks pass (tests, linting, code quality)
+3. ✅ No merge conflicts
+
+**Examples:**
+- `lodash` 4.17.20 → 4.17.21 (patch) ✅ Auto-merge
+- `flask` 2.0.0 → 2.1.0 (minor) ✅ Auto-merge
+- `django` 3.2 → 4.0 (major) ⏸️ Requires manual review
 
 ### Manual Review Required
 
 The following scenarios require manual review:
 
-- 🟡 **Minor version updates** (e.g., 2.1.0 → 2.2.0) - Auto-merged if tests pass
-- 🟡 **Patch version updates** (e.g., 2.1.0 → 2.1.1) - Auto-merged if tests pass
-- 🔴 **Major version updates** (e.g., 1.0.0 → 2.0.0) - Requires manual review
-- 🔴 **Breaking changes** - Requires manual review
-- 🔴 **Tests fail** - Requires investigation and manual action
+- 🔴 **Major version updates** (e.g., 1.0.0 → 2.0.0) - Workflow adds warning comment
+- 🔴 **Breaking changes** - Requires manual investigation
+- 🔴 **Tests fail** - CI pipeline must pass for auto-merge to proceed
+- 🔴 **Merge conflicts** - Cannot auto-merge if conflicts exist
 
 ## Security Update Handling
 
-### Critical & High Severity Updates
+Security vulnerabilities are handled the same way as regular dependency updates:
 
-Updates rated as **critical** or **high** severity:
-- 🚨 Are auto-approved and auto-merged immediately
-- 📢 Receive automated comments with severity level
-- ⚡ Bypass normal review delays
-- ✅ Still require all CI/CD checks to pass
+### All Security Updates
 
-### Medium & Low Severity Updates
+1. **Automatic Approval:** Dependabot PR is approved automatically
+2. **Version Check:**
+   - Patch/minor security fixes → Auto-merge after CI passes ✅
+   - Major version security fixes → Manual review required ⏸️
+3. **CI/CD Validation:** Must pass all tests before merge
+4. **Labels:** PR is labeled with `dependencies` and `automated`
 
-Updates rated as **medium** or **low** severity:
-- 👀 Create PRs for human review
-- 📋 Are labeled with `dependencies` and `automated`
-- ⏱️ Follow normal review processes
+### Why This Approach
+
+- **Simplicity:** Single process for all updates reduces confusion
+- **Safety:** All updates require CI/CD checks to pass
+- **Efficiency:** Security patches merge quickly while major changes get review
+- **Reliability:** Uses GitHub's native auto-merge instead of complex automation
+
+**Note:** Security alerts from GitHub's vulnerability database are separate and may require urgent attention regardless of version type.
 
 ## Managing Dependabot PRs
 
