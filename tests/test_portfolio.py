@@ -461,5 +461,229 @@ class TestPortfolioOptimization(BaseTestCase):
             pass
 
 
+# ============================================================================
+# PORTFOLIO MANAGER TESTS (Phase 2c Expansion)
+# ============================================================================
+
+
+class TestPortfolioManager(BaseTestCase):
+    """Test cases for PortfolioManager database operations"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        super().setUp()
+        from app.core.portfolio_manager import PortfolioManager
+
+        self.pm = PortfolioManager(db_path=self.test_db.name)
+
+    def tearDown(self):
+        """Clean up"""
+        super().tearDown()
+
+    def test_add_position_valid(self):
+        """Test adding a valid position"""
+        success, issues = self.pm.add_or_update_position("AAPL", 100.0)
+
+        self.assertTrue(success)
+        self.assertEqual(len(issues), 0)
+
+        # Verify position was added
+        position = self.pm.get_position("AAPL")
+        self.assertEqual(position, 100.0)
+
+    def test_add_position_invalid_ticker(self):
+        """Test adding position with invalid ticker"""
+        success, issues = self.pm.add_or_update_position("", 100.0)
+
+        self.assertFalse(success)
+        self.assertGreater(len(issues), 0)
+        self.assertIn("ticker", issues[0].lower())
+
+    def test_add_position_negative_shares(self):
+        """Test adding position with negative shares"""
+        success, issues = self.pm.add_or_update_position("MSFT", -50.0)
+
+        self.assertFalse(success)
+        self.assertGreater(len(issues), 0)
+        self.assertIn("shares", issues[0].lower())
+
+    def test_add_position_zero_shares(self):
+        """Test adding position with zero shares"""
+        success, issues = self.pm.add_or_update_position("GOOGL", 0.0)
+
+        # Zero shares should be allowed (could mean closing position)
+        self.assertTrue(success)
+        position = self.pm.get_position("GOOGL")
+        self.assertEqual(position, 0.0)
+
+    def test_update_position(self):
+        """Test updating an existing position"""
+        # Add initial position
+        self.pm.add_or_update_position("AMZN", 50.0)
+
+        # Update it
+        success, issues = self.pm.add_or_update_position("AMZN", 100.0)
+
+        self.assertTrue(success)
+        position = self.pm.get_position("AMZN")
+        self.assertEqual(position, 100.0)
+
+    def test_remove_position_existing(self):
+        """Test removing an existing position"""
+        # Add position first
+        self.pm.add_or_update_position("TEST", 75.0)
+
+        # Remove it
+        success, issues = self.pm.remove_position("TEST")
+
+        self.assertTrue(success)
+        self.assertEqual(len(issues), 0)
+
+        # Verify it's gone
+        position = self.pm.get_position("TEST")
+        self.assertEqual(position, 0)
+
+    def test_remove_position_nonexistent(self):
+        """Test removing a non-existent position"""
+        success, issues = self.pm.remove_position("NONEXISTENT")
+
+        self.assertFalse(success)
+        self.assertGreater(len(issues), 0)
+        self.assertIn("not found", issues[0].lower())
+
+    def test_get_all_positions_empty(self):
+        """Test getting all positions from empty portfolio"""
+        positions = self.pm.get_all_positions()
+
+        self.assertIsInstance(positions, dict)
+        self.assertEqual(len(positions), 0)
+
+    def test_get_all_positions_multiple(self):
+        """Test getting all positions with multiple holdings"""
+        # Add multiple positions
+        tickers = ["AAPL", "MSFT", "GOOGL", "AMZN"]
+        for i, ticker in enumerate(tickers):
+            self.pm.add_or_update_position(ticker, (i + 1) * 100.0)
+
+        # Get all positions
+        positions = self.pm.get_all_positions()
+
+        self.assertEqual(len(positions), 4)
+        for i, ticker in enumerate(tickers):
+            self.assertEqual(positions[ticker], (i + 1) * 100.0)
+
+    def test_get_tickers(self):
+        """Test getting list of tickers"""
+        # Add positions
+        tickers_added = ["AAPL", "MSFT", "GOOGL"]
+        for ticker in tickers_added:
+            self.pm.add_or_update_position(ticker, 50.0)
+
+        # Get tickers
+        tickers = self.pm.get_tickers()
+
+        self.assertEqual(len(tickers), 3)
+        for ticker in tickers_added:
+            self.assertIn(ticker, tickers)
+
+    def test_initialize_from_config(self):
+        """Test portfolio initialization from config"""
+        config = {"AAPL": 100, "MSFT": 50, "GOOGL": 75}
+
+        self.pm.initialize_from_config(config)
+
+        # Verify all positions were added
+        for ticker, shares in config.items():
+            position = self.pm.get_position(ticker)
+            self.assertEqual(position, shares)
+
+    def test_initialize_from_config_idempotent(self):
+        """Test that initialize doesn't overwrite existing positions"""
+        # Add initial position
+        self.pm.add_or_update_position("AAPL", 100.0)
+
+        # Try to initialize
+        config = {"MSFT": 50, "GOOGL": 75}
+        self.pm.initialize_from_config(config)
+
+        # Original position should still exist
+        position = self.pm.get_position("AAPL")
+        self.assertEqual(position, 100.0)
+
+    def test_get_weights_basic(self):
+        """Test portfolio weight calculation"""
+        # Setup: 100 shares at $100 = $10k, 50 shares at $200 = $10k (equal weights)
+        self.pm.add_or_update_position("AAPL", 100.0)
+        self.pm.add_or_update_position("MSFT", 50.0)
+
+        prices = {"AAPL": 100.0, "MSFT": 200.0}
+        weights = self.pm.get_weights(prices)
+
+        self.assertEqual(len(weights), 2)
+        self.assertAlmostEqual(weights["AAPL"], 0.5, places=2)
+        self.assertAlmostEqual(weights["MSFT"], 0.5, places=2)
+
+    def test_get_weights_unequal(self):
+        """Test weight calculation with unequal values"""
+        self.pm.add_or_update_position("AAPL", 100.0)
+        self.pm.add_or_update_position("MSFT", 100.0)
+
+        # AAPL worth $10k, MSFT worth $20k
+        prices = {"AAPL": 100.0, "MSFT": 200.0}
+        weights = self.pm.get_weights(prices)
+
+        self.assertAlmostEqual(weights["AAPL"], 1 / 3, places=2)
+        self.assertAlmostEqual(weights["MSFT"], 2 / 3, places=2)
+
+    def test_get_weights_missing_prices(self):
+        """Test weight calculation with missing prices"""
+        self.pm.add_or_update_position("AAPL", 100.0)
+        self.pm.add_or_update_position("MSFT", 50.0)
+
+        # Only provide price for one ticker
+        prices = {"AAPL": 100.0}
+        weights = self.pm.get_weights(prices)
+
+        # Should still return weights (missing prices treated as 0)
+        self.assertIsInstance(weights, dict)
+
+    def test_get_total_value(self):
+        """Test total portfolio value calculation"""
+        self.pm.add_or_update_position("AAPL", 100.0)
+        self.pm.add_or_update_position("MSFT", 50.0)
+
+        prices = {"AAPL": 100.0, "MSFT": 200.0}
+        total_value = self.pm.get_total_value(prices)
+
+        # 100 * 100 + 50 * 200 = 10000 + 10000 = 20000
+        self.assertEqual(total_value, 20000.0)
+
+    def test_get_total_value_empty_portfolio(self):
+        """Test total value of empty portfolio"""
+        prices = {"AAPL": 100.0, "MSFT": 200.0}
+        total_value = self.pm.get_total_value(prices)
+
+        self.assertEqual(total_value, 0)
+
+    def test_ticker_case_insensitivity(self):
+        """Test that tickers are normalized to uppercase"""
+        # Add with lowercase
+        success, issues = self.pm.add_or_update_position("aapl", 100.0)
+
+        self.assertTrue(success)
+
+        # Retrieve with uppercase
+        position = self.pm.get_position("AAPL")
+        self.assertEqual(position, 100.0)
+
+    def test_ticker_whitespace_handling(self):
+        """Test that ticker whitespace is trimmed"""
+        success, issues = self.pm.add_or_update_position(" MSFT ", 50.0)
+
+        self.assertTrue(success)
+        position = self.pm.get_position("MSFT")
+        self.assertEqual(position, 50.0)
+
+
 if __name__ == "__main__":
     unittest.main()
