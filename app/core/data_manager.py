@@ -59,9 +59,7 @@ class DataManager:
 
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
 
@@ -237,8 +235,7 @@ class DataManager:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             future_to_ticker = {
-                executor.submit(self.get_stock_data, ticker, period): ticker
-                for ticker in tickers
+                executor.submit(self.get_stock_data, ticker, period): ticker for ticker in tickers
             }
 
             # Collect results
@@ -325,9 +322,7 @@ class DataManager:
             }
 
         # Select only existing columns and rename to match database schema
-        available_columns = [
-            col for col in columns_map.keys() if col in data_copy.columns
-        ]
+        available_columns = [col for col in columns_map.keys() if col in data_copy.columns]
         data_to_store = data_copy[available_columns].copy()
 
         # Rename columns to match database schema
@@ -366,9 +361,7 @@ class DataManager:
                     ORDER BY datetime
                 """
 
-            df = pd.read_sql_query(
-                query, self.conn, params=[ticker], parse_dates=["Date"]
-            )
+            df = pd.read_sql_query(query, self.conn, params=[ticker], parse_dates=["Date"])
 
             if not df.empty:
                 df.set_index("Date", inplace=True)
@@ -454,23 +447,17 @@ class DataManager:
             total_deleted = 0
 
             # Clean daily data
-            cursor.execute(
-                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
-            )
+            cursor.execute("DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),))
             total_deleted += cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute(
-                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
-            )
+            cursor.execute("DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,))
             total_deleted += cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
-            cursor.execute(
-                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
-            )
+            cursor.execute("DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,))
             total_deleted += cursor.rowcount
 
             self.conn.commit()
@@ -522,9 +509,7 @@ class DataManager:
                     date_diff = data.index.to_series().diff()
                     gaps = date_diff[date_diff > pd.Timedelta(days=7)]
                     if not gaps.empty:
-                        report["data_gaps"].append(
-                            {"ticker": ticker, "gaps": len(gaps)}
-                        )
+                        report["data_gaps"].append({"ticker": ticker, "gaps": len(gaps)})
 
             except Exception as e:
                 self.logger.error(f"Error checking data quality for {ticker}: {e}")

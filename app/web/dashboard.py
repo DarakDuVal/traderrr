@@ -833,20 +833,15 @@ def dashboard():
                         current_prices[ticker] = current_price
                         daily_change = data["Close"].pct_change().iloc[-1]
                         volume_ratio = (
-                            data["Volume"].iloc[-1]
-                            / data["Volume"].rolling(5).mean().iloc[-1]
+                            data["Volume"].iloc[-1] / data["Volume"].rolling(5).mean().iloc[-1]
                         )
 
                         # Calculate weight from shares and prices
                         position_value = positions[ticker] * current_price
                         portfolio_overview[ticker] = {
                             "price": current_price,
-                            "daily_change": (
-                                daily_change if not pd.isna(daily_change) else 0
-                            ),
-                            "volume_ratio": (
-                                volume_ratio if not pd.isna(volume_ratio) else 1
-                            ),
+                            "daily_change": (daily_change if not pd.isna(daily_change) else 0),
+                            "volume_ratio": (volume_ratio if not pd.isna(volume_ratio) else 1),
                             "weight": 0,  # Will be calculated below
                         }
                 except Exception as e:
@@ -877,9 +872,7 @@ def dashboard():
         buy_signals = len([s for s in signals_data if "BUY" in s.signal_type.value])
         sell_signals = len([s for s in signals_data if "SELL" in s.signal_type.value])
         avg_confidence = (
-            sum(s.confidence for s in signals_data) / len(signals_data)
-            if signals_data
-            else 0
+            sum(s.confidence for s in signals_data) / len(signals_data) if signals_data else 0
         )
 
         # Determine status color

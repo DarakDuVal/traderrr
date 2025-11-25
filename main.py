@@ -288,9 +288,7 @@ def main():
         start_scheduler()
 
         # Start Flask application
-        logger.info(
-            f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}"
-        )
+        logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
 
         if os.getenv("FLASK_ENV") == "development":
             # Development mode
@@ -312,9 +310,7 @@ def main():
                 return app
 
             except ImportError:
-                logger.warning(
-                    "Gunicorn not available, running with Flask development server"
-                )
+                logger.warning("Gunicorn not available, running with Flask development server")
                 app.run(host=Config.API_HOST(), port=Config.API_PORT(), debug=False)
 
         return 0

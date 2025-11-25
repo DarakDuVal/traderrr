@@ -14,32 +14,34 @@ def setup_environment():
     print("Setting up trading system...")
 
     # Create required directories
-    directories = ['data', 'logs', 'backups', 'cache']
+    directories = ["data", "logs", "backups", "cache"]
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
         print(f"✓ Created directory: {directory}")
 
     # Install requirements
     print("Installing Python dependencies...")
-    subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
+    subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
     print("✓ Dependencies installed")
 
     # Initialize database
     print("Initializing database...")
     from config.database import DatabaseConfig
-    db_config = DatabaseConfig('data/market_data.db')
+
+    db_config = DatabaseConfig("data/market_data.db")
     if db_config.init_database():
         print("✓ Database initialized")
     else:
         print("✗ Database initialization failed")
 
     # Create default config if not exists
-    if not os.path.exists('config.json'):
+    if not os.path.exists("config.json"):
         print("Creating default configuration...")
         import json
         from config.settings import Config
+
         config_data = Config._get_default_config()
-        with open('config.json', 'w') as f:
+        with open("config.json", "w") as f:
             json.dump(config_data, f, indent=2)
         print("✓ Configuration created")
 
@@ -50,5 +52,5 @@ def setup_environment():
     print("3. Open browser: http://localhost:5000")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup_environment()

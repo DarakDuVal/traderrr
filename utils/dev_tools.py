@@ -102,9 +102,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--populate", action="store_true", help="Populate with sample data"
-    )
+    parser.add_argument("--populate", action="store_true", help="Populate with sample data")
     parser.add_argument("--test", action="store_true", help="Run quick test")
 
     args = parser.parse_args()

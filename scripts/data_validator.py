@@ -46,9 +46,7 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
     open_low_issues = (data["Open"] < data["Low"]).sum()
     close_low_issues = (data["Close"] < data["Low"]).sum()
 
-    ohlc_issues = (
-        open_high_issues + close_high_issues + open_low_issues + close_low_issues
-    )
+    ohlc_issues = open_high_issues + close_high_issues + open_low_issues + close_low_issues
     if ohlc_issues > 0:
         issues.append(f"{ohlc_issues} OHLC consistency violations")
 
@@ -91,9 +89,7 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
         "warnings": warnings,
         "records": len(data),
         "date_range": (
-            f"{data.index[0].date()} to {data.index[-1].date()}"
-            if len(data) > 0
-            else "No data"
+            f"{data.index[0].date()} to {data.index[-1].date()}" if len(data) > 0 else "No data"
         ),
     }
 
@@ -176,9 +172,7 @@ def validate_portfolio_data():
 
     for result in all_results:
         if result["issues"] or result["warnings"]:
-            print(
-                f"\n{result['ticker']} ({result['records']} records, {result['date_range']}):"
-            )
+            print(f"\n{result['ticker']} ({result['records']} records, {result['date_range']}):")
             for issue in result["issues"]:
                 print(f"  ❌ {issue}")
             for warning in result["warnings"]:

@@ -206,9 +206,7 @@ class TestSignalGenerator(BaseTestCase):
         # Signals should be sorted by confidence (highest first)
         if len(signals) > 1:
             for i in range(len(signals) - 1):
-                self.assertGreaterEqual(
-                    signals[i].confidence, signals[i + 1].confidence
-                )
+                self.assertGreaterEqual(signals[i].confidence, signals[i + 1].confidence)
 
     def test_confidence_calculation(self):
         """Test confidence score calculation"""
@@ -265,11 +263,7 @@ class TestSignalGenerator(BaseTestCase):
             # Value should not be None
             self.assertIsNotNone(value, f"Indicator {key} should not be None")
 
-            if (
-                key.endswith("_bullish")
-                or key.endswith("_oversold")
-                or key.endswith("_overbought")
-            ):
+            if key.endswith("_bullish") or key.endswith("_oversold") or key.endswith("_overbought"):
                 # Boolean indicators can be bool or numpy bool
                 self.assertIsInstance(value, (bool, np.bool_))
             else:

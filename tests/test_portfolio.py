@@ -25,26 +25,20 @@ class TestPortfolioAnalyzer(BaseTestCase):
 
         # Create sample portfolio data
         np.random.seed(42)
-        dates = pd.date_range(
-            "2023-01-01", periods=252, freq="D"
-        )  # One year of daily data
+        dates = pd.date_range("2023-01-01", periods=252, freq="D")  # One year of daily data
 
         # Generate correlated stock data
         n_stocks = 4
         n_days = len(dates)
 
         # Base market return
-        market_returns = np.random.normal(
-            0.0008, 0.015, n_days
-        )  # 0.08% daily, 1.5% volatility
+        market_returns = np.random.normal(0.0008, 0.015, n_days)  # 0.08% daily, 1.5% volatility
 
         # Individual stock returns with different betas
         betas = [1.2, 0.8, 1.5, 0.6]
         stock_returns = {}
 
-        for i, (ticker, beta) in enumerate(
-            zip(["AAPL", "MSFT", "GOOGL", "SPY"], betas)
-        ):
+        for i, (ticker, beta) in enumerate(zip(["AAPL", "MSFT", "GOOGL", "SPY"], betas)):
             # Stock return = beta * market + idiosyncratic
             stock_return = beta * market_returns + np.random.normal(
                 0, 0.01, n_days
@@ -70,12 +64,8 @@ class TestPortfolioAnalyzer(BaseTestCase):
             for j in range(n_days):
                 high = max(stock_returns[ticker].iloc[j][["Open", "High", "Close"]])
                 low = min(stock_returns[ticker].iloc[j][["Open", "Low", "Close"]])
-                stock_returns[ticker].iloc[
-                    j, stock_returns[ticker].columns.get_loc("High")
-                ] = high
-                stock_returns[ticker].iloc[
-                    j, stock_returns[ticker].columns.get_loc("Low")
-                ] = low
+                stock_returns[ticker].iloc[j, stock_returns[ticker].columns.get_loc("High")] = high
+                stock_returns[ticker].iloc[j, stock_returns[ticker].columns.get_loc("Low")] = low
 
         self.portfolio_data = stock_returns
         self.portfolio_weights = {
@@ -142,9 +132,7 @@ class TestPortfolioAnalyzer(BaseTestCase):
 
     def test_correlation_matrix(self):
         """Test correlation matrix calculation"""
-        correlation_matrix = self.analyzer.calculate_correlation_matrix(
-            self.portfolio_data
-        )
+        correlation_matrix = self.analyzer.calculate_correlation_matrix(self.portfolio_data)
 
         # Should be square matrix
         self.assertEqual(correlation_matrix.shape[0], correlation_matrix.shape[1])
@@ -249,16 +237,12 @@ class TestPortfolioAnalyzer(BaseTestCase):
         single_asset_data = {"AAPL": self.portfolio_data["AAPL"]}
         single_asset_weights = {"AAPL": 1.0}
 
-        metrics = self.analyzer.analyze_portfolio(
-            single_asset_data, single_asset_weights
-        )
+        metrics = self.analyzer.analyze_portfolio(single_asset_data, single_asset_weights)
         self.assertIsInstance(metrics, PortfolioMetrics)
 
         # Test with mismatched weights and data
         mismatched_weights = {"AAPL": 0.5, "INVALID": 0.5}
-        metrics = self.analyzer.analyze_portfolio(
-            self.portfolio_data, mismatched_weights
-        )
+        metrics = self.analyzer.analyze_portfolio(self.portfolio_data, mismatched_weights)
         self.assertIsInstance(metrics, PortfolioMetrics)
 
     def test_liquidity_score_calculation(self):
@@ -267,9 +251,7 @@ class TestPortfolioAnalyzer(BaseTestCase):
         high_liquidity_data = self.portfolio_data["AAPL"].copy()
         high_liquidity_data["Volume"] = 50000000  # Very high volume
 
-        liquidity_score_high = self.analyzer._calculate_liquidity_score(
-            high_liquidity_data
-        )
+        liquidity_score_high = self.analyzer._calculate_liquidity_score(high_liquidity_data)
 
         # Create low volume, high volatility data (low liquidity)
         low_liquidity_data = self.portfolio_data["AAPL"].copy()
@@ -278,9 +260,7 @@ class TestPortfolioAnalyzer(BaseTestCase):
             1 + np.random.normal(0, 0.1, len(low_liquidity_data))
         )  # High volatility
 
-        liquidity_score_low = self.analyzer._calculate_liquidity_score(
-            low_liquidity_data
-        )
+        liquidity_score_low = self.analyzer._calculate_liquidity_score(low_liquidity_data)
 
         # High liquidity should score higher
         self.assertGreater(liquidity_score_high, liquidity_score_low)
@@ -317,9 +297,7 @@ class TestPortfolioAnalyzer(BaseTestCase):
     def test_sector_concentration_analysis(self):
         """Test sector concentration analysis"""
         # Test with portfolio weights
-        sector_analysis = self.analyzer._analyze_sector_concentration(
-            self.portfolio_weights
-        )
+        sector_analysis = self.analyzer._analyze_sector_concentration(self.portfolio_weights)
 
         # Should return dictionary with expected keys
         self.assertIn("sector_weights", sector_analysis)
@@ -375,9 +353,7 @@ class TestPortfolioAnalyzer(BaseTestCase):
             benchmark_returns = aligned_data["SPY"].pct_change().dropna()
 
         # Calculate metrics
-        metrics = self.analyzer._calculate_portfolio_metrics(
-            portfolio_returns, benchmark_returns
-        )
+        metrics = self.analyzer._calculate_portfolio_metrics(portfolio_returns, benchmark_returns)
 
         # Test specific metric calculations
         self.assertIsInstance(metrics.volatility, float)
@@ -429,9 +405,7 @@ class TestPortfolioOptimization(BaseTestCase):
         # Create assets with different risk/return profiles
         assets = {
             "LOW_RISK": np.random.normal(0.0005, 0.005, 100),  # Low risk, low return
-            "MED_RISK": np.random.normal(
-                0.0008, 0.012, 100
-            ),  # Medium risk, medium return
+            "MED_RISK": np.random.normal(0.0008, 0.012, 100),  # Medium risk, medium return
             "HIGH_RISK": np.random.normal(0.0012, 0.020, 100),  # High risk, high return
         }
 

@@ -101,9 +101,7 @@ class TechnicalIndicators:
         return k_percent, d_percent
 
     @staticmethod
-    def atr(
-        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
-    ) -> pd.Series:
+    def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
         """Average True Range"""
         tr1 = high - low
         tr2 = abs(high - close.shift(1))
@@ -126,9 +124,7 @@ class TechnicalIndicators:
         return wr.fillna(-50.0)
 
     @staticmethod
-    def cci(
-        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20
-    ) -> pd.Series:
+    def cci(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20) -> pd.Series:
         """Commodity Channel Index"""
         typical_price = (high + low + close) / 3
         sma_tp = typical_price.rolling(window=period, min_periods=period).mean()
@@ -304,9 +300,7 @@ class MarketRegimeDetector:
             return 0.0
 
     @staticmethod
-    def volatility_regime(
-        prices: pd.Series, short_period: int = 10, long_period: int = 30
-    ) -> str:
+    def volatility_regime(prices: pd.Series, short_period: int = 10, long_period: int = 30) -> str:
         """
         Classify volatility regime
         Returns: 'low', 'normal', 'high'
@@ -353,9 +347,7 @@ class AdvancedIndicators:
         Identifies periods of low volatility followed by breakouts
         """
         # Bollinger Bands
-        bb_upper, bb_middle, bb_lower = TechnicalIndicators.bollinger_bands(
-            close, length, mult
-        )
+        bb_upper, bb_middle, bb_lower = TechnicalIndicators.bollinger_bands(close, length, mult)
 
         # Keltner Channels
         tr = TechnicalIndicators.atr(high, low, close, 1)
@@ -404,9 +396,7 @@ class AdvancedIndicators:
         williams_norm = williams + 50  # Convert from -100,0 to -50,50
 
         # Combine with weights
-        composite = (
-            0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
-        )
+        composite = 0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
 
         return composite.fillna(0)
 
