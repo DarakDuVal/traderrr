@@ -34,8 +34,9 @@ class DataManager:
         os.makedirs(cache_dir, exist_ok=True)
 
         # Initialize database
+        # Note: Tables are created by DatabaseConfig.init_database() in main.py
+        # This should be called before DataManager is instantiated
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
-        self._create_tables()
 
         # Setup requests session with retry strategy
         self.session = requests.Session()
@@ -64,77 +65,6 @@ class DataManager:
             logger.addHandler(handler)
 
         return logger
-
-    def _create_tables(self):
-        """Create database tables"""
-        cursor = self.conn.cursor()
-
-        # Daily data table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS daily_data (
-                ticker TEXT,
-                date DATE,
-                open REAL,
-                high REAL,
-                low REAL,
-                close REAL,
-                volume INTEGER,
-                dividends REAL,
-                stock_splits REAL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (ticker, date)
-            )
-        """
-        )
-
-        # Intraday data table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS intraday_data (
-                ticker TEXT,
-                datetime TIMESTAMP,
-                open REAL,
-                high REAL,
-                low REAL,
-                close REAL,
-                volume INTEGER,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (ticker, datetime)
-            )
-        """
-        )
-
-        # Metadata table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS metadata (
-                ticker TEXT PRIMARY KEY,
-                company_name TEXT,
-                sector TEXT,
-                industry TEXT,
-                market_cap REAL,
-                last_updated TIMESTAMP
-            )
-        """
-        )
-
-        # Signal history table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS signal_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT,
-                date DATE,
-                signal_type TEXT,
-                signal_value REAL,
-                confidence REAL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """
-        )
-
-        self.conn.commit()
 
     def _rate_limit(self, ticker: str):
         """Implement rate limiting"""

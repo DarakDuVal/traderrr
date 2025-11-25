@@ -142,6 +142,18 @@ class DatabaseConfig:
             """
             )
 
+            # Portfolio positions table
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS portfolio_positions (
+                    ticker TEXT PRIMARY KEY,
+                    shares REAL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
             # Create indexes for performance
             cursor.execute(
                 """
