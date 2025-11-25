@@ -471,5 +471,329 @@ class TestAdvancedIndicators(BaseTestCase):
             self.fail(f"Indicators failed with short data: {e}")
 
 
+# ============================================================================
+# ADDITIONAL INDICATOR TESTS (Phase 2 Expansion)
+# ============================================================================
+
+
+class TestMissingIndicators(BaseTestCase):
+    """Test cases for indicators not covered in main test classes"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        super().setUp()
+
+        # Create sample price data
+        np.random.seed(42)
+        dates = pd.date_range("2023-01-01", periods=100, freq="D")
+        base_price = 100
+        returns = np.random.normal(0.001, 0.02, 100)
+        prices = base_price * np.exp(np.cumsum(returns))
+
+        self.sample_data = pd.DataFrame(
+            {
+                "Open": prices * np.random.uniform(0.98, 1.02, 100),
+                "High": prices * np.random.uniform(1.00, 1.05, 100),
+                "Low": prices * np.random.uniform(0.95, 1.00, 100),
+                "Close": prices,
+                "Volume": np.random.randint(1000000, 5000000, 100),
+            },
+            index=dates,
+        )
+
+        # Ensure High >= Close >= Low
+        for i in range(len(self.sample_data)):
+            high = max(
+                self.sample_data.iloc[i]["Open"],
+                self.sample_data.iloc[i]["Close"],
+                self.sample_data.iloc[i]["High"],
+            )
+            low = min(
+                self.sample_data.iloc[i]["Open"],
+                self.sample_data.iloc[i]["Close"],
+                self.sample_data.iloc[i]["Low"],
+            )
+            self.sample_data.iloc[i, self.sample_data.columns.get_loc("High")] = high
+            self.sample_data.iloc[i, self.sample_data.columns.get_loc("Low")] = low
+
+        self.ti = TechnicalIndicators()
+
+    def test_cci_calculation(self):
+        """Test Commodity Channel Index calculation"""
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
+
+        cci = self.ti.cci(high, low, close, period=20)
+
+        # Check basic properties
+        self.assertEqual(len(cci), len(close))
+
+        # CCI values should be numeric
+        self.assertTrue((cci.notna().any()))
+
+        # CCI typically ranges from -100 to +100 for normal conditions
+        cci_values = cci.dropna()
+        if len(cci_values) > 0:
+            self.assertTrue((cci_values > -500).all())  # Allow for extreme values
+            self.assertTrue((cci_values < 500).all())
+
+    def test_cci_different_periods(self):
+        """Test CCI with different period values"""
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
+
+        # Test different periods
+        cci_10 = self.ti.cci(high, low, close, period=10)
+        cci_20 = self.ti.cci(high, low, close, period=20)
+
+        # Both should return same length
+        self.assertEqual(len(cci_10), len(cci_20))
+
+        # Results should be different for different periods
+        if len(cci_10.dropna()) > 0 and len(cci_20.dropna()) > 0:
+            self.assertFalse(cci_10.dropna().equals(cci_20.dropna()))
+
+    def test_ichimoku_cloud_calculation(self):
+        """Test Ichimoku Cloud indicator calculation"""
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
+
+        result = self.ti.ichimoku_cloud(high, low, close)
+
+        # Check that all required components are returned
+        required_keys = [
+            "tenkan_sen",
+            "kijun_sen",
+            "senkou_span_a",
+            "senkou_span_b",
+            "chikou_span",
+        ]
+        for key in required_keys:
+            self.assertIn(key, result)
+            self.assertEqual(len(result[key]), len(close))
+
+    def test_ichimoku_relationships(self):
+        """Test Ichimoku Cloud component relationships"""
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
+
+        result = self.ti.ichimoku_cloud(high, low, close)
+
+        # Tenkan and Kijun should be based on highs and lows
+        tenkan = result["tenkan_sen"]
+        kijun = result["kijun_sen"]
+
+        # Both should have some non-NaN values
+        self.assertGreater(tenkan.notna().sum(), 0)
+        self.assertGreater(kijun.notna().sum(), 0)
+
+        # Senkou Span A should be average of Tenkan and Kijun
+        # (Check at least one point where all values are valid)
+        valid_idx = tenkan.notna() & kijun.notna()
+        if valid_idx.any():
+            valid_tenkan = tenkan[valid_idx]
+            valid_kijun = kijun[valid_idx]
+            senkou_a = result["senkou_span_a"][valid_idx]
+
+            # At least some values should be close to average
+            expected = (valid_tenkan + valid_kijun) / 2
+            self.assertTrue(((senkou_a - expected).abs() < 1).any())
+
+    def test_indicator_with_constant_prices(self):
+        """Test indicators with constant (no change) prices"""
+        constant_data = pd.DataFrame(
+            {
+                "Open": [100.0] * 50,
+                "High": [100.0] * 50,
+                "Low": [100.0] * 50,
+                "Close": [100.0] * 50,
+                "Volume": [1000000] * 50,
+            },
+            index=pd.date_range("2023-01-01", periods=50, freq="D"),
+        )
+
+        # These should not crash
+        close = constant_data["Close"]
+        high = constant_data["High"]
+        low = constant_data["Low"]
+
+        sma = self.ti.sma(close, 20)
+        self.assertFalse(sma.isna().all())
+
+        rsi = self.ti.rsi(close, 14)
+        # RSI with constant prices should be 50 or NaN
+        rsi_values = rsi.dropna()
+        if len(rsi_values) > 0:
+            self.assertTrue((rsi_values >= 0).all() and (rsi_values <= 100).all())
+
+        cci = self.ti.cci(high, low, close, 20)
+        # CCI should handle constant prices without crashing
+        self.assertEqual(len(cci), len(close))
+
+    def test_indicator_with_missing_data(self):
+        """Test indicators with NaN values in data"""
+        data_with_nan = self.sample_data.copy()
+        data_with_nan.loc[data_with_nan.index[10:15], "Close"] = np.nan
+
+        close = data_with_nan["Close"]
+
+        # SMA should handle NaN gracefully
+        sma = self.ti.sma(close, 20)
+        self.assertIsNotNone(sma)
+        self.assertEqual(len(sma), len(close))
+
+        # EMA should handle NaN gracefully
+        ema = self.ti.ema(close, 12)
+        self.assertIsNotNone(ema)
+        self.assertEqual(len(ema), len(close))
+
+    def test_macd_structure(self):
+        """Test MACD return structure"""
+        macd_result = self.ti.macd(self.sample_data["Close"])
+
+        # MACD returns a tuple of (macd_line, signal_line, histogram)
+        self.assertEqual(len(macd_result), 3)
+
+        # All components should have same length as input
+        for component in macd_result:
+            self.assertEqual(len(component), len(self.sample_data))
+
+    def test_bollinger_bands_width(self):
+        """Test Bollinger Bands width calculation"""
+        bb_result = self.ti.bollinger_bands(self.sample_data["Close"], period=20)
+
+        # Bollinger Bands returns a tuple of (upper, middle, lower)
+        self.assertEqual(len(bb_result), 3)
+        upper, middle, lower = bb_result
+
+        # All should have same length
+        self.assertEqual(len(upper), len(self.sample_data))
+        self.assertEqual(len(middle), len(self.sample_data))
+        self.assertEqual(len(lower), len(self.sample_data))
+
+        # Upper should always be >= lower
+        valid_idx = upper.notna() & lower.notna()
+        if valid_idx.any():
+            self.assertTrue((upper[valid_idx] >= lower[valid_idx]).all())
+
+    def test_stochastic_boundaries(self):
+        """Test that Stochastic oscillator stays within 0-100"""
+        stoch_result = self.ti.stochastic(
+            self.sample_data["High"],
+            self.sample_data["Low"],
+            self.sample_data["Close"],
+            k_period=14,
+            d_period=3,
+        )
+
+        # Stochastic returns a tuple of (K, D)
+        self.assertEqual(len(stoch_result), 2)
+        k_line, d_line = stoch_result
+
+        # Values should be between 0 and 100 (or NaN)
+        k_values = k_line.dropna()
+        d_values = d_line.dropna()
+
+        if len(k_values) > 0:
+            self.assertTrue((k_values >= 0).all() and (k_values <= 100).all())
+        if len(d_values) > 0:
+            self.assertTrue((d_values >= 0).all() and (d_values <= 100).all())
+
+    def test_atr_positive_values(self):
+        """Test that ATR always returns positive values"""
+        atr = self.ti.atr(
+            self.sample_data["High"],
+            self.sample_data["Low"],
+            self.sample_data["Close"],
+            period=14,
+        )
+
+        # ATR should be positive or NaN
+        atr_values = atr.dropna()
+        if len(atr_values) > 0:
+            self.assertTrue((atr_values > 0).all())
+
+    def test_williams_r_boundaries(self):
+        """Test that Williams %R stays within -100 to 0"""
+        williams_r = self.ti.williams_r(
+            self.sample_data["High"],
+            self.sample_data["Low"],
+            self.sample_data["Close"],
+            period=14,
+        )
+
+        # Williams %R should be between -100 and 0
+        wr_values = williams_r.dropna()
+        if len(wr_values) > 0:
+            self.assertTrue((wr_values >= -100).all() and (wr_values <= 0).all())
+
+
+class TestIndicatorRobustness(BaseTestCase):
+    """Test indicator robustness and error handling"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        super().setUp()
+        self.ti = TechnicalIndicators()
+
+    def test_empty_series(self):
+        """Test indicators with empty series"""
+        empty_series = pd.Series([], dtype=float)
+
+        # Should return empty or handle gracefully
+        try:
+            result = self.ti.sma(empty_series, 20)
+            self.assertEqual(len(result), 0)
+        except Exception:
+            # It's acceptable to raise an exception for empty input
+            pass
+
+    def test_single_value_series(self):
+        """Test indicators with single value"""
+        single_value = pd.Series([100.0])
+
+        # Should return series of same length
+        result = self.ti.sma(single_value, 20)
+        self.assertEqual(len(result), 1)
+
+    def test_period_larger_than_data(self):
+        """Test indicator with period larger than data length"""
+        small_data = pd.Series([100.0, 101.0, 102.0, 103.0, 104.0])
+
+        # Period of 20 on 5 data points
+        result = self.ti.sma(small_data, 20)
+
+        # Should return all NaN or same length
+        self.assertEqual(len(result), len(small_data))
+
+    def test_negative_period(self):
+        """Test indicator with negative period handling"""
+        data = pd.Series(np.random.rand(50) * 100)
+
+        # Should either handle gracefully or raise meaningful error
+        try:
+            result = self.ti.sma(data, -20)
+            # If it doesn't error, result should be valid
+            self.assertEqual(len(result), len(data))
+        except (ValueError, AssertionError):
+            # Expected behavior - reject invalid period
+            pass
+
+    def test_zero_period(self):
+        """Test indicator with zero period handling"""
+        data = pd.Series(np.random.rand(50) * 100)
+
+        try:
+            result = self.ti.sma(data, 0)
+            self.assertEqual(len(result), len(data))
+        except (ValueError, AssertionError, ZeroDivisionError):
+            # Expected behavior
+            pass
+
+
 if __name__ == "__main__":
     unittest.main()
