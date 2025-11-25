@@ -36,29 +36,14 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            # Check if position exists
-            cursor.execute("SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,))
-            existing = cursor.fetchone()
-
-            if existing:
-                # Update existing position
-                cursor.execute(
-                    """
-                    UPDATE portfolio_positions 
-                    SET shares = ?, updated_at = CURRENT_TIMESTAMP 
-                    WHERE ticker = ?
-                    """,
-                    (float(shares), ticker),
-                )
-            else:
-                # Insert new position
-                cursor.execute(
-                    """
-                    INSERT INTO portfolio_positions (ticker, shares) 
-                    VALUES (?, ?)
-                    """,
-                    (ticker, float(shares)),
-                )
+            # Use INSERT OR REPLACE for upsert behavior (ticker is PRIMARY KEY)
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO portfolio_positions (ticker, shares, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                """,
+                (ticker, float(shares)),
+            )
 
             conn.commit()
             conn.close()
@@ -75,11 +60,11 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,))
-            if not cursor.fetchone():
+            cursor.execute("DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,))
+            if cursor.rowcount == 0:
+                conn.close()
                 return False, [f"Position {ticker} not found"]
 
-            cursor.execute("DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,))
             conn.commit()
             conn.close()
             return True, []

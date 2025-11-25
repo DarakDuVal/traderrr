@@ -111,23 +111,6 @@ class DatabaseConfig:
             """
             )
 
-            # Trade log table
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS trade_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ticker TEXT,
-                    action TEXT,
-                    quantity REAL,
-                    price REAL,
-                    total_value REAL,
-                    signal_id INTEGER,
-                    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (signal_id) REFERENCES signal_history(id)
-                )
-            """
-            )
-
             # System events table
             cursor.execute(
                 """
@@ -142,6 +125,18 @@ class DatabaseConfig:
             """
             )
 
+            # Portfolio positions table
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS portfolio_positions (
+                    ticker TEXT PRIMARY KEY,
+                    shares REAL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+            )
+
             # Create indexes for performance
             cursor.execute(
                 """
@@ -152,15 +147,8 @@ class DatabaseConfig:
 
             cursor.execute(
                 """
-                CREATE INDEX IF NOT EXISTS idx_signal_history_ticker_date 
+                CREATE INDEX IF NOT EXISTS idx_signal_history_ticker_date
                 ON signal_history(ticker, date DESC)
-            """
-            )
-
-            cursor.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_trade_log_ticker_date 
-                ON trade_log(ticker, executed_at DESC)
             """
             )
 
