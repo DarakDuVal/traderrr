@@ -10,7 +10,6 @@ from datetime import datetime
 class PortfolioManager:
     """Manages portfolio positions in the database"""
 
-    # Test formatting hook - this line is intentionally very long to exceed the 100 character limit and trigger black formatting
     def __init__(self, db_path: str):
         self.db_path = db_path
 
