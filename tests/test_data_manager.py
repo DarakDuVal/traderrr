@@ -268,6 +268,431 @@ class TestDataManager(BaseTestCase):
         self.assertEqual(len(results), 5)
         self.assertTrue(all(r == len(self.sample_data) for r in results))
 
+    # =========================================================================
+    # NEW TESTS FOR SIGNAL HISTORY API METHODS (Phase 2 Expansion)
+    # =========================================================================
+
+    def test_get_signal_history_basic(self):
+        """Test basic signal history retrieval"""
+        from tests import SampleDataGenerator
+
+        # Insert test signals
+        signal = SampleDataGenerator.generate_signal_data("TEST_TICKER")
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO signal_history
+            (ticker, date, signal_type, signal_value, confidence, entry_price,
+             target_price, stop_loss, regime, reasons)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                signal["ticker"],
+                signal["date"],
+                signal["signal_type"],
+                signal["signal_value"],
+                signal["confidence"],
+                signal["entry_price"],
+                signal["target_price"],
+                signal["stop_loss"],
+                signal["regime"],
+                signal["reasons"],
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+        # Test retrieval
+        history = self.dm.get_signal_history()
+        self.assertGreater(len(history), 0)
+        self.assertEqual(history[0]["ticker"], "TEST_TICKER")
+        self.assertEqual(history[0]["signal_type"], "BUY")
+
+    def test_get_signal_history_with_ticker_filter(self):
+        """Test signal history filtered by ticker"""
+        from tests import SampleDataGenerator
+
+        # Insert multiple signals for different tickers
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        for ticker in ["TEST1", "TEST2", "TEST3"]:
+            signal = SampleDataGenerator.generate_signal_data(ticker)
+            cursor.execute(
+                """
+                INSERT INTO signal_history
+                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                 target_price, stop_loss, regime, reasons)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    signal["ticker"],
+                    signal["date"],
+                    signal["signal_type"],
+                    signal["signal_value"],
+                    signal["confidence"],
+                    signal["entry_price"],
+                    signal["target_price"],
+                    signal["stop_loss"],
+                    signal["regime"],
+                    signal["reasons"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        # Test ticker filtering
+        history = self.dm.get_signal_history(ticker="TEST1")
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["ticker"], "TEST1")
+
+    def test_get_signal_history_with_confidence_filter(self):
+        """Test signal history with confidence filtering"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert signals with different confidence levels
+        for confidence in [0.5, 0.7, 0.9]:
+            signal = SampleDataGenerator.generate_signal_data("TEST")
+            signal["confidence"] = confidence
+            cursor.execute(
+                """
+                INSERT INTO signal_history
+                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                 target_price, stop_loss, regime, reasons)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    signal["ticker"],
+                    signal["date"],
+                    signal["signal_type"],
+                    signal["signal_value"],
+                    signal["confidence"],
+                    signal["entry_price"],
+                    signal["target_price"],
+                    signal["stop_loss"],
+                    signal["regime"],
+                    signal["reasons"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        # Test confidence filtering
+        history = self.dm.get_signal_history(min_confidence=0.8)
+        self.assertEqual(len(history), 1)
+        self.assertGreaterEqual(history[0]["confidence"], 0.8)
+
+    def test_get_signals_by_ticker(self):
+        """Test getting signals for specific ticker"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert multiple signals for one ticker
+        for i in range(3):
+            signal = SampleDataGenerator.generate_signal_data("TARGET")
+            cursor.execute(
+                """
+                INSERT INTO signal_history
+                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                 target_price, stop_loss, regime, reasons)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    signal["ticker"],
+                    signal["date"],
+                    signal["signal_type"],
+                    signal["signal_value"],
+                    signal["confidence"],
+                    signal["entry_price"],
+                    signal["target_price"],
+                    signal["stop_loss"],
+                    signal["regime"],
+                    signal["reasons"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        signals = self.dm.get_signals_by_ticker("TARGET", limit=10)
+        self.assertEqual(len(signals), 3)
+
+    def test_get_signals_stats(self):
+        """Test signal statistics retrieval"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert test signals
+        for ticker in ["STAT1", "STAT2"]:
+            for signal_type in ["BUY", "SELL"]:
+                signal = SampleDataGenerator.generate_signal_data(ticker)
+                signal["signal_type"] = signal_type
+                cursor.execute(
+                    """
+                    INSERT INTO signal_history
+                    (ticker, date, signal_type, signal_value, confidence,
+                     entry_price, target_price, stop_loss, regime, reasons)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        signal["ticker"],
+                        signal["date"],
+                        signal["signal_type"],
+                        signal["signal_value"],
+                        signal["confidence"],
+                        signal["entry_price"],
+                        signal["target_price"],
+                        signal["stop_loss"],
+                        signal["regime"],
+                        signal["reasons"],
+                    ),
+                )
+
+        conn.commit()
+        conn.close()
+
+        stats = self.dm.get_signals_stats()
+        self.assertIn("total_signals", stats)
+        self.assertIn("unique_tickers", stats)
+        self.assertGreater(stats["total_signals"], 0)
+
+    # =========================================================================
+    # NEW TESTS FOR PORTFOLIO PERFORMANCE API METHODS (Phase 2 Expansion)
+    # =========================================================================
+
+    def test_get_portfolio_performance_basic(self):
+        """Test basic portfolio performance retrieval"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert performance records
+        performance_data = SampleDataGenerator.generate_performance_data(days=10)
+        for perf in performance_data:
+            cursor.execute(
+                """
+                INSERT INTO portfolio_performance
+                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                 max_drawdown)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    perf["date"],
+                    perf["portfolio_value"],
+                    perf["daily_return"],
+                    perf["volatility"],
+                    perf["sharpe_ratio"],
+                    perf["max_drawdown"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        performance = self.dm.get_portfolio_performance()
+        self.assertGreater(len(performance), 0)
+        self.assertIn("portfolio_value", performance[0])
+
+    def test_get_portfolio_performance_with_limit(self):
+        """Test portfolio performance with limit parameter"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert multiple performance records
+        performance_data = SampleDataGenerator.generate_performance_data(days=30)
+        for perf in performance_data:
+            cursor.execute(
+                """
+                INSERT INTO portfolio_performance
+                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                 max_drawdown)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    perf["date"],
+                    perf["portfolio_value"],
+                    perf["daily_return"],
+                    perf["volatility"],
+                    perf["sharpe_ratio"],
+                    perf["max_drawdown"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        # Test with limit
+        performance = self.dm.get_portfolio_performance(limit=10)
+        self.assertLessEqual(len(performance), 10)
+
+    def test_get_performance_summary(self):
+        """Test portfolio performance summary"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert performance records for last 30 days
+        performance_data = SampleDataGenerator.generate_performance_data(days=30)
+        for perf in performance_data:
+            cursor.execute(
+                """
+                INSERT INTO portfolio_performance
+                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                 max_drawdown)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    perf["date"],
+                    perf["portfolio_value"],
+                    perf["daily_return"],
+                    perf["volatility"],
+                    perf["sharpe_ratio"],
+                    perf["max_drawdown"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        summary = self.dm.get_performance_summary(days=30)
+        self.assertIn("current_value", summary)
+        self.assertIn("period_return", summary)
+        self.assertIn("avg_volatility", summary)
+
+    def test_get_performance_metrics(self):
+        """Test comprehensive portfolio performance metrics"""
+        from tests import SampleDataGenerator
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert performance records
+        performance_data = SampleDataGenerator.generate_performance_data(days=90)
+        for perf in performance_data:
+            cursor.execute(
+                """
+                INSERT INTO portfolio_performance
+                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                 max_drawdown)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    perf["date"],
+                    perf["portfolio_value"],
+                    perf["daily_return"],
+                    perf["volatility"],
+                    perf["sharpe_ratio"],
+                    perf["max_drawdown"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        metrics = self.dm.get_performance_metrics(days=90)
+        self.assertIn("total_return", metrics)
+        self.assertIn("avg_volatility", metrics)
+        self.assertIn("avg_sharpe_ratio", metrics)
+
+    # =========================================================================
+    # EDGE CASES AND ERROR HANDLING (Phase 2 Expansion)
+    # =========================================================================
+
+    def test_empty_database_retrieval(self):
+        """Test retrieving from empty database"""
+        history = self.dm.get_signal_history()
+        self.assertEqual(len(history), 0)
+
+        performance = self.dm.get_portfolio_performance()
+        self.assertEqual(len(performance), 0)
+
+    def test_performance_summary_with_no_data(self):
+        """Test performance summary when no data exists"""
+        summary = self.dm.get_performance_summary(days=30)
+        # Should return a dict with None or 0 values instead of crashing
+        self.assertIsInstance(summary, dict)
+
+    def test_malformed_signal_data_handling(self):
+        """Test handling of malformed signal data"""
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert incomplete signal record
+        cursor.execute(
+            """
+            INSERT INTO signal_history
+            (ticker, date, signal_type, confidence)
+            VALUES (?, ?, ?, ?)
+            """,
+            ("MALFORMED", datetime.now().date(), "BUY", 0.5),
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Should retrieve without error
+        history = self.dm.get_signal_history(ticker="MALFORMED")
+        self.assertGreater(len(history), 0)
+
+    def test_date_range_filtering(self):
+        """Test date range filtering for signals"""
+        from tests import SampleDataGenerator
+        from datetime import datetime, timedelta
+
+        conn = sqlite3.connect(self.test_db.name)
+        cursor = conn.cursor()
+
+        # Insert signals on different dates
+        base_date = datetime.now().date()
+        for days_ago in [1, 7, 30, 90]:
+            signal_date = base_date - timedelta(days=days_ago)
+            signal = SampleDataGenerator.generate_signal_data("DATE_TEST")
+            cursor.execute(
+                """
+                INSERT INTO signal_history
+                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                 target_price, stop_loss, regime, reasons)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    signal["ticker"],
+                    signal_date,
+                    signal["signal_type"],
+                    signal["signal_value"],
+                    signal["confidence"],
+                    signal["entry_price"],
+                    signal["target_price"],
+                    signal["stop_loss"],
+                    signal["regime"],
+                    signal["reasons"],
+                ),
+            )
+
+        conn.commit()
+        conn.close()
+
+        # Test date range filtering
+        start_date = (base_date - timedelta(days=45)).isoformat()
+        end_date = (base_date - timedelta(days=5)).isoformat()
+        history = self.dm.get_signal_history(
+            ticker="DATE_TEST", start_date=start_date, end_date=end_date
+        )
+        self.assertGreater(len(history), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
