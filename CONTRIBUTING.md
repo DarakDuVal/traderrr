@@ -115,10 +115,24 @@ All contributions must meet these standards:
   - Error conditions
 
 ### Code Style
-- **Format with Black**: `make format` (line length: 88)
+- **Format with Black**: `make format` (line length: 100)
 - **Lint with Pylint**: `make lint` (using `.pylintrc`)
 - **Type hints**: Encouraged for new code
 - **Docstrings**: For public modules, classes, and functions
+
+### Pre-commit Hook
+
+A pre-commit git hook is automatically installed to enforce code formatting:
+
+- **Automatic formatting**: Runs Black on all staged Python files before each commit
+- **Re-staging**: Automatically stages reformatted files
+- **Line length**: 100 characters (PEP 8 extended)
+
+The hook is located at `.git/hooks/pre-commit`. If you need to bypass it (not recommended):
+
+```bash
+git commit --no-verify  # Use with caution - skips formatting checks
+```
 
 ### Performance
 - No significant performance regressions
@@ -151,6 +165,8 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 make setup
 ```
+
+**Note**: The pre-commit hook is included in the repository at `.git/hooks/pre-commit`. Make sure Black is installed (`pip install black`) before making commits, as the hook will run automatically on all staged Python files.
 
 ## Useful Make Commands
 
