@@ -6,6 +6,7 @@ from flask import Blueprint, render_template_string, request, jsonify
 import requests
 import json
 import logging
+import pandas as pd
 from datetime import datetime
 
 web_bp = Blueprint('web', __name__)

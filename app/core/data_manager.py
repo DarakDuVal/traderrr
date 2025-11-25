@@ -324,8 +324,18 @@ class DataManager:
         data_to_store = data_to_store.rename(columns=rename_map)
 
         # Store with conflict resolution
-        data_to_store.to_sql(table_name, self.conn, if_exists='append', index=False)
-        self.conn.commit()
+        try:
+            data_to_store.to_sql(table_name, self.conn, if_exists='append', index=False)
+            self.conn.commit()
+        except Exception as e:
+            # Handle UNIQUE constraint and other integrity errors gracefully
+            if 'UNIQUE constraint failed' in str(e):
+                # Data already exists in database, which is expected behavior
+                # SQLite automatically rolls back the failed insert, so we just continue
+                self.logger.debug(f"Data for {ticker} on this date already exists")
+            else:
+                # Re-raise other errors
+                raise
 
     def _get_cached_data(self, ticker: str, interval: str) -> Optional[pd.DataFrame]:
         """Retrieve cached data from database"""
