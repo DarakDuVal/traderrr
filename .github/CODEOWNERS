@@ -1,0 +1,74 @@
+# Traderrr CODEOWNERS
+#
+# This file defines who is responsible for reviewing changes to different parts
+# of the codebase. GitHub will automatically request reviews from these owners
+# when pull requests modify files in their sections.
+#
+# Syntax:
+# - Lines starting with # are comments
+# - Pattern      Owner(s)
+# - Patterns use gitignore-style matching
+# - Owners are GitHub usernames or email addresses
+#
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for all files (fallback if no specific owner matches)
+* @DarakDuVal
+
+# Core trading logic and data management
+app/core/ @DarakDuVal
+app/core/data_manager.py @DarakDuVal
+app/core/signal_generator.py @DarakDuVal
+app/core/indicators.py @DarakDuVal
+app/core/portfolio_analyzer.py @DarakDuVal
+
+# API routes and endpoints
+app/api/ @DarakDuVal
+app/api/routes.py @DarakDuVal
+app/api/models.py @DarakDuVal
+
+# Web dashboard and UI
+app/web/ @DarakDuVal
+app/web/dashboard.py @DarakDuVal
+
+# Configuration management
+config/ @DarakDuVal
+config/settings.py @DarakDuVal
+config/database.py @DarakDuVal
+
+# Utility and deployment scripts
+scripts/ @DarakDuVal
+scripts/backtest.py @DarakDuVal
+scripts/deploy.py @DarakDuVal
+scripts/daily_update.py @DarakDuVal
+scripts/data_validator.py @DarakDuVal
+scripts/health_check.py @DarakDuVal
+
+# Development utilities
+utils/ @DarakDuVal
+utils/dev_tools.py @DarakDuVal
+
+# Testing infrastructure and test files
+tests/ @DarakDuVal
+
+# Documentation
+*.md @DarakDuVal
+README.md @DarakDuVal
+CONTRIBUTING.md @DarakDuVal
+
+# GitHub configuration
+.github/ @DarakDuVal
+.github/workflows/ @DarakDuVal
+.github/CODEOWNERS @DarakDuVal
+
+# Project configuration files
+.pylintrc @DarakDuVal
+pyproject.toml @DarakDuVal
+Dockerfile @DarakDuVal
+Makefile @DarakDuVal
+requirements.txt @DarakDuVal
+requirements-dev.txt @DarakDuVal
+setup.py @DarakDuVal
+
+# Entry point
+main.py @DarakDuVal
