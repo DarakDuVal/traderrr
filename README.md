@@ -702,6 +702,39 @@ EOF
 chmod +x .git/hooks/pre-commit
 ```
 
+## 🤝 Contributing
+
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation, please read our comprehensive [Contributing Guide](CONTRIBUTING.md) first.
+
+### Quick Start for Contributors
+
+1. **Fork and clone** the repository
+2. **Create a branch** following our naming conventions:
+   - Features: `feature/your-feature-name`
+   - Bugs: `bugfix/issue-name`
+   - Hotfixes: `hotfix/critical-issue`
+3. **Make your changes** and ensure code quality:
+   ```bash
+   make format      # Format with Black
+   make lint        # Check with Pylint
+   make test        # Run all tests (must pass)
+   ```
+4. **Create a pull request** to the `develop` branch
+5. **Wait for review** and address any feedback
+
+### Development Workflow
+
+- **Main Branch** (`main`): Production-ready code
+- **Develop Branch** (`develop`): Integration/staging
+- **Feature Branches**: Individual features/fixes
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on:
+- Branching strategy (Simplified Git Flow)
+- Commit message conventions
+- Code quality requirements
+- Testing standards
+- Pull request process
+
 ## Active Trading Signals
 
 ### How Signals Are Generated
