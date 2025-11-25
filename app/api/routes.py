@@ -43,7 +43,9 @@ def health_check():
 
         # Test database connection
         try:
-            dm.get_portfolio_summary(Config.PORTFOLIO_TICKERS()[:1])
+            tickers = portfolio_manager.get_tickers()
+            if tickers:
+                dm.get_portfolio_summary([tickers[0]])
         except Exception as e:
             health_status["database"] = f"error: {str(e)}"
             health_status["status"] = "degraded"
@@ -109,19 +111,32 @@ def get_signals():
 def get_portfolio():
     """Get portfolio overview"""
     try:
+        # Get tickers from database
+        tickers = portfolio_manager.get_tickers()
+        if not tickers:
+            return jsonify({"error": "No portfolio positions configured"}), 400
+
         # Get recent data for portfolio overview
-        portfolio_data = dm.get_multiple_stocks(
-            Config.PORTFOLIO_TICKERS(), period="30d"
-        )
+        portfolio_data = dm.get_multiple_stocks(tickers, period="30d")
 
         if not portfolio_data:
             return jsonify({"error": "No portfolio data available"}), 500
 
+        # Build price dict for weight and value calculations
+        current_prices = {}
+        for ticker in tickers:
+            if ticker in portfolio_data and not portfolio_data[ticker].empty:
+                current_prices[ticker] = portfolio_data[ticker]["Close"].iloc[-1]
+            else:
+                current_prices[ticker] = 0
+
+        # Calculate weights and total value from database
+        weights = portfolio_manager.get_weights(current_prices)
+        total_value = portfolio_manager.get_total_value(current_prices)
+
         # Calculate portfolio metrics
         try:
-            metrics = portfolio_analyzer.analyze_portfolio(
-                portfolio_data, Config.PORTFOLIO_WEIGHTS()
-            )
+            metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, weights)
 
             portfolio_metrics = {
                 "volatility": metrics.volatility,
@@ -143,7 +158,7 @@ def get_portfolio():
         # Get position risks
         try:
             position_risks = portfolio_analyzer.calculate_position_risks(
-                portfolio_data, Config.PORTFOLIO_WEIGHTS(), Config.PORTFOLIO_VALUE()
+                portfolio_data, weights, total_value
             )
 
             position_data = [
@@ -163,7 +178,7 @@ def get_portfolio():
 
         # Get simple overview for each ticker
         overview = {}
-        for ticker in Config.PORTFOLIO_TICKERS():
+        for ticker in tickers:
             try:
                 if ticker in portfolio_data:
                     data = portfolio_data[ticker]
@@ -179,7 +194,7 @@ def get_portfolio():
                             "price": current_price,
                             "daily_change": daily_change,
                             "volume_ratio": volume_ratio,
-                            "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
+                            "weight": weights.get(ticker, 0),
                         }
             except Exception as e:
                 logger.warning(f"Error processing {ticker}: {e}")
@@ -187,7 +202,7 @@ def get_portfolio():
                     "price": 0,
                     "daily_change": 0,
                     "volume_ratio": 1,
-                    "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
+                    "weight": weights.get(ticker, 0),
                 }
 
         return jsonify(
@@ -195,7 +210,7 @@ def get_portfolio():
                 "portfolio_metrics": portfolio_metrics,
                 "position_risks": position_data,
                 "portfolio_overview": overview,
-                "total_value": Config.PORTFOLIO_VALUE(),
+                "total_value": total_value,
                 "updated_at": datetime.now().isoformat(),
             }
         )
@@ -216,10 +231,13 @@ def trigger_update():
             try:
                 logger.info("Starting signal update")
 
-                # Download fresh data
-                portfolio_data = dm.get_multiple_stocks(
-                    Config.PORTFOLIO_TICKERS(), period="6mo"
-                )
+                # Download fresh data using portfolio manager
+                tickers = portfolio_manager.get_tickers()
+                if not tickers:
+                    logger.warning("No portfolio positions configured")
+                    return
+
+                portfolio_data = dm.get_multiple_stocks(tickers, period="6mo")
 
                 if not portfolio_data:
                     logger.warning("No portfolio data received")
@@ -324,15 +342,32 @@ def get_ticker_data(ticker):
 def get_risk_report():
     """Get comprehensive risk report"""
     try:
+        # Get tickers from database
+        tickers = portfolio_manager.get_tickers()
+        if not tickers:
+            return jsonify({"error": "No portfolio positions configured"}), 400
+
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="1y")
+        portfolio_data = dm.get_multiple_stocks(tickers, period="1y")
 
         if not portfolio_data:
             return jsonify({"error": "No portfolio data available"}), 500
 
+        # Build price dict for weight and value calculations
+        current_prices = {}
+        for ticker in tickers:
+            if ticker in portfolio_data and not portfolio_data[ticker].empty:
+                current_prices[ticker] = portfolio_data[ticker]["Close"].iloc[-1]
+            else:
+                current_prices[ticker] = 0
+
+        # Calculate weights and total value from database
+        weights = portfolio_manager.get_weights(current_prices)
+        total_value = portfolio_manager.get_total_value(current_prices)
+
         # Generate risk report
         risk_report = portfolio_analyzer.generate_risk_report(
-            portfolio_data, Config.PORTFOLIO_WEIGHTS(), Config.PORTFOLIO_VALUE()
+            portfolio_data, weights, total_value
         )
 
         return jsonify(risk_report)
@@ -346,10 +381,13 @@ def get_risk_report():
 def get_correlation_matrix():
     """Get correlation matrix for portfolio"""
     try:
+        # Get tickers from database
+        tickers = portfolio_manager.get_tickers()
+        if not tickers:
+            return jsonify({"error": "No portfolio positions configured"}), 400
+
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(
-            Config.PORTFOLIO_TICKERS(), period="6mo"
-        )
+        portfolio_data = dm.get_multiple_stocks(tickers, period="6mo")
 
         if not portfolio_data:
             return jsonify({"error": "No portfolio data available"}), 500
@@ -388,28 +426,44 @@ def get_correlation_matrix():
 def optimize_portfolio():
     """Optimize portfolio weights"""
     try:
+        # Get tickers from database
+        tickers = portfolio_manager.get_tickers()
+        if not tickers:
+            return jsonify({"error": "No portfolio positions configured"}), 400
+
         # Get request parameters
         data = request.get_json() or {}
         risk_tolerance = data.get("risk_tolerance", 0.15)
         target_return = data.get("target_return")  # Optional
 
         # Get portfolio data
-        portfolio_data = dm.get_multiple_stocks(Config.PORTFOLIO_TICKERS(), period="1y")
+        portfolio_data = dm.get_multiple_stocks(tickers, period="1y")
 
         if not portfolio_data:
             return jsonify({"error": "No portfolio data available"}), 500
 
+        # Build price dict for weight calculation
+        current_prices = {}
+        for ticker in tickers:
+            if ticker in portfolio_data and not portfolio_data[ticker].empty:
+                current_prices[ticker] = portfolio_data[ticker]["Close"].iloc[-1]
+            else:
+                current_prices[ticker] = 0
+
+        # Get current weights from database
+        current_weights = portfolio_manager.get_weights(current_prices)
+
         # Optimize portfolio
         optimized_weights = portfolio_analyzer.optimize_portfolio(
             portfolio_data,
-            Config.PORTFOLIO_WEIGHTS(),
+            current_weights,
             target_return=target_return,
             risk_tolerance=risk_tolerance,
         )
 
         # Calculate comparison metrics
         current_metrics = portfolio_analyzer.analyze_portfolio(
-            portfolio_data, Config.PORTFOLIO_WEIGHTS()
+            portfolio_data, current_weights
         )
         optimized_metrics = portfolio_analyzer.analyze_portfolio(
             portfolio_data, optimized_weights
@@ -417,7 +471,7 @@ def optimize_portfolio():
 
         return jsonify(
             {
-                "current_weights": Config.PORTFOLIO_WEIGHTS(),
+                "current_weights": current_weights,
                 "optimized_weights": optimized_weights,
                 "current_metrics": {
                     "volatility": current_metrics.volatility,

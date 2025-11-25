@@ -1,29 +1,5 @@
 {
   "portfolio": {
-    "tickers": [
-      "AAPL", "META", "MSFT", "NVDA", "GOOGL",
-      "JPM", "BAC", "PG", "JNJ", "VTI", "SPY",
-      "SIEGY", "VWAGY", "SYIEY", "QTUM", "QBTS"
-    ],
-    "weights": {
-      "AAPL": 0.145,
-      "META": 0.026,
-      "MSFT": 0.020,
-      "NVDA": 0.013,
-      "GOOGL": 0.022,
-      "JPM": 0.077,
-      "BAC": 0.026,
-      "PG": 0.081,
-      "JNJ": 0.018,
-      "VTI": 0.062,
-      "SPY": 0.024,
-      "SIEGY": 0.167,
-      "VWAGY": 0.108,
-      "SYIEY": 0.069,
-      "QTUM": 0.062,
-      "QBTS": 0.062
-    },
-    "total_value": 19500,
     "rebalance_threshold": 0.05
   },
   "signals": {

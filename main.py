@@ -68,15 +68,20 @@ def initialize_data():
     try:
         from app.core.data_manager import DataManager
         from app.core.signal_generator import SignalGenerator
+        from app.core.portfolio_manager import PortfolioManager
 
         logger.info("Initializing system data...")
 
         # Initialize components
         dm = DataManager(db_path=Config.DATABASE_PATH())
         sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
+        pm = PortfolioManager(db_path=Config.DATABASE_PATH())
 
         # Get initial data for a subset of tickers (faster startup)
-        initial_tickers = Config.PORTFOLIO_TICKERS()[:5]
+        all_tickers = pm.get_tickers()
+        if not all_tickers:
+            all_tickers = Config.PORTFOLIO_TICKERS()[:5]  # Fallback to config
+        initial_tickers = all_tickers[:5]
         logger.info(f"Loading initial data for {len(initial_tickers)} tickers")
 
         portfolio_data = dm.get_multiple_stocks(initial_tickers, period="3mo")
@@ -208,9 +213,20 @@ def check_environment():
 
 def print_startup_info():
     """Print startup information"""
+    from app.core.portfolio_manager import PortfolioManager
+
     logger = logging.getLogger(__name__)
 
     config_name = get_config().__name__.split(".")[-1]
+
+    # Get portfolio info from database if available
+    try:
+        pm = PortfolioManager(db_path=Config.DATABASE_PATH())
+        portfolio_tickers_count = len(pm.get_tickers())
+        portfolio_source = "database"
+    except:
+        portfolio_tickers_count = len(Config.PORTFOLIO_TICKERS())
+        portfolio_source = "config"
 
     startup_info = f"""
 {'=' * 60}
@@ -218,8 +234,8 @@ def print_startup_info():
 {'=' * 60}
 Configuration: {config_name}
 Database: {Config.DATABASE_PATH()}
-Portfolio Value: ${Config.PORTFOLIO_VALUE():,}
-Portfolio Tickers: {len(Config.PORTFOLIO_TICKERS())}
+Portfolio Tickers: {portfolio_tickers_count} ({portfolio_source})
+Portfolio Value: Calculated dynamically from positions
 Min Confidence: {Config.MIN_CONFIDENCE():.1%}
 Update Interval: {Config.UPDATE_INTERVAL()} minutes
 Host: {Config.API_HOST()}:{Config.API_PORT()}

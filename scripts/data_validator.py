@@ -101,18 +101,26 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
 def validate_portfolio_data():
     """Validate all portfolio data"""
     from app.core.data_manager import DataManager
+    from app.core.portfolio_manager import PortfolioManager
     from config.settings import Config
 
     print("🔍 Validating Portfolio Data")
     print("=" * 50)
 
     dm = DataManager()
+    pm = PortfolioManager(db_path=Config.DATABASE_PATH())
 
     all_results = []
     total_issues = 0
     total_warnings = 0
 
-    for ticker in Config.PORTFOLIO_TICKERS:
+    # Get tickers from database
+    tickers = pm.get_tickers()
+    if not tickers:
+        print("⚠️  No portfolio positions configured")
+        return 1
+
+    for ticker in tickers:
         print(f"Validating {ticker}...", end=" ")
 
         try:
@@ -179,7 +187,7 @@ def validate_portfolio_data():
     # Summary
     print("\n" + "=" * 50)
     print(f"Validation Summary:")
-    print(f"Total tickers: {len(Config.PORTFOLIO_TICKERS)}")
+    print(f"Total tickers: {len(tickers)}")
     print(f"Total issues: {total_issues}")
     print(f"Total warnings: {total_warnings}")
 

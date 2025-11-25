@@ -18,6 +18,7 @@ sys.path.insert(0, project_root)
 from app.core.data_manager import DataManager
 from app.core.signal_generator import SignalGenerator
 from app.core.portfolio_analyzer import PortfolioAnalyzer
+from app.core.portfolio_manager import PortfolioManager
 from config.settings import Config
 from config.database import DatabaseConfig
 
@@ -35,22 +36,28 @@ def setup_logging(log_level="INFO"):
     return logging.getLogger(__name__)
 
 
-def update_portfolio_data(dm: DataManager, force_update: bool = False):
+def update_portfolio_data(dm: DataManager, pm: PortfolioManager, force_update: bool = False):
     """Update portfolio data"""
     logger = logging.getLogger(__name__)
 
     try:
         logger.info("Starting portfolio data update")
 
+        # Get tickers from portfolio manager
+        tickers = pm.get_tickers()
+        if not tickers:
+            logger.warning("No portfolio positions configured")
+            return {}
+
         # Update data for all portfolio tickers
         portfolio_data = dm.get_multiple_stocks(
-            Config.PORTFOLIO_TICKERS, period="6mo", max_workers=5
+            tickers, period="6mo", max_workers=5
         )
 
         if force_update:
             # Force update for recent data
             recent_data = dm.get_multiple_stocks(
-                Config.PORTFOLIO_TICKERS, period="5d", max_workers=3
+                tickers, period="5d", max_workers=3
             )
             logger.info(f"Force updated recent data for {len(recent_data)} tickers")
 
@@ -106,33 +113,45 @@ def generate_signals(dm: DataManager, sg: SignalGenerator, portfolio_data: dict)
         return []
 
 
-def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict):
+def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict, pm: PortfolioManager):
     """Analyze portfolio risk metrics"""
     logger = logging.getLogger(__name__)
 
     try:
         logger.info("Analyzing portfolio risk")
 
+        # Build price dict from portfolio data
+        current_prices = {}
+        for ticker in pm.get_tickers():
+            if ticker in portfolio_data and not portfolio_data[ticker].empty:
+                current_prices[ticker] = portfolio_data[ticker]["Close"].iloc[-1]
+            else:
+                current_prices[ticker] = 0
+
+        # Calculate weights and total value from database
+        weights = pm.get_weights(current_prices)
+        total_value = pm.get_total_value(current_prices)
+
         # Calculate portfolio metrics
-        metrics = pa.analyze_portfolio(portfolio_data, Config.PORTFOLIO_WEIGHTS)
+        metrics = pa.analyze_portfolio(portfolio_data, weights)
 
         # Calculate position risks
         position_risks = pa.calculate_position_risks(
-            portfolio_data, Config.PORTFOLIO_WEIGHTS, Config.PORTFOLIO_VALUE
+            portfolio_data, weights, total_value
         )
 
         # Log portfolio performance
-        db_config = DatabaseConfig(Config.DATABASE_PATH)
+        db_config = DatabaseConfig(Config.DATABASE_PATH())
         try:
             db_config.execute_query(
                 """
-                INSERT INTO portfolio_performance 
+                INSERT INTO portfolio_performance
                 (date, portfolio_value, daily_return, volatility, sharpe_ratio, max_drawdown)
                 VALUES (?, ?, ?, ?, ?, ?)
             """,
                 (
                     datetime.now().date(),
-                    Config.PORTFOLIO_VALUE,
+                    total_value,
                     metrics.daily_return,
                     metrics.volatility,
                     metrics.sharpe_ratio,
@@ -144,7 +163,7 @@ def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict):
 
         # Check risk alerts
         risk_alerts = []
-        if metrics.volatility > Config.VOLATILITY_LIMIT:
+        if metrics.volatility > Config.VOLATILITY_LIMIT():
             risk_alerts.append(
                 f"Portfolio volatility ({metrics.volatility:.1%}) exceeds limit"
             )
@@ -169,7 +188,7 @@ def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict):
                 db_config.log_system_event(
                     "RISK_ALERT",
                     alert,
-                    f"Portfolio value: ${Config.PORTFOLIO_VALUE:,}",
+                    f"Portfolio value: ${total_value:,.2f}",
                     "WARNING",
                 )
 
@@ -250,7 +269,7 @@ def create_backup(dm: DataManager):
     logger = logging.getLogger(__name__)
 
     try:
-        if Config.BACKUP_ENABLED:
+        if Config.BACKUP_ENABLED():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M")
             backup_path = f"backups/backup_{timestamp}.db"
 
@@ -282,7 +301,7 @@ def validate_system_health():
 
     try:
         # Check database connectivity
-        db_config = DatabaseConfig(Config.DATABASE_PATH)
+        db_config = DatabaseConfig(Config.DATABASE_PATH())
         if not db_config.check_connection():
             logger.error("Database connection failed")
             return False
@@ -297,7 +316,7 @@ def validate_system_health():
         # Check disk space
         import shutil
 
-        disk_usage = shutil.disk_usage(os.path.dirname(Config.DATABASE_PATH))
+        disk_usage = shutil.disk_usage(os.path.dirname(Config.DATABASE_PATH()))
         free_percent = disk_usage.free / disk_usage.total * 100
 
         if free_percent < 10:
@@ -352,10 +371,11 @@ def main():
             return 1
 
         # Initialize components
-        dm = DataManager(db_path=Config.DATABASE_PATH)
-        sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE)
+        dm = DataManager(db_path=Config.DATABASE_PATH())
+        sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
         pa = PortfolioAnalyzer()
-        db_config = DatabaseConfig(Config.DATABASE_PATH)
+        pm = PortfolioManager(db_path=Config.DATABASE_PATH())
+        db_config = DatabaseConfig(Config.DATABASE_PATH())
 
         # Log update start
         db_config.log_system_event(
@@ -366,7 +386,7 @@ def main():
         )
 
         # Update portfolio data
-        portfolio_data = update_portfolio_data(dm, force_update=args.force_update)
+        portfolio_data = update_portfolio_data(dm, pm, force_update=args.force_update)
 
         if not portfolio_data:
             logger.error("No portfolio data available, aborting update")
@@ -377,7 +397,7 @@ def main():
 
         # Analyze portfolio risk
         metrics, position_risks, risk_alerts = analyze_portfolio_risk(
-            pa, portfolio_data
+            pa, portfolio_data, pm
         )
 
         # Send notifications

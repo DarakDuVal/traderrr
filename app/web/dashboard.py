@@ -807,27 +807,38 @@ def dashboard():
         except Exception as e:
             logger.warning(f"Could not get signals: {e}")
 
-        # Try to get portfolio overview
+        # Try to get portfolio overview from database
+        portfolio_value = 0
         try:
             from config.settings import Config
             from app.core.data_manager import DataManager
+            from app.core.portfolio_manager import PortfolioManager
             from app.core.indicators import TechnicalIndicators
 
             dm = DataManager(db_path=Config.DATABASE_PATH())
+            pm = PortfolioManager(db_path=Config.DATABASE_PATH())
             ti = TechnicalIndicators()
 
-            # Get basic overview for each ticker
-            for ticker in Config.PORTFOLIO_TICKERS()[:10]:  # Limit for performance
+            # Get positions from database
+            positions = pm.get_all_positions()
+            tickers = list(positions.keys())[:10]  # Limit for performance
+
+            # Get current prices for all positions
+            current_prices = {}
+            for ticker in tickers:
                 try:
                     data = dm.get_stock_data(ticker, period="5d")
                     if not data.empty:
                         current_price = data["Close"].iloc[-1]
+                        current_prices[ticker] = current_price
                         daily_change = data["Close"].pct_change().iloc[-1]
                         volume_ratio = (
                             data["Volume"].iloc[-1]
                             / data["Volume"].rolling(5).mean().iloc[-1]
                         )
 
+                        # Calculate weight from shares and prices
+                        position_value = positions[ticker] * current_price
                         portfolio_overview[ticker] = {
                             "price": current_price,
                             "daily_change": (
@@ -836,7 +847,7 @@ def dashboard():
                             "volume_ratio": (
                                 volume_ratio if not pd.isna(volume_ratio) else 1
                             ),
-                            "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
+                            "weight": 0,  # Will be calculated below
                         }
                 except Exception as e:
                     logger.warning(f"Error getting data for {ticker}: {e}")
@@ -844,13 +855,22 @@ def dashboard():
                         "price": 0,
                         "daily_change": 0,
                         "volume_ratio": 1,
-                        "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
+                        "weight": 0,
                     }
+
+            # Calculate weights and total value from database
+            weights = pm.get_weights(current_prices)
+            portfolio_value = pm.get_total_value(current_prices)
+
+            # Update weights in overview
+            for ticker in portfolio_overview:
+                portfolio_overview[ticker]["weight"] = weights.get(ticker, 0)
 
             dm.close()
 
         except Exception as e:
             logger.warning(f"Could not get portfolio overview: {e}")
+            portfolio_value = 0
 
         # Calculate summary stats
         total_signals = len(signals_data)
@@ -885,7 +905,7 @@ def dashboard():
             buy_signals=buy_signals,
             sell_signals=sell_signals,
             avg_confidence=avg_confidence,
-            portfolio_value=19500,  # From config
+            portfolio_value=portfolio_value,  # Dynamically calculated from database
             total_tickers=len(portfolio_overview),
             last_update=update_time,
             portfolio_overview=portfolio_overview,
@@ -950,26 +970,68 @@ def portfolio_page():
     """Detailed portfolio page"""
     try:
         from config.settings import Config
+        from app.core.data_manager import DataManager
+        from app.core.portfolio_manager import PortfolioManager
+
+        dm = DataManager(db_path=Config.DATABASE_PATH())
+        pm = PortfolioManager(db_path=Config.DATABASE_PATH())
+
+        # Get positions from database
+        positions = pm.get_all_positions()
+        if not positions:
+            return (
+                """
+                <div style="font-family: Arial, sans-serif; padding: 2rem;">
+                    <h1>Portfolio Details</h1>
+                    <p>No positions in portfolio</p>
+                    <p><a href="/">← Back to Dashboard</a></p>
+                </div>
+                """,
+                200,
+            )
+
+        # Get current prices
+        current_prices = {}
+        for ticker in positions.keys():
+            try:
+                data = dm.get_stock_data(ticker, period="1d")
+                if not data.empty:
+                    current_prices[ticker] = data["Close"].iloc[-1]
+                else:
+                    current_prices[ticker] = 0
+            except:
+                current_prices[ticker] = 0
+
+        # Calculate weights and total value
+        weights = pm.get_weights(current_prices)
+        total_value = pm.get_total_value(current_prices)
 
         portfolio_html = f"""
         <div style="font-family: Arial, sans-serif; padding: 2rem;">
             <h1>Portfolio Details</h1>
-            <h2>Holdings ({len(Config.PORTFOLIO_TICKERS())} positions)</h2>
+            <h2>Holdings ({len(positions)} positions)</h2>
+            <h3>Total Value: ${total_value:,.2f}</h3>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <tr>
                     <th style="padding: 8px;">Ticker</th>
-                    <th style="padding: 8px;">Weight</th>
+                    <th style="padding: 8px;">Shares</th>
+                    <th style="padding: 8px;">Price</th>
                     <th style="padding: 8px;">Value</th>
+                    <th style="padding: 8px;">Weight</th>
                 </tr>
         """
 
-        for ticker, weight in Config.PORTFOLIO_WEIGHTS().items():
-            value = weight * Config.PORTFOLIO_VALUE()
+        for ticker, shares in positions.items():
+            price = current_prices.get(ticker, 0)
+            value = shares * price
+            weight = weights.get(ticker, 0)
             portfolio_html += f"""
                 <tr>
                     <td style="padding: 8px;">{ticker}</td>
+                    <td style="padding: 8px;">{shares:.2f}</td>
+                    <td style="padding: 8px;">${price:.2f}</td>
+                    <td style="padding: 8px;">${value:,.2f}</td>
                     <td style="padding: 8px;">{weight:.1%}</td>
-                    <td style="padding: 8px;">${value:,.0f}</td>
                 </tr>
             """
 
@@ -979,6 +1041,7 @@ def portfolio_page():
         </div>
         """
 
+        dm.close()
         return portfolio_html
 
     except Exception as e:

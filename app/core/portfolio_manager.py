@@ -149,3 +149,34 @@ class PortfolioManager:
             self.add_or_update_position(ticker, shares)
 
         print(f"Initialized portfolio with {len(initial_positions)} positions")
+
+    def get_weights(self, current_prices: Dict[str, float]) -> Dict[str, float]:
+        """Calculate current portfolio weights from positions and prices"""
+        positions = self.get_all_positions()
+
+        if not positions or not current_prices:
+            return {}
+
+        # Calculate values
+        values = {
+            ticker: shares * current_prices.get(ticker, 0)
+            for ticker, shares in positions.items()
+        }
+
+        total_value = sum(values.values())
+
+        if total_value <= 0:
+            return {ticker: 0 for ticker in positions}
+
+        return {ticker: value / total_value for ticker, value in values.items()}
+
+    def get_total_value(self, current_prices: Dict[str, float]) -> float:
+        """Calculate total portfolio value from positions and prices"""
+        positions = self.get_all_positions()
+
+        if not positions or not current_prices:
+            return 0
+
+        return sum(
+            shares * current_prices.get(ticker, 0) for ticker, shares in positions.items()
+        )
