@@ -51,10 +51,10 @@ format:
 
 # Docker
 docker-build:
-	docker build -t trading-app .
+	docker build -t traderrr .
 
 docker-run:
-	docker run -p 8080:8080 trading-app
+	docker run -p 8080:8080 traderrr
 
 # Backtest
 backtest:

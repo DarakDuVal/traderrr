@@ -18,7 +18,7 @@ class IBMCloudDeployer:
 
     def __init__(self, project_name: str = "trading-signals"):
         self.project_name = project_name
-        self.app_name = "trading-app"
+        self.app_name = "traderrr"
         self.logger = self._setup_logging()
 
     def _setup_logging(self):
@@ -531,10 +531,10 @@ class IBMCloudDeployer:
         self.logger.info(f"Application: {self.app_name}")
         self.logger.info("Next steps:")
         self.logger.info(
-            "1. Check application logs: ibmcloud ce application logs --name trading-app"
+            "1. Check application logs: ibmcloud ce application logs --name traderrr"
         )
         self.logger.info(
-            "2. Monitor application: ibmcloud ce application get --name trading-app"
+            "2. Monitor application: ibmcloud ce application get --name traderrr"
         )
         self.logger.info("3. Update configuration as needed")
 

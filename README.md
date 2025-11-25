@@ -141,8 +141,8 @@ python scripts/backtest.py \
 ### Docker build
 
 ```bash
-docker build -t trading-app .
-docker run -p 8080:8080 trading-app
+docker build -t traderrr .
+docker run -p 8080:8080 traderrr
 
 # Install IBM Cloud CLI and login
 ibmcloud login
@@ -377,9 +377,9 @@ ibmcloud login
 python deployment_utilities.py deploy --cpu 1 --memory 2G
 
 # Or use Docker deployment
-docker build -t trading-app .
-docker tag trading-app icr.io/your-namespace/trading-app
-docker push icr.io/your-namespace/trading-app
+docker build -t traderrr .
+docker tag traderrr icr.io/your-namespace/traderrr
+docker push icr.io/your-namespace/traderrr
 ```
 
 ### Manual Deployment Steps
@@ -405,7 +405,7 @@ ibmcloud resource service-instance-create trading-object-storage cloud-object-st
 
 ```bash
 ibmcloud ce application create \
-    --name trading-app \
+    --name traderrr \
     --build-source . \
     --build-strategy dockerfile \
     --cpu 1 \
@@ -418,8 +418,8 @@ ibmcloud ce application create \
 4. **Bind Services**
 
 ```bash
-ibmcloud ce application bind --name trading-app --service-instance trading-cloudant-db
-ibmcloud ce application bind --name trading-app --service-instance trading-object-storage
+ibmcloud ce application bind --name traderrr --service-instance trading-cloudant-db
+ibmcloud ce application bind --name traderrr --service-instance trading-object-storage
 ```
 
 ### Environment Variables
@@ -427,7 +427,7 @@ ibmcloud ce application bind --name trading-app --service-instance trading-objec
 Set these in IBM Cloud Console or via CLI:
 
 ```bash
-ibmcloud ce application update trading-app \
+ibmcloud ce application update traderrr \
     --env DATABASE_PATH=/app/data/market_data.db \
     --env MIN_CONFIDENCE=0.6 \
     --env UPDATE_INTERVAL_MINUTES=30 \
