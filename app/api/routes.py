@@ -11,6 +11,7 @@ import numpy as np
 from app.core.data_manager import DataManager
 from app.core.signal_generator import SignalGenerator
 from app.core.portfolio_analyzer import PortfolioAnalyzer
+from app.core.portfolio_manager import PortfolioManager
 from config.settings import Config
 
 api_bp = Blueprint("api", __name__)
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 dm = DataManager(db_path=Config.DATABASE_PATH())
 signal_gen = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
 portfolio_analyzer = PortfolioAnalyzer()
+portfolio_manager = PortfolioManager(db_path=Config.DATABASE_PATH())
 
 # Global state for signals
 current_signals = []
@@ -439,18 +441,217 @@ def optimize_portfolio():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/portfolio/positions", methods=["GET"])
+def get_portfolio_positions_api():
+    """Get all portfolio positions with current values"""
+    try:
+        positions = portfolio_manager.get_all_positions()
+
+        if not positions:
+            return jsonify({"positions": [], "total_value": 0, "updated_at": datetime.now().isoformat()}), 200
+
+        # Get current prices
+        tickers = list(positions.keys())
+        try:
+            portfolio_data = dm.get_multiple_stocks(tickers, period="1d")
+        except Exception as e:
+            logger.warning(f"Could not fetch current prices: {e}")
+            portfolio_data = {}
+
+        # Build response with current values
+        positions_with_values = []
+        total_value = 0
+
+        for ticker, shares in positions.items():
+            current_price = 0
+
+            if ticker in portfolio_data and not portfolio_data[ticker].empty:
+                current_price = portfolio_data[ticker]["Close"].iloc[-1]
+
+            position_value = shares * current_price
+            total_value += position_value
+
+            positions_with_values.append(
+                {
+                    "ticker": ticker,
+                    "shares": shares,
+                    "current_price": current_price,
+                    "position_value": position_value,
+                }
+            )
+
+        return jsonify(
+            {
+                "positions": positions_with_values,
+                "total_value": total_value,
+                "updated_at": datetime.now().isoformat(),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Get positions API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio/positions", methods=["POST"])
+def add_portfolio_position():
+    """Add or update a portfolio position"""
+    try:
+        data = request.get_json() or {}
+        ticker = data.get("ticker")
+        shares = data.get("shares")
+
+        if not ticker or shares is None:
+            return jsonify({"error": "Missing ticker or shares"}), 400
+
+        # Validate and update
+        success, issues = portfolio_manager.add_or_update_position(ticker, shares)
+
+        if not success:
+            return jsonify({"error": "Validation failed", "issues": issues}), 400
+
+        # Return updated position with current value
+        try:
+            portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
+            current_price = (
+                portfolio_data[ticker.upper()]["Close"].iloc[-1]
+                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                else 0
+            )
+        except Exception as e:
+            logger.warning(f"Could not fetch price for {ticker}: {e}")
+            current_price = 0
+
+        position_value = float(shares) * current_price
+
+        return jsonify(
+            {
+                "message": f"Position {ticker.upper()} updated successfully",
+                "position": {
+                    "ticker": ticker.upper(),
+                    "shares": float(shares),
+                    "current_price": current_price,
+                    "position_value": position_value,
+                },
+                "updated_at": datetime.now().isoformat(),
+            }
+        ), 201
+
+    except Exception as e:
+        logger.error(f"Add position API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio/positions/<ticker>", methods=["PUT"])
+def update_portfolio_position(ticker):
+    """Update shares for a specific position"""
+    try:
+        data = request.get_json() or {}
+        shares = data.get("shares")
+
+        if shares is None:
+            return jsonify({"error": "Missing shares"}), 400
+
+        # Validate and update
+        success, issues = portfolio_manager.add_or_update_position(ticker, shares)
+
+        if not success:
+            return jsonify({"error": "Validation failed", "issues": issues}), 400
+
+        # Return updated position with current value
+        try:
+            portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
+            current_price = (
+                portfolio_data[ticker.upper()]["Close"].iloc[-1]
+                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                else 0
+            )
+        except Exception as e:
+            logger.warning(f"Could not fetch price for {ticker}: {e}")
+            current_price = 0
+
+        position_value = float(shares) * current_price
+
+        return jsonify(
+            {
+                "message": f"Position {ticker.upper()} updated successfully",
+                "position": {
+                    "ticker": ticker.upper(),
+                    "shares": float(shares),
+                    "current_price": current_price,
+                    "position_value": position_value,
+                },
+                "updated_at": datetime.now().isoformat(),
+            }
+        ), 200
+
+    except Exception as e:
+        logger.error(f"Update position API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/portfolio/positions/<ticker>", methods=["DELETE"])
+def delete_portfolio_position(ticker):
+    """Remove a position from the portfolio"""
+    try:
+        success, issues = portfolio_manager.remove_position(ticker)
+
+        if not success:
+            return jsonify({"error": "Could not remove position", "issues": issues}), 400
+
+        return jsonify(
+            {
+                "message": f"Position {ticker.upper()} removed successfully",
+                "updated_at": datetime.now().isoformat(),
+            }
+        ), 200
+
+    except Exception as e:
+        logger.error(f"Delete position API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 # Initialize background update on first import
 def initialize_signals():
-    """Initialize signals on startup"""
+    """Initialize signals and portfolio on startup"""
     global current_signals, last_update
 
     try:
+        logger.info("Initializing system...")
+
+        # Initialize portfolio from config if empty
+        try:
+            initial_positions = {
+                "AAPL": 10,
+                "META": 20,
+                "MSFT": 15,
+                "NVDA": 5,
+                "GOOGL": 8,
+                "JPM": 12,
+                "BAC": 25,
+                "PG": 8,
+                "JNJ": 6,
+                "VTI": 9,
+                "SPY": 7,
+                "SIEGY": 40,
+                "VWAGY": 50,
+                "SYIEY": 18,
+                "QTUM": 100,
+                "QBTS": 50,
+            }
+            portfolio_manager.initialize_from_config(initial_positions)
+            logger.info("Portfolio initialized")
+        except Exception as e:
+            logger.warning(f"Could not initialize portfolio: {e}")
+
         logger.info("Initializing trading signals")
 
         # Get initial portfolio data
-        portfolio_data = dm.get_multiple_stocks(
-            Config.PORTFOLIO_TICKERS()[:5], period="3mo"
-        )  # Limit for faster startup
+        portfolio_tickers = portfolio_manager.get_tickers()
+        if not portfolio_tickers:
+            portfolio_tickers = Config.PORTFOLIO_TICKERS()[:5]
+
+        portfolio_data = dm.get_multiple_stocks(portfolio_tickers[:5], period="3mo")
 
         if portfolio_data:
             # Generate initial signals
@@ -463,7 +664,7 @@ def initialize_signals():
             logger.warning("Could not initialize signals - no data available")
 
     except Exception as e:
-        logger.error(f"Error initializing signals: {e}")
+        logger.error(f"Error initializing system: {e}")
 
 
 # Run initialization when module is imported

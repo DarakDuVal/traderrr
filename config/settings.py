@@ -201,6 +201,19 @@ class Config:
 
         return issues
 
+    @classmethod
+    def save_config(cls, config_data: Dict) -> bool:
+        """Save configuration to file"""
+        try:
+            config_path = os.getenv("CONFIG_PATH", "config.json")
+            with open(config_path, "w") as f:
+                json.dump(config_data, f, indent=2)
+            # Clear cached config so next access reloads from file
+            cls._config_data = None
+            return True
+        except Exception as e:
+            return False
+
 
 # Environment-specific configurations
 class DevelopmentConfig(Config):

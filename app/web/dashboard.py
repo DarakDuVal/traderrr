@@ -224,12 +224,140 @@ DASHBOARD_HTML = """
             margin-top: 0.5rem;
         }
 
+        .form-group {
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #374151;
+            min-width: 80px;
+        }
+
+        .form-group input {
+            padding: 0.6rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-width: 120px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .position-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .position-info {
+            flex: 1;
+        }
+
+        .position-ticker {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 1.1rem;
+        }
+
+        .position-details {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .position-value {
+            font-weight: 600;
+            color: #059669;
+            margin: 0 1rem;
+            min-width: 120px;
+            text-align: right;
+        }
+
+        .position-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            min-width: auto;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .close-modal {
+            color: #6b7280;
+            float: right;
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: #374151;
+        }
+
         @media (max-width: 768px) {
             .container { padding: 1rem; }
             .grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
             .metric-value { font-size: 1.8em; }
             table { font-size: 0.9rem; }
             .btn { padding: 0.6rem 1.2rem; }
+            .position-row { flex-direction: column; align-items: flex-start; }
+            .position-value { margin: 0.5rem 0; }
         }
     </style>
     <script>
@@ -293,10 +421,145 @@ DASHBOARD_HTML = """
         // Auto-refresh every 5 minutes
         setInterval(refreshData, 300000);
 
+        // Portfolio Management Functions
+        function openAddPositionModal() {
+            document.getElementById('addPositionModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function addPosition() {
+            const ticker = document.getElementById('newTicker').value.toUpperCase().trim();
+            const shares = parseFloat(document.getElementById('newShares').value);
+
+            if (!ticker || isNaN(shares) || shares < 0) {
+                showAlert('Please enter a valid ticker and positive number of shares', 'warning');
+                return;
+            }
+
+            fetch('/api/portfolio/positions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker, shares })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showAlert('Error: ' + data.error + (data.issues ? ' - ' + data.issues.join(', ') : ''), 'warning');
+                } else {
+                    showAlert(`Position ${ticker} added successfully (${shares} shares)!`, 'success');
+                    closeModal('addPositionModal');
+                    document.getElementById('newTicker').value = '';
+                    document.getElementById('newShares').value = '';
+                    loadPortfolioPositions();
+                }
+            })
+            .catch(error => showAlert('Error adding position: ' + error.message, 'warning'));
+        }
+
+        function updatePosition(ticker) {
+            const shares = prompt(`Enter new number of shares for ${ticker}:`, '');
+            if (shares === null) return;
+
+            const sharesNum = parseFloat(shares);
+            if (isNaN(sharesNum) || sharesNum < 0) {
+                showAlert('Please enter a valid positive number of shares', 'warning');
+                return;
+            }
+
+            fetch(`/api/portfolio/positions/${ticker}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shares: sharesNum })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showAlert('Error: ' + data.error, 'warning');
+                } else {
+                    showAlert(`Position ${ticker} updated to ${sharesNum} shares!`, 'success');
+                    loadPortfolioPositions();
+                }
+            })
+            .catch(error => showAlert('Error updating position: ' + error.message, 'warning'));
+        }
+
+        function removePosition(ticker) {
+            if (!confirm(`Are you sure you want to remove ${ticker} from your portfolio?`)) {
+                return;
+            }
+
+            fetch(`/api/portfolio/positions/${ticker}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showAlert('Error: ' + data.error, 'warning');
+                } else {
+                    showAlert(`Position ${ticker} removed successfully!`, 'success');
+                    loadPortfolioPositions();
+                }
+            })
+            .catch(error => showAlert('Error removing position: ' + error.message, 'warning'));
+        }
+
+        function loadPortfolioPositions() {
+            fetch('/api/portfolio/positions')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('positionsContainer');
+                if (!data.positions || data.positions.length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">No positions in portfolio. Add one to get started!</div>';
+                    document.getElementById('totalPortfolioValue').textContent = '$0.00';
+                    return;
+                }
+
+                let html = '';
+                data.positions.forEach(position => {
+                    html += `
+                    <div class="position-row">
+                        <div class="position-info">
+                            <div class="position-ticker">${position.ticker}</div>
+                            <div class="position-details">
+                                ${position.shares} shares @ $${position.current_price.toFixed(2)}
+                            </div>
+                        </div>
+                        <div class="position-value">
+                            $${position.position_value.toFixed(2)}
+                        </div>
+                        <div class="position-actions">
+                            <button onclick="updatePosition('${position.ticker}')" class="btn btn-primary btn-sm">Edit</button>
+                            <button onclick="removePosition('${position.ticker}')" class="btn btn-danger btn-sm">Remove</button>
+                        </div>
+                    </div>
+                    `;
+                });
+                container.innerHTML = html;
+                document.getElementById('totalPortfolioValue').textContent = '$' + data.total_value.toFixed(2);
+            })
+            .catch(error => {
+                console.error('Error loading positions:', error);
+                document.getElementById('positionsContainer').innerHTML = '<div class="alert alert-warning">Error loading positions</div>';
+            });
+        }
+
         // Add loading states on page load
         document.addEventListener('DOMContentLoaded', function() {
             hideLoading();
+            loadPortfolioPositions();
         });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addPositionModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
     </script>
 </head>
 <body>
@@ -471,6 +734,41 @@ DASHBOARD_HTML = """
                     Portfolio metrics will be calculated when signals are updated.
                 </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💼 Portfolio Management</h2>
+            <div style="margin-bottom: 1.5rem;">
+                <button class="btn btn-success" onclick="openAddPositionModal()">➕ Add Position</button>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <div class="metric" style="text-align: left;">
+                    <div style="font-size: 0.9rem; color: #64748b;">Total Portfolio Value</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #059669; margin-top: 0.5rem;" id="totalPortfolioValue">$0.00</div>
+                </div>
+            </div>
+            <div id="positionsContainer" style="max-height: 500px; overflow-y: auto;">
+                <div class="alert alert-info">Loading positions...</div>
+            </div>
+        </div>
+
+        <div id="addPositionModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeModal('addPositionModal')">&times;</span>
+                <div class="modal-header">Add New Position</div>
+                <div class="form-group">
+                    <label for="newTicker">Ticker:</label>
+                    <input type="text" id="newTicker" placeholder="e.g., AAPL" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label for="newShares">Shares:</label>
+                    <input type="number" id="newShares" placeholder="e.g., 100" step="0.01" min="0">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="addPosition()">Add Position</button>
+                    <button class="btn" style="background: #e2e8f0; color: #374151;" onclick="closeModal('addPositionModal')">Cancel</button>
+                </div>
             </div>
         </div>
 
