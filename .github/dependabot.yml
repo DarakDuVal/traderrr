@@ -1,0 +1,50 @@
+version: 2
+
+updates:
+  # Python dependencies
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "03:00"
+    open-pull-requests-limit: 10
+    rebase-strategy: auto
+    allow:
+      - dependency-type: "all"
+    ignore:
+      # Add packages to ignore if needed (e.g., due to compatibility issues)
+      # - dependency-name: "some-package"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "/"
+    reviewers:
+      - "DarakDuVal"
+    assignees:
+      - "DarakDuVal"
+    labels:
+      - "dependencies"
+      - "automated"
+    milestone: 1
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    commit-message:
+      prefix: "ci(actions):"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "/"
+    reviewers:
+      - "DarakDuVal"
+    labels:
+      - "ci"
+      - "automated"
