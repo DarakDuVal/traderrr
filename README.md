@@ -52,8 +52,11 @@ cd traderrr
 python -m venv trading_env
 source trading_env/bin/activate  # On Windows: trading_env\Scripts\activate
 
-# Install dependencies
+# Install runtime dependencies
 pip install -r requirements.txt
+
+# (Optional) Install development dependencies for testing and code quality
+pip install -r requirements-dev.txt
 
 # Create environment file (.env)
 # The system automatically loads from .env on startup
@@ -70,6 +73,30 @@ EOF
 ```
 
 **Important**: The `.env` file MUST be created before running `python main.py`. The application requires these environment variables for proper initialization.
+
+### Dependency Management Strategy
+
+The project separates runtime and development dependencies:
+
+**`requirements.txt`** - Production dependencies only
+- Core Framework: Flask, gunicorn
+- Data Processing: pandas, numpy, scipy
+- Market Data: yfinance, TA-Lib
+- HTTP & Networking: requests, urllib3
+- Task Scheduling: schedule
+- Configuration: python-dotenv, PyYAML
+- Cloud Services: cloudant, ibm-cos-sdk, ibm-watson
+- System Monitoring: psutil
+
+Install with: `pip install -r requirements.txt`
+
+**`requirements-dev.txt`** - Development dependencies only
+- Testing: pytest, pytest-cov
+- Code Quality: pylint, black
+
+Install with: `pip install -r requirements-dev.txt` (optional, development only)
+
+This separation keeps production deployments lean and prevents unnecessary development tools from being installed in production environments.
 
 ```bash
 # Run setup script
