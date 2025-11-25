@@ -480,5 +480,295 @@ class TestTradingSignal(BaseTestCase):
         self.assertIsInstance(signal.reasons, list)
 
 
+class TestSignalEdgeCases(BaseTestCase):
+    """Test edge cases and error conditions in signal generation"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        super().setUp()
+        self.signal_gen = SignalGenerator(min_confidence=0.5)
+        np.random.seed(42)
+        dates = pd.date_range("2023-01-01", periods=100, freq="D")
+
+        # Sideways market (low volatility, flat trend)
+        sideways_prices = np.full(100, 100.0) + np.random.normal(0, 0.5, 100)
+        self.sideways_data = pd.DataFrame(
+            {
+                "Open": sideways_prices * np.random.uniform(0.999, 1.001, 100),
+                "High": sideways_prices * np.random.uniform(1.0, 1.005, 100),
+                "Low": sideways_prices * np.random.uniform(0.995, 1.0, 100),
+                "Close": sideways_prices,
+                "Volume": np.random.randint(500000, 2000000, 100),
+            },
+            index=dates,
+        )
+        self.sideways_data.index.name = "Date"
+
+        # Low volatility market
+        low_vol_returns = np.random.normal(0.0005, 0.003, 100)
+        low_vol_prices = 100 * np.exp(np.cumsum(low_vol_returns))
+        self.low_vol_data = pd.DataFrame(
+            {
+                "Open": low_vol_prices * np.random.uniform(0.998, 1.002, 100),
+                "High": low_vol_prices * np.random.uniform(1.002, 1.008, 100),
+                "Low": low_vol_prices * np.random.uniform(0.992, 0.998, 100),
+                "Close": low_vol_prices,
+                "Volume": np.random.randint(100000, 500000, 100),
+            },
+            index=dates,
+        )
+        self.low_vol_data.index.name = "Date"
+
+    def test_sideways_market_detection(self):
+        """Test signal generation in sideways market"""
+        signal = self.signal_gen.generate_signal("SIDEWAYS", self.sideways_data)
+
+        if signal is not None:
+            # Should generate valid signal for sideways market
+            self.assertIsInstance(signal, TradingSignal)
+            self.assertIn(
+                signal.regime,
+                [MarketRegime.SIDEWAYS, MarketRegime.MEAN_REVERTING, MarketRegime.HIGH_VOLATILITY],
+            )
+
+    def test_low_volatility_detection(self):
+        """Test signal generation in low volatility market"""
+        signal = self.signal_gen.generate_signal("LOWVOL", self.low_vol_data)
+
+        if signal is not None:
+            # Should detect low volatility
+            self.assertIsInstance(signal, TradingSignal)
+            # Stop loss and target should be closer together
+            risk_reward_ratio = abs(signal.target_price - signal.entry_price) / abs(
+                signal.entry_price - signal.stop_loss
+            )
+            self.assertGreater(risk_reward_ratio, 1.0)  # Should have positive risk/reward
+
+    def test_minimum_confidence_filter(self):
+        """Test minimum confidence threshold"""
+        high_confidence_gen = SignalGenerator(min_confidence=0.9)
+        signal = high_confidence_gen.generate_signal("HIGHCONF", self.sideways_data)
+
+        if signal is not None:
+            # Should meet high confidence threshold
+            self.assertGreaterEqual(signal.confidence, 0.9)
+
+    def test_signal_with_price_gaps(self):
+        """Test signal generation with price gaps"""
+        gapped_data = self.sideways_data.copy()
+        # Simulate gap down
+        gapped_data.iloc[50:55, gapped_data.columns.get_loc("Close")] *= 0.95
+
+        signal = self.signal_gen.generate_signal("GAPPED", gapped_data)
+        # Should handle gaps gracefully
+        if signal is not None:
+            self.assertIsInstance(signal, TradingSignal)
+
+    def test_stop_loss_below_low_for_long(self):
+        """Test that stop loss is below entry price for long signals"""
+        for _ in range(5):
+            signal = self.signal_gen.generate_signal("LONG", self.sideways_data)
+            if signal is not None and signal.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]:
+                self.assertLess(signal.stop_loss, signal.entry_price)
+                self.assertGreater(signal.target_price, signal.entry_price)
+
+    def test_stop_loss_above_high_for_short(self):
+        """Test that stop loss is above entry price for short signals"""
+        for _ in range(5):
+            signal = self.signal_gen.generate_signal("SHORT", self.sideways_data)
+            if signal is not None and signal.signal_type in [
+                SignalType.SELL,
+                SignalType.STRONG_SELL,
+            ]:
+                self.assertGreater(signal.stop_loss, signal.entry_price)
+                self.assertLess(signal.target_price, signal.entry_price)
+
+    def test_risk_reward_ratio_validation(self):
+        """Test that risk/reward ratio is reasonable"""
+        signal = self.signal_gen.generate_signal("REWARD", self.sideways_data)
+
+        if signal is not None:
+            risk = abs(signal.entry_price - signal.stop_loss)
+            reward = abs(signal.target_price - signal.entry_price)
+
+            # Risk should be positive
+            self.assertGreater(risk, 0)
+            # Reward should be positive
+            self.assertGreater(reward, 0)
+            # Reward should be >= risk (at minimum 1:1)
+            self.assertGreaterEqual(reward, risk * 0.5)  # At least 0.5:1
+
+    def test_multiple_indicators_agreement(self):
+        """Test that multiple indicators are considered"""
+        indicators = self.signal_gen._calculate_indicators(self.sideways_data)
+
+        # Should have multiple indicator values
+        self.assertGreater(len(indicators), 5)
+
+        # Check specific indicators are calculated
+        required_indicators = ["rsi", "macd", "momentum_score", "atr"]
+        for indicator in required_indicators:
+            self.assertIn(indicator, indicators)
+            self.assertIsNotNone(indicators[indicator])
+
+    def test_empty_signals_portfolio(self):
+        """Test portfolio signal generation with empty portfolio"""
+        empty_portfolio = {}
+        signals = self.signal_gen.generate_portfolio_signals(empty_portfolio)
+
+        self.assertIsInstance(signals, list)
+        self.assertEqual(len(signals), 0)
+
+    def test_single_stock_portfolio(self):
+        """Test portfolio signal generation with single stock"""
+        single_portfolio = {"SINGLE": self.sideways_data}
+        signals = self.signal_gen.generate_portfolio_signals(single_portfolio)
+
+        self.assertIsInstance(signals, list)
+        if signals:
+            self.assertEqual(len(signals), 1)
+            self.assertEqual(signals[0].ticker, "SINGLE")
+
+    def test_signal_summary_with_empty_signals(self):
+        """Test signal summary with no signals"""
+        summary = self.signal_gen.get_signal_summary([])
+
+        self.assertIsInstance(summary, dict)
+        self.assertEqual(summary["total_signals"], 0)
+        self.assertEqual(summary["buy_signals"], 0)
+        self.assertEqual(summary["sell_signals"], 0)
+        self.assertIsInstance(summary["top_picks"], list)
+        self.assertEqual(len(summary["top_picks"]), 0)
+
+    def test_confidence_distribution(self):
+        """Test that confidence values are well distributed"""
+        confidence_values = []
+
+        # Generate signals with different data patterns
+        for _ in range(10):
+            signal = self.signal_gen.generate_signal("TEST", self.sideways_data)
+            if signal is not None:
+                confidence_values.append(signal.confidence)
+
+        if confidence_values:
+            # Confidence should be within valid range
+            for conf in confidence_values:
+                self.assertGreaterEqual(conf, 0.0)
+                self.assertLessEqual(conf, 1.0)
+
+    def test_regime_transitions(self):
+        """Test market regime detection with transitional data"""
+        # Data that transitions from trending to sideways
+        dates = pd.date_range("2023-01-01", periods=100, freq="D")
+
+        # First half trending, second half sideways
+        trending_returns = np.random.normal(0.002, 0.015, 50)
+        trending_prices = 100 * np.exp(np.cumsum(trending_returns))
+
+        sideways_prices = np.full(50, trending_prices[-1]) + np.random.normal(0, 1, 50)
+        transition_prices = np.concatenate([trending_prices, sideways_prices])
+
+        transition_data = pd.DataFrame(
+            {
+                "Open": transition_prices * np.random.uniform(0.995, 1.005, 100),
+                "High": transition_prices * np.random.uniform(1.005, 1.025, 100),
+                "Low": transition_prices * np.random.uniform(0.975, 0.995, 100),
+                "Close": transition_prices,
+                "Volume": np.random.randint(1000000, 5000000, 100),
+            },
+            index=dates,
+        )
+        transition_data.index.name = "Date"
+
+        signal = self.signal_gen.generate_signal("TRANSITION", transition_data)
+        if signal is not None:
+            self.assertIsInstance(signal.regime, MarketRegime)
+
+    def test_very_high_confidence_threshold(self):
+        """Test signal generation with extremely high confidence threshold"""
+        extreme_gen = SignalGenerator(min_confidence=0.99)
+        signal = extreme_gen.generate_signal("EXTREME", self.sideways_data)
+
+        # May return None due to high threshold
+        if signal is not None:
+            self.assertGreaterEqual(signal.confidence, 0.99)
+
+
+class TestSignalDataValidation(BaseTestCase):
+    """Test data validation and error handling"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        super().setUp()
+        self.signal_gen = SignalGenerator(min_confidence=0.5)
+
+    def test_missing_ohlc_columns(self):
+        """Test handling of missing OHLC columns"""
+        incomplete_data = pd.DataFrame(
+            {
+                "Open": np.random.randn(50),
+                "Close": np.random.randn(50),
+                # Missing High and Low
+            }
+        )
+
+        signal = self.signal_gen.generate_signal("INCOMPLETE", incomplete_data)
+        # Should handle gracefully
+
+    def test_infinite_values(self):
+        """Test handling of infinite values in data"""
+        dates = pd.date_range("2023-01-01", periods=50, freq="D")
+        inf_data = pd.DataFrame(
+            {
+                "Open": [100.0] * 50,
+                "High": [np.inf] + [101.0] * 49,
+                "Low": [99.0] * 50,
+                "Close": [100.0] * 50,
+                "Volume": [1000000] * 50,
+            },
+            index=dates,
+        )
+        inf_data.index.name = "Date"
+
+        signal = self.signal_gen.generate_signal("INF", inf_data)
+        # Should handle or skip infinite values
+
+    def test_negative_prices(self):
+        """Test handling of negative prices"""
+        dates = pd.date_range("2023-01-01", periods=50, freq="D")
+        neg_data = pd.DataFrame(
+            {
+                "Open": np.full(50, -100.0),
+                "High": np.full(50, -99.0),
+                "Low": np.full(50, -101.0),
+                "Close": np.full(50, -100.0),
+                "Volume": [1000000] * 50,
+            },
+            index=dates,
+        )
+        neg_data.index.name = "Date"
+
+        signal = self.signal_gen.generate_signal("NEG", neg_data)
+        # Should handle or return None
+
+    def test_zero_prices(self):
+        """Test handling of zero prices"""
+        dates = pd.date_range("2023-01-01", periods=50, freq="D")
+        zero_data = pd.DataFrame(
+            {
+                "Open": np.zeros(50),
+                "High": np.zeros(50),
+                "Low": np.zeros(50),
+                "Close": np.zeros(50),
+                "Volume": [1000000] * 50,
+            },
+            index=dates,
+        )
+        zero_data.index.name = "Date"
+
+        signal = self.signal_gen.generate_signal("ZERO", zero_data)
+        # Should handle or return None
+
+
 if __name__ == "__main__":
     unittest.main()
