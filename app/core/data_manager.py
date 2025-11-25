@@ -447,6 +447,143 @@ class DataManager:
 
         return report
 
+    def get_signal_history(
+        self,
+        ticker: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        signal_type: Optional[str] = None,
+        min_confidence: float = 0.0,
+        limit: int = 100,
+    ) -> List[Dict]:
+        """
+        Retrieve signal history from database with optional filters.
+
+        Args:
+            ticker: Filter by ticker (e.g., 'AAPL')
+            start_date: Filter signals from this date (format: YYYY-MM-DD)
+            end_date: Filter signals until this date (format: YYYY-MM-DD)
+            signal_type: Filter by signal type (BUY, SELL, HOLD)
+            min_confidence: Minimum confidence threshold (0.0 - 1.0)
+            limit: Maximum number of records to return
+
+        Returns:
+            List of signal dictionaries ordered by date descending
+        """
+        try:
+            query = "SELECT * FROM signal_history WHERE 1=1"
+            params = []
+
+            if ticker:
+                query += " AND ticker = ?"
+                params.append(ticker.upper().strip())
+
+            if start_date:
+                query += " AND date >= ?"
+                params.append(start_date)
+
+            if end_date:
+                query += " AND date <= ?"
+                params.append(end_date)
+
+            if signal_type:
+                query += " AND signal_type = ?"
+                params.append(signal_type)
+
+            if min_confidence > 0:
+                query += " AND confidence >= ?"
+                params.append(min_confidence)
+
+            # Order by date descending, then by id descending for latest signals first
+            query += " ORDER BY date DESC, id DESC LIMIT ?"
+            params.append(limit)
+
+            cursor = self.conn.cursor()
+            cursor.execute(query, params)
+
+            columns = [
+                "id",
+                "ticker",
+                "date",
+                "signal_type",
+                "signal_value",
+                "confidence",
+                "entry_price",
+                "target_price",
+                "stop_loss",
+                "regime",
+                "reasons",
+                "created_at",
+            ]
+
+            signals = []
+            for row in cursor.fetchall():
+                signal_dict = dict(zip(columns, row))
+                # Convert None/NULL strings to None
+                for key in signal_dict:
+                    if signal_dict[key] == "NULL" or signal_dict[key] is None:
+                        signal_dict[key] = None
+                signals.append(signal_dict)
+
+            return signals
+
+        except Exception as e:
+            self.logger.error(f"Error retrieving signal history: {e}")
+            return []
+
+    def get_signals_by_ticker(self, ticker: str, limit: int = 50) -> List[Dict]:
+        """Get signal history for a specific ticker"""
+        return self.get_signal_history(ticker=ticker, limit=limit)
+
+    def get_signals_by_date_range(
+        self, start_date: str, end_date: str, limit: int = 100
+    ) -> List[Dict]:
+        """Get signals within a date range"""
+        return self.get_signal_history(start_date=start_date, end_date=end_date, limit=limit)
+
+    def get_signals_stats(self, ticker: Optional[str] = None) -> Dict:
+        """Get statistics about signals"""
+        try:
+            query = """
+                SELECT
+                    COUNT(*) as total_signals,
+                    COUNT(DISTINCT ticker) as unique_tickers,
+                    COUNT(DISTINCT CASE WHEN signal_type = 'BUY' THEN 1 END) as buy_signals,
+                    COUNT(DISTINCT CASE WHEN signal_type = 'SELL' THEN 1 END) as sell_signals,
+                    COUNT(DISTINCT CASE WHEN signal_type = 'HOLD' THEN 1 END) as hold_signals,
+                    AVG(confidence) as avg_confidence,
+                    MIN(date) as earliest_signal,
+                    MAX(date) as latest_signal
+                FROM signal_history
+            """
+            params = []
+
+            if ticker:
+                query += " WHERE ticker = ?"
+                params.append(ticker.upper().strip())
+
+            cursor = self.conn.cursor()
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+
+            if row:
+                columns = [
+                    "total_signals",
+                    "unique_tickers",
+                    "buy_signals",
+                    "sell_signals",
+                    "hold_signals",
+                    "avg_confidence",
+                    "earliest_signal",
+                    "latest_signal",
+                ]
+                return dict(zip(columns, row))
+            return {}
+
+        except Exception as e:
+            self.logger.error(f"Error getting signal stats: {e}")
+            return {}
+
     def close(self):
         """Close database connection"""
         if self.conn:

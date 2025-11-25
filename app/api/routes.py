@@ -107,6 +107,126 @@ def get_signals():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/signal-history", methods=["GET"])
+def get_signal_history():
+    """
+    Get historical trading signals from database with optional filters.
+
+    Query Parameters:
+        ticker: Filter by ticker (e.g., AAPL)
+        start_date: Start date for filter (YYYY-MM-DD)
+        end_date: End date for filter (YYYY-MM-DD)
+        signal_type: Filter by type (BUY, SELL, HOLD)
+        min_confidence: Minimum confidence threshold (0.0-1.0)
+        limit: Maximum records to return (default: 100, max: 1000)
+    """
+    try:
+        # Parse query parameters
+        ticker = request.args.get("ticker", type=str)
+        start_date = request.args.get("start_date", type=str)
+        end_date = request.args.get("end_date", type=str)
+        signal_type = request.args.get("signal_type", type=str)
+        min_confidence = request.args.get("min_confidence", default=0.0, type=float)
+        limit = request.args.get("limit", default=100, type=int)
+
+        # Validate limit
+        limit = min(limit, 1000)  # Max 1000 records
+
+        # Get signals from database
+        signals = dm.get_signal_history(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            signal_type=signal_type,
+            min_confidence=min_confidence,
+            limit=limit,
+        )
+
+        return (
+            jsonify(
+                {
+                    "signals": signals,
+                    "count": len(signals),
+                    "filters": {
+                        "ticker": ticker,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                        "signal_type": signal_type,
+                        "min_confidence": min_confidence,
+                        "limit": limit,
+                    },
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Signal history API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/signal-history/<ticker>", methods=["GET"])
+def get_signal_history_by_ticker(ticker):
+    """Get signal history for a specific ticker"""
+    try:
+        limit = request.args.get("limit", default=50, type=int)
+        limit = min(limit, 1000)
+
+        signals = dm.get_signals_by_ticker(ticker=ticker, limit=limit)
+
+        return (
+            jsonify(
+                {
+                    "ticker": ticker.upper(),
+                    "signals": signals,
+                    "count": len(signals),
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Signal history API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/signal-stats", methods=["GET"])
+def get_signal_stats():
+    """Get statistics about signals"""
+    try:
+        ticker = request.args.get("ticker", type=str)
+
+        stats = dm.get_signals_stats(ticker=ticker)
+
+        if not stats:
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "No signal data available"
+                            if not ticker
+                            else f"No signals found for {ticker}"
+                        )
+                    }
+                ),
+                404,
+            )
+
+        return (
+            jsonify(
+                {
+                    "ticker": ticker.upper() if ticker else None,
+                    "stats": stats,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Signal stats API error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/portfolio", methods=["GET"])
 def get_portfolio():
     """Get portfolio overview"""
