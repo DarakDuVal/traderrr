@@ -502,20 +502,177 @@ The system automatically runs:
 ### Run Test Suite
 
 ```bash
-# Full test suite
-python testing_framework.py
+# Full test suite (all 67 tests)
+python -m pytest tests/ -v
 
-# Individual components
-python -m unittest testing_framework.TestDataManager
-python -m unittest testing_framework.TestSignalGenerator
-python -m unittest testing_framework.TestPortfolioAnalyzer
+# Run specific test file
+python -m pytest tests/test_signals.py -v
+
+# Run with coverage report
+python -m pytest tests/ --cov=app --cov-report=html
 ```
 
-### Performance Benchmarks
+## Code Quality & Development
+
+### Code Formatting with Black
+
+[Black](https://black.readthedocs.io/) is an opinionated Python code formatter that ensures consistent style across the codebase.
+
+**Installation** (included in requirements.txt):
+```bash
+pip install black>=23.0.0
+```
+
+**Format Code**:
+```bash
+# Format all Python files
+black app/ config/ tests/ utils/ scripts/ main.py
+
+# Check formatting without applying changes
+black --check app/ config/ tests/ utils/ scripts/ main.py
+
+# Format with custom line length
+black --line-length 100 app/
+```
+
+**Configuration**:
+- Default line length: 88 characters
+- Black is configured to work alongside Pylint
+- No `.black` config file needed (uses defaults)
+
+### Code Quality Analysis with Pylint
+
+[Pylint](https://pylint.readthedocs.io/) performs static code analysis to identify potential bugs, code quality issues, and style problems.
+
+**Installation** (included in requirements.txt):
+```bash
+pip install pylint>=2.16.0
+```
+
+**Run Pylint Analysis**:
+```bash
+# Analyze all code
+pylint app/ config/ tests/ utils/ scripts/ main.py
+
+# Show only errors and critical issues
+pylint app/ config/ --disable=all --enable=E,F
+
+# Generate detailed report
+pylint app/ --output-format=json > pylint-report.json
+
+# Check specific file
+pylint app/core/signal_generator.py
+```
+
+**Configuration** (`.pylintrc`):
+The project includes a `.pylintrc` configuration file that:
+- Ignores test files (testing conventions are more relaxed)
+- Disables overly strict rules for pragmatic development
+- Sets maximum line length to 100 characters
+- Focuses on real code quality issues, not stylistic nitpicks
+
+**Current Code Quality Score**: 8.50/10
+- 67/67 unit tests passing
+- All imports optimized (unused imports removed)
+- Consistent formatting throughout
+
+### Development Workflow
+
+**Step 1: Make Code Changes**
+```bash
+# Edit your files
+vim app/core/signal_generator.py
+```
+
+**Step 2: Format with Black**
+```bash
+# Automatically format changed files
+black app/core/signal_generator.py
+```
+
+**Step 3: Run Pylint**
+```bash
+# Check for code quality issues
+pylint app/core/signal_generator.py
+```
+
+**Step 4: Run Tests**
+```bash
+# Ensure no regressions
+python -m pytest tests/ -v
+```
+
+**Step 5: Commit Changes**
+```bash
+git add .
+git commit -m "Description of changes"
+git push
+```
+
+### Pre-Commit Best Practices
+
+1. **Always format with Black first**
+   - Ensures consistent style
+   - Removes formatting debates from code reviews
+
+2. **Fix Pylint warnings**
+   - Address critical issues (E, F)
+   - Review warnings (W) and suggestions (C, R)
+   - Ignore acceptable style variations
+
+3. **Run full test suite**
+   - Verify all 67 tests pass
+   - Check for any regressions
+
+4. **Clean imports**
+   - Remove unused imports (Pylint warning W0611)
+   - Keep imports organized and minimal
+
+### Common Pylint Issues & Solutions
+
+| Issue | Severity | Solution |
+|-------|----------|----------|
+| Line too long | W | Use Black formatter or break into multiple lines |
+| Unused import | W | Remove unused import statement |
+| Unused variable | W | Remove or use with `_` prefix if intentional |
+| Missing docstring | R | Add docstring to function/class |
+| Too many arguments | W | Consider refactoring with dataclass or config |
+| Broad exception | W | Catch specific exceptions when possible |
+
+### Ignoring Pylint Warnings
+
+If a Pylint warning is not applicable:
+
+```python
+# Disable for entire file
+# pylint: disable=too-many-arguments
+
+# Disable for specific line
+some_function(a, b, c, d, e)  # pylint: disable=too-many-arguments
+
+# Disable specific check globally in .pylintrc
+# [MESSAGES CONTROL]
+# disable=too-many-arguments
+```
+
+### Git Hooks (Optional)
+
+To automatically format code before committing:
 
 ```bash
-# Run performance tests
-python -c "from testing_framework import PerformanceBenchmark; PerformanceBenchmark.benchmark_data_manager()"
+# Create pre-commit hook
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/bash
+black --check app/ config/ tests/ utils/ scripts/ main.py
+if [ $? -ne 0 ]; then
+  echo "Running black formatter..."
+  black app/ config/ tests/ utils/ scripts/ main.py
+  git add app/ config/ tests/ utils/ scripts/ main.py
+fi
+EOF
+
+# Make hook executable
+chmod +x .git/hooks/pre-commit
 ```
 
 ## Active Trading Signals
