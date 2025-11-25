@@ -25,19 +25,22 @@ class TestDataManager(BaseTestCase):
         self.dm = DataManager(db_path=self.test_db.name)
 
         # Create sample data
-        self.sample_dates = pd.date_range('2023-01-01', periods=100, freq='D')
+        self.sample_dates = pd.date_range("2023-01-01", periods=100, freq="D")
         self.sample_prices = 100 + np.cumsum(np.random.normal(0.1, 2, 100))
-        self.sample_data = pd.DataFrame({
-            'Open': self.sample_prices * 0.99,
-            'High': self.sample_prices * 1.02,
-            'Low': self.sample_prices * 0.98,
-            'Close': self.sample_prices,
-            'Volume': np.random.randint(1000000, 5000000, 100),
-            'Dividends': np.zeros(100),
-            'Stock Splits': np.zeros(100)
-        }, index=self.sample_dates)
+        self.sample_data = pd.DataFrame(
+            {
+                "Open": self.sample_prices * 0.99,
+                "High": self.sample_prices * 1.02,
+                "Low": self.sample_prices * 0.98,
+                "Close": self.sample_prices,
+                "Volume": np.random.randint(1000000, 5000000, 100),
+                "Dividends": np.zeros(100),
+                "Stock Splits": np.zeros(100),
+            },
+            index=self.sample_dates,
+        )
         # Set index name to 'Date' to match yfinance format
-        self.sample_data.index.name = 'Date'
+        self.sample_data.index.name = "Date"
 
     def tearDown(self):
         """Clean up test fixtures"""
@@ -53,7 +56,7 @@ class TestDataManager(BaseTestCase):
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]
 
-        expected_tables = ['daily_data', 'intraday_data', 'metadata', 'signal_history']
+        expected_tables = ["daily_data", "intraday_data", "metadata", "signal_history"]
         for table in expected_tables:
             self.assertIn(table, tables)
 
@@ -62,58 +65,58 @@ class TestDataManager(BaseTestCase):
     def test_data_storage_and_retrieval(self):
         """Test storing and retrieving data"""
         # Store sample data
-        self.dm._store_data('TEST', self.sample_data, '1d')
+        self.dm._store_data("TEST", self.sample_data, "1d")
 
         # Retrieve data
-        retrieved_data = self.dm._get_cached_data('TEST', '1d')
+        retrieved_data = self.dm._get_cached_data("TEST", "1d")
 
         self.assertIsNotNone(retrieved_data)
         self.assertEqual(len(retrieved_data), len(self.sample_data))
         self.assertAlmostEqual(
-            retrieved_data['Close'].iloc[-1],
-            self.sample_data['Close'].iloc[-1],
-            places=2
+            retrieved_data["Close"].iloc[-1],
+            self.sample_data["Close"].iloc[-1],
+            places=2,
         )
 
     def test_data_cleaning(self):
         """Test data cleaning functionality"""
         # Create dirty data with NaN and outliers
         dirty_data = self.sample_data.copy()
-        dirty_data.loc[dirty_data.index[10], 'Close'] = np.nan
-        dirty_data.loc[dirty_data.index[20], 'Close'] = 1000000  # Outlier
+        dirty_data.loc[dirty_data.index[10], "Close"] = np.nan
+        dirty_data.loc[dirty_data.index[20], "Close"] = 1000000  # Outlier
 
         cleaned_data = self.dm._clean_data(dirty_data)
 
         # Check that NaN values are handled
-        self.assertFalse(cleaned_data['Close'].isna().all())
+        self.assertFalse(cleaned_data["Close"].isna().all())
 
         # Check that outliers are removed
         self.assertLess(len(cleaned_data), len(dirty_data))
 
-    @patch('yfinance.Ticker')
+    @patch("yfinance.Ticker")
     def test_get_stock_data_with_mock(self, mock_ticker):
         """Test getting stock data with mocked yfinance"""
         # Mock yfinance response
         mock_stock = MagicMock()
         mock_stock.history.return_value = self.sample_data
-        mock_stock.info = {'longName': 'Test Company', 'sector': 'Technology'}
+        mock_stock.info = {"longName": "Test Company", "sector": "Technology"}
         mock_ticker.return_value = mock_stock
 
         # Test data retrieval
-        data = self.dm.get_stock_data('TEST', period="1y", force_update=True)
+        data = self.dm.get_stock_data("TEST", period="1y", force_update=True)
 
         self.assertFalse(data.empty)
         self.assertEqual(len(data), len(self.sample_data))
-        mock_ticker.assert_called_once_with('TEST')
+        mock_ticker.assert_called_once_with("TEST")
 
     def test_multiple_stocks_retrieval(self):
         """Test retrieving multiple stocks"""
         # Store test data for multiple tickers
-        for ticker in ['TEST1', 'TEST2', 'TEST3']:
-            self.dm._store_data(ticker, self.sample_data, '1d')
+        for ticker in ["TEST1", "TEST2", "TEST3"]:
+            self.dm._store_data(ticker, self.sample_data, "1d")
 
         # Test portfolio summary
-        summary = self.dm.get_portfolio_summary(['TEST1', 'TEST2', 'TEST3'])
+        summary = self.dm.get_portfolio_summary(["TEST1", "TEST2", "TEST3"])
 
         self.assertIsInstance(summary, pd.DataFrame)
         # Note: This will be empty because we don't have metadata,
@@ -122,26 +125,26 @@ class TestDataManager(BaseTestCase):
     def test_data_quality_report(self):
         """Test data quality reporting"""
         # Store some test data
-        self.dm._store_data('TEST1', self.sample_data, '1d')
-        self.dm._store_data('TEST2', self.sample_data.iloc[:50], '1d')  # Partial data
+        self.dm._store_data("TEST1", self.sample_data, "1d")
+        self.dm._store_data("TEST2", self.sample_data.iloc[:50], "1d")  # Partial data
 
         # Generate quality report
-        report = self.dm.get_data_quality_report(['TEST1', 'TEST2', 'MISSING'])
+        report = self.dm.get_data_quality_report(["TEST1", "TEST2", "MISSING"])
 
-        self.assertEqual(report['tickers_checked'], 3)
-        self.assertGreaterEqual(report['successful_downloads'], 2)
-        self.assertIn('MISSING', report['missing_data'])
+        self.assertEqual(report["tickers_checked"], 3)
+        self.assertGreaterEqual(report["successful_downloads"], 2)
+        self.assertIn("MISSING", report["missing_data"])
 
     def test_cleanup_old_data(self):
         """Test cleaning up old data"""
         # Store data with old dates
-        old_dates = pd.date_range('2020-01-01', periods=50, freq='D')
+        old_dates = pd.date_range("2020-01-01", periods=50, freq="D")
         old_data = self.sample_data.iloc[:50].copy()
-        old_dates.name = 'Date'
+        old_dates.name = "Date"
         old_data.index = old_dates
 
-        self.dm._store_data('OLD_TEST', old_data, '1d')
-        self.dm._store_data('NEW_TEST', self.sample_data, '1d')
+        self.dm._store_data("OLD_TEST", old_data, "1d")
+        self.dm._store_data("NEW_TEST", self.sample_data, "1d")
 
         # Clean old data (keep last 365 days)
         deleted_count = self.dm.cleanup_old_data(days_to_keep=365)
@@ -151,10 +154,10 @@ class TestDataManager(BaseTestCase):
     def test_backup_creation(self):
         """Test database backup"""
         # Store some data
-        self.dm._store_data('TEST', self.sample_data, '1d')
+        self.dm._store_data("TEST", self.sample_data, "1d")
 
         # Create backup
-        backup_path = tempfile.NamedTemporaryFile(delete=False, suffix='.db').name
+        backup_path = tempfile.NamedTemporaryFile(delete=False, suffix=".db").name
 
         try:
             self.dm.backup_database(backup_path)
@@ -165,7 +168,7 @@ class TestDataManager(BaseTestCase):
 
             # Verify backup has same data
             backup_dm = DataManager(db_path=backup_path)
-            backup_data = backup_dm._get_cached_data('TEST', '1d')
+            backup_data = backup_dm._get_cached_data("TEST", "1d")
             backup_dm.close()
 
             self.assertIsNotNone(backup_data)
@@ -178,24 +181,24 @@ class TestDataManager(BaseTestCase):
     def test_metadata_update(self):
         """Test metadata updating"""
         info = {
-            'longName': 'Test Company Inc.',
-            'sector': 'Technology',
-            'industry': 'Software',
-            'marketCap': 1000000000
+            "longName": "Test Company Inc.",
+            "sector": "Technology",
+            "industry": "Software",
+            "marketCap": 1000000000,
         }
 
-        self.dm._update_metadata('TEST', info)
+        self.dm._update_metadata("TEST", info)
 
         # Verify metadata was stored
         conn = sqlite3.connect(self.test_db.name)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM metadata WHERE ticker = ?", ('TEST',))
+        cursor.execute("SELECT * FROM metadata WHERE ticker = ?", ("TEST",))
         result = cursor.fetchone()
         conn.close()
 
         self.assertIsNotNone(result)
-        self.assertEqual(result[1], 'Test Company Inc.')  # company_name
-        self.assertEqual(result[2], 'Technology')  # sector
+        self.assertEqual(result[1], "Test Company Inc.")  # company_name
+        self.assertEqual(result[2], "Technology")  # sector
 
     def test_rate_limiting(self):
         """Test rate limiting functionality"""
@@ -205,7 +208,7 @@ class TestDataManager(BaseTestCase):
 
         # Test multiple rate limit calls
         for i in range(3):
-            self.dm._rate_limit('TEST')
+            self.dm._rate_limit("TEST")
 
         elapsed_time = time.time() - start_time
 
@@ -215,11 +218,11 @@ class TestDataManager(BaseTestCase):
     def test_error_handling(self):
         """Test error handling in various scenarios"""
         # Test data retrieval with empty result (non-existent ticker)
-        empty_data = self.dm._get_cached_data('NONEXISTENT', '1d')
+        empty_data = self.dm._get_cached_data("NONEXISTENT", "1d")
         self.assertIsNone(empty_data)
 
         # Test with invalid interval returns None or empty
-        invalid_data = self.dm._get_cached_data('TEST', 'invalid_interval')
+        invalid_data = self.dm._get_cached_data("TEST", "invalid_interval")
         # Should return None or empty DataFrame for invalid interval
         if invalid_data is not None:
             self.assertTrue(invalid_data.empty)
@@ -238,8 +241,8 @@ class TestDataManager(BaseTestCase):
                 data = self.sample_data.copy()
                 data.index = data.index + pd.Timedelta(days=worker_id)
 
-                worker_dm._store_data(f'WORKER_{worker_id}', data, '1d')
-                retrieved = worker_dm._get_cached_data(f'WORKER_{worker_id}', '1d')
+                worker_dm._store_data(f"WORKER_{worker_id}", data, "1d")
+                retrieved = worker_dm._get_cached_data(f"WORKER_{worker_id}", "1d")
 
                 if retrieved is not None:
                     results.append(len(retrieved))
@@ -266,5 +269,5 @@ class TestDataManager(BaseTestCase):
         self.assertTrue(all(r == len(self.sample_data) for r in results))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

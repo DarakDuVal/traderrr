@@ -9,7 +9,11 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from tests import BaseTestCase
-from app.core.indicators import TechnicalIndicators, MarketRegimeDetector, AdvancedIndicators
+from app.core.indicators import (
+    TechnicalIndicators,
+    MarketRegimeDetector,
+    AdvancedIndicators,
+)
 
 
 class TestTechnicalIndicators(BaseTestCase):
@@ -21,38 +25,45 @@ class TestTechnicalIndicators(BaseTestCase):
 
         # Create sample price data
         np.random.seed(42)  # For reproducible tests
-        dates = pd.date_range('2023-01-01', periods=100, freq='D')
+        dates = pd.date_range("2023-01-01", periods=100, freq="D")
 
         # Generate realistic price data with trend
         base_price = 100
         returns = np.random.normal(0.001, 0.02, 100)  # 0.1% daily return, 2% volatility
         prices = base_price * np.exp(np.cumsum(returns))
 
-        self.sample_data = pd.DataFrame({
-            'Open': prices * np.random.uniform(0.98, 1.02, 100),
-            'High': prices * np.random.uniform(1.00, 1.05, 100),
-            'Low': prices * np.random.uniform(0.95, 1.00, 100),
-            'Close': prices,
-            'Volume': np.random.randint(1000000, 5000000, 100)
-        }, index=dates)
+        self.sample_data = pd.DataFrame(
+            {
+                "Open": prices * np.random.uniform(0.98, 1.02, 100),
+                "High": prices * np.random.uniform(1.00, 1.05, 100),
+                "Low": prices * np.random.uniform(0.95, 1.00, 100),
+                "Close": prices,
+                "Volume": np.random.randint(1000000, 5000000, 100),
+            },
+            index=dates,
+        )
 
         # Ensure High >= Close >= Low and High >= Open >= Low
         for i in range(len(self.sample_data)):
-            high = max(self.sample_data.iloc[i]['Open'],
-                       self.sample_data.iloc[i]['Close'],
-                       self.sample_data.iloc[i]['High'])
-            low = min(self.sample_data.iloc[i]['Open'],
-                      self.sample_data.iloc[i]['Close'],
-                      self.sample_data.iloc[i]['Low'])
+            high = max(
+                self.sample_data.iloc[i]["Open"],
+                self.sample_data.iloc[i]["Close"],
+                self.sample_data.iloc[i]["High"],
+            )
+            low = min(
+                self.sample_data.iloc[i]["Open"],
+                self.sample_data.iloc[i]["Close"],
+                self.sample_data.iloc[i]["Low"],
+            )
 
-            self.sample_data.iloc[i, self.sample_data.columns.get_loc('High')] = high
-            self.sample_data.iloc[i, self.sample_data.columns.get_loc('Low')] = low
+            self.sample_data.iloc[i, self.sample_data.columns.get_loc("High")] = high
+            self.sample_data.iloc[i, self.sample_data.columns.get_loc("Low")] = low
 
         self.ti = TechnicalIndicators()
 
     def test_sma_calculation(self):
         """Test Simple Moving Average calculation"""
-        prices = self.sample_data['Close']
+        prices = self.sample_data["Close"]
         sma_20 = self.ti.sma(prices, 20)
 
         # Check that SMA is calculated correctly
@@ -70,7 +81,7 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_ema_calculation(self):
         """Test Exponential Moving Average calculation"""
-        prices = self.sample_data['Close']
+        prices = self.sample_data["Close"]
         ema_12 = self.ti.ema(prices, 12)
 
         # Check basic properties
@@ -83,7 +94,7 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_rsi_calculation(self):
         """Test RSI calculation"""
-        prices = self.sample_data['Close']
+        prices = self.sample_data["Close"]
         rsi = self.ti.rsi(prices, 14)
 
         # Check basic properties
@@ -99,7 +110,7 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_macd_calculation(self):
         """Test MACD calculation"""
-        prices = self.sample_data['Close']
+        prices = self.sample_data["Close"]
         macd_line, signal_line, histogram = self.ti.macd(prices)
 
         # Check that all have same length
@@ -113,12 +124,12 @@ class TestTechnicalIndicators(BaseTestCase):
 
         # Should be approximately equal (within floating point precision)
         if len(diff) > 0 and len(hist_clean) > 0:
-            correlation = diff.corr(hist_clean.iloc[:len(diff)])
+            correlation = diff.corr(hist_clean.iloc[: len(diff)])
             self.assertGreater(correlation, 0.99)
 
     def test_bollinger_bands(self):
         """Test Bollinger Bands calculation"""
-        prices = self.sample_data['Close']
+        prices = self.sample_data["Close"]
         upper, middle, lower = self.ti.bollinger_bands(prices, 20, 2.0)
 
         # Check lengths
@@ -127,10 +138,12 @@ class TestTechnicalIndicators(BaseTestCase):
         self.assertEqual(len(lower), len(prices))
 
         # Upper should be greater than middle, middle greater than lower
-        valid_data = pd.DataFrame({'upper': upper, 'middle': middle, 'lower': lower}).dropna()
+        valid_data = pd.DataFrame(
+            {"upper": upper, "middle": middle, "lower": lower}
+        ).dropna()
 
-        self.assertTrue((valid_data['upper'] >= valid_data['middle']).all())
-        self.assertTrue((valid_data['middle'] >= valid_data['lower']).all())
+        self.assertTrue((valid_data["upper"] >= valid_data["middle"]).all())
+        self.assertTrue((valid_data["middle"] >= valid_data["lower"]).all())
 
         # Middle should be approximately SMA
         sma_20 = self.ti.sma(prices, 20)
@@ -144,9 +157,9 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_stochastic_oscillator(self):
         """Test Stochastic Oscillator"""
-        high = self.sample_data['High']
-        low = self.sample_data['Low']
-        close = self.sample_data['Close']
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
 
         k_percent, d_percent = self.ti.stochastic(high, low, close, 14, 3)
 
@@ -165,9 +178,9 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_atr_calculation(self):
         """Test Average True Range"""
-        high = self.sample_data['High']
-        low = self.sample_data['Low']
-        close = self.sample_data['Close']
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
 
         atr = self.ti.atr(high, low, close, 14)
 
@@ -188,9 +201,9 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_williams_r(self):
         """Test Williams %R"""
-        high = self.sample_data['High']
-        low = self.sample_data['Low']
-        close = self.sample_data['Close']
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
 
         williams = self.ti.williams_r(high, low, close, 14)
 
@@ -204,9 +217,9 @@ class TestTechnicalIndicators(BaseTestCase):
 
     def test_adx_calculation(self):
         """Test ADX calculation"""
-        high = self.sample_data['High']
-        low = self.sample_data['Low']
-        close = self.sample_data['Close']
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
 
         adx, di_plus, di_minus = self.ti.adx(high, low, close, 14)
 
@@ -227,7 +240,7 @@ class TestTechnicalIndicators(BaseTestCase):
     def test_edge_cases(self):
         """Test edge cases and error handling"""
         # Test with very short data
-        short_data = self.sample_data['Close'][:5]
+        short_data = self.sample_data["Close"][:5]
 
         # Should not crash, but may return NaN
         rsi_short = self.ti.rsi(short_data, 14)
@@ -250,21 +263,28 @@ class TestTechnicalIndicators(BaseTestCase):
         fib_levels = self.ti.fibonacci_levels(high_price, low_price)
 
         # Check that all expected levels are present
-        expected_levels = ['level_0', 'level_236', 'level_382', 'level_500',
-                           'level_618', 'level_786', 'level_100']
+        expected_levels = [
+            "level_0",
+            "level_236",
+            "level_382",
+            "level_500",
+            "level_618",
+            "level_786",
+            "level_100",
+        ]
 
         for level in expected_levels:
             self.assertIn(level, fib_levels)
 
         # Check level ordering
-        self.assertEqual(fib_levels['level_0'], high_price)
-        self.assertEqual(fib_levels['level_100'], low_price)
-        self.assertGreater(fib_levels['level_236'], fib_levels['level_382'])
-        self.assertGreater(fib_levels['level_382'], fib_levels['level_500'])
+        self.assertEqual(fib_levels["level_0"], high_price)
+        self.assertEqual(fib_levels["level_100"], low_price)
+        self.assertGreater(fib_levels["level_236"], fib_levels["level_382"])
+        self.assertGreater(fib_levels["level_382"], fib_levels["level_500"])
 
         # Check 50% level
         expected_50 = (high_price + low_price) / 2
-        self.assertAlmostEqual(fib_levels['level_500'], expected_50, places=6)
+        self.assertAlmostEqual(fib_levels["level_500"], expected_50, places=6)
 
     def test_pivot_points(self):
         """Test pivot point calculation"""
@@ -275,22 +295,22 @@ class TestTechnicalIndicators(BaseTestCase):
         pivots = self.ti.pivot_points(high_price, low_price, close_price)
 
         # Check all levels are present
-        expected_keys = ['pivot', 'r1', 'r2', 'r3', 's1', 's2', 's3']
+        expected_keys = ["pivot", "r1", "r2", "r3", "s1", "s2", "s3"]
         for key in expected_keys:
             self.assertIn(key, pivots)
 
         # Check pivot calculation
         expected_pivot = (high_price + low_price + close_price) / 3
-        self.assertAlmostEqual(pivots['pivot'], expected_pivot, places=6)
+        self.assertAlmostEqual(pivots["pivot"], expected_pivot, places=6)
 
         # Check resistance and support ordering
-        self.assertGreater(pivots['r1'], pivots['pivot'])
-        self.assertGreater(pivots['r2'], pivots['r1'])
-        self.assertGreater(pivots['r3'], pivots['r2'])
+        self.assertGreater(pivots["r1"], pivots["pivot"])
+        self.assertGreater(pivots["r2"], pivots["r1"])
+        self.assertGreater(pivots["r3"], pivots["r2"])
 
-        self.assertLess(pivots['s1'], pivots['pivot'])
-        self.assertLess(pivots['s2'], pivots['s1'])
-        self.assertLess(pivots['s3'], pivots['s2'])
+        self.assertLess(pivots["s1"], pivots["pivot"])
+        self.assertLess(pivots["s2"], pivots["s1"])
+        self.assertLess(pivots["s3"], pivots["s2"])
 
 
 class TestMarketRegimeDetector(BaseTestCase):
@@ -302,13 +322,13 @@ class TestMarketRegimeDetector(BaseTestCase):
         self.detector = MarketRegimeDetector()
 
         # Create trending data
-        self.trending_data = pd.Series(
-            100 + np.cumsum(np.random.normal(0.1, 0.5, 100))
-        )
+        self.trending_data = pd.Series(100 + np.cumsum(np.random.normal(0.1, 0.5, 100)))
 
         # Create mean-reverting data
         self.mean_reverting_data = pd.Series(
-            100 + 5 * np.sin(np.linspace(0, 4 * np.pi, 100)) + np.random.normal(0, 0.5, 100)
+            100
+            + 5 * np.sin(np.linspace(0, 4 * np.pi, 100))
+            + np.random.normal(0, 0.5, 100)
         )
 
     def test_hurst_exponent_trending(self):
@@ -354,8 +374,8 @@ class TestMarketRegimeDetector(BaseTestCase):
         vol_regime_high = self.detector.volatility_regime(high_vol_data)
 
         # Should classify correctly (though may not always due to randomness)
-        self.assertIn(vol_regime_low, ['low', 'normal', 'high'])
-        self.assertIn(vol_regime_high, ['low', 'normal', 'high'])
+        self.assertIn(vol_regime_low, ["low", "normal", "high"])
+        self.assertIn(vol_regime_high, ["low", "normal", "high"])
 
 
 class TestAdvancedIndicators(BaseTestCase):
@@ -367,29 +387,32 @@ class TestAdvancedIndicators(BaseTestCase):
 
         # Create sample OHLCV data
         np.random.seed(42)
-        dates = pd.date_range('2023-01-01', periods=100, freq='D')
+        dates = pd.date_range("2023-01-01", periods=100, freq="D")
         prices = 100 + np.cumsum(np.random.normal(0.1, 2, 100))
 
-        self.sample_data = pd.DataFrame({
-            'Open': prices * 0.99,
-            'High': prices * 1.02,
-            'Low': prices * 0.98,
-            'Close': prices,
-            'Volume': np.random.randint(1000000, 5000000, 100)
-        }, index=dates)
+        self.sample_data = pd.DataFrame(
+            {
+                "Open": prices * 0.99,
+                "High": prices * 1.02,
+                "Low": prices * 0.98,
+                "Close": prices,
+                "Volume": np.random.randint(1000000, 5000000, 100),
+            },
+            index=dates,
+        )
 
         self.advanced = AdvancedIndicators()
 
     def test_squeeze_momentum(self):
         """Test TTM Squeeze indicator"""
-        high = self.sample_data['High']
-        low = self.sample_data['Low']
-        close = self.sample_data['Close']
+        high = self.sample_data["High"]
+        low = self.sample_data["Low"]
+        close = self.sample_data["Close"]
 
         squeeze_data = self.advanced.squeeze_momentum(high, low, close)
 
         # Check that all components are present
-        expected_keys = ['squeeze_on', 'squeeze_off', 'no_squeeze', 'momentum']
+        expected_keys = ["squeeze_on", "squeeze_off", "no_squeeze", "momentum"]
         for key in expected_keys:
             self.assertIn(key, squeeze_data)
 
@@ -398,8 +421,8 @@ class TestAdvancedIndicators(BaseTestCase):
             self.assertEqual(len(squeeze_data[key]), len(close))
 
         # Squeeze conditions should be boolean
-        squeeze_on = squeeze_data['squeeze_on'].dropna()
-        squeeze_off = squeeze_data['squeeze_off'].dropna()
+        squeeze_on = squeeze_data["squeeze_on"].dropna()
+        squeeze_off = squeeze_data["squeeze_off"].dropna()
 
         self.assertTrue(squeeze_on.dtype == bool)
         self.assertTrue(squeeze_off.dtype == bool)
@@ -452,5 +475,5 @@ class TestAdvancedIndicators(BaseTestCase):
             self.fail(f"Indicators failed with short data: {e}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

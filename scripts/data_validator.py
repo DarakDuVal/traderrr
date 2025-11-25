@@ -11,8 +11,7 @@ Validate trading data quality and consistency
 import sys
 import os
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,11 +24,11 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
     warnings = []
 
     # Check required columns
-    required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+    required_cols = ["Open", "High", "Low", "Close", "Volume"]
     missing_cols = [col for col in required_cols if col not in data.columns]
     if missing_cols:
         issues.append(f"Missing columns: {missing_cols}")
-        return {'ticker': ticker, 'issues': issues, 'warnings': warnings}
+        return {"ticker": ticker, "issues": issues, "warnings": warnings}
 
     # Check for NaN values
     nan_counts = data[required_cols].isna().sum()
@@ -38,30 +37,32 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
             warnings.append(f"{col} has {count} NaN values")
 
     # Check OHLC consistency
-    high_low_issues = (data['High'] < data['Low']).sum()
+    high_low_issues = (data["High"] < data["Low"]).sum()
     if high_low_issues > 0:
         issues.append(f"{high_low_issues} records where High < Low")
 
-    open_high_issues = (data['Open'] > data['High']).sum()
-    close_high_issues = (data['Close'] > data['High']).sum()
-    open_low_issues = (data['Open'] < data['Low']).sum()
-    close_low_issues = (data['Close'] < data['Low']).sum()
+    open_high_issues = (data["Open"] > data["High"]).sum()
+    close_high_issues = (data["Close"] > data["High"]).sum()
+    open_low_issues = (data["Open"] < data["Low"]).sum()
+    close_low_issues = (data["Close"] < data["Low"]).sum()
 
-    ohlc_issues = open_high_issues + close_high_issues + open_low_issues + close_low_issues
+    ohlc_issues = (
+        open_high_issues + close_high_issues + open_low_issues + close_low_issues
+    )
     if ohlc_issues > 0:
         issues.append(f"{ohlc_issues} OHLC consistency violations")
 
     # Check for negative values
-    negative_prices = (data[['Open', 'High', 'Low', 'Close']] <= 0).any(axis=1).sum()
+    negative_prices = (data[["Open", "High", "Low", "Close"]] <= 0).any(axis=1).sum()
     if negative_prices > 0:
         issues.append(f"{negative_prices} records with negative/zero prices")
 
-    negative_volume = (data['Volume'] < 0).sum()
+    negative_volume = (data["Volume"] < 0).sum()
     if negative_volume > 0:
         issues.append(f"{negative_volume} records with negative volume")
 
     # Check for outliers (price changes > 50% in one day)
-    price_changes = data['Close'].pct_change().abs()
+    price_changes = data["Close"].pct_change().abs()
     outliers = (price_changes > 0.5).sum()
     if outliers > 0:
         warnings.append(f"{outliers} potential price outliers (>50% daily change)")
@@ -76,16 +77,24 @@ def validate_ohlcv_data(data: pd.DataFrame, ticker: str) -> dict:
     # Check data recency
     if len(data) > 0:
         last_date = data.index[-1]
-        days_old = (datetime.now() - last_date.tz_localize(None) if last_date.tz else datetime.now() - last_date).days
+        days_old = (
+            datetime.now() - last_date.tz_localize(None)
+            if last_date.tz
+            else datetime.now() - last_date
+        ).days
         if days_old > 7:
             warnings.append(f"Data is {days_old} days old")
 
     return {
-        'ticker': ticker,
-        'issues': issues,
-        'warnings': warnings,
-        'records': len(data),
-        'date_range': f"{data.index[0].date()} to {data.index[-1].date()}" if len(data) > 0 else "No data"
+        "ticker": ticker,
+        "issues": issues,
+        "warnings": warnings,
+        "records": len(data),
+        "date_range": (
+            f"{data.index[0].date()} to {data.index[-1].date()}"
+            if len(data) > 0
+            else "No data"
+        ),
     }
 
 
@@ -107,25 +116,27 @@ def validate_portfolio_data():
         print(f"Validating {ticker}...", end=" ")
 
         try:
-            data = dm._get_cached_data(ticker, '1d')
+            data = dm._get_cached_data(ticker, "1d")
 
             if data is None or data.empty:
                 print("❌ No data")
-                all_results.append({
-                    'ticker': ticker,
-                    'issues': ['No data available'],
-                    'warnings': [],
-                    'records': 0,
-                    'date_range': 'No data'
-                })
+                all_results.append(
+                    {
+                        "ticker": ticker,
+                        "issues": ["No data available"],
+                        "warnings": [],
+                        "records": 0,
+                        "date_range": "No data",
+                    }
+                )
                 total_issues += 1
                 continue
 
             validation_result = validate_ohlcv_data(data, ticker)
             all_results.append(validation_result)
 
-            issues = len(validation_result['issues'])
-            warnings = len(validation_result['warnings'])
+            issues = len(validation_result["issues"])
+            warnings = len(validation_result["warnings"])
             total_issues += issues
             total_warnings += warnings
 
@@ -138,13 +149,15 @@ def validate_portfolio_data():
 
         except Exception as e:
             print(f"❌ Error: {str(e)}")
-            all_results.append({
-                'ticker': ticker,
-                'issues': [f'Validation error: {str(e)}'],
-                'warnings': [],
-                'records': 0,
-                'date_range': 'Error'
-            })
+            all_results.append(
+                {
+                    "ticker": ticker,
+                    "issues": [f"Validation error: {str(e)}"],
+                    "warnings": [],
+                    "records": 0,
+                    "date_range": "Error",
+                }
+            )
             total_issues += 1
 
     dm.close()
@@ -154,11 +167,13 @@ def validate_portfolio_data():
     print("Detailed Results:")
 
     for result in all_results:
-        if result['issues'] or result['warnings']:
-            print(f"\n{result['ticker']} ({result['records']} records, {result['date_range']}):")
-            for issue in result['issues']:
+        if result["issues"] or result["warnings"]:
+            print(
+                f"\n{result['ticker']} ({result['records']} records, {result['date_range']}):"
+            )
+            for issue in result["issues"]:
                 print(f"  ❌ {issue}")
-            for warning in result['warnings']:
+            for warning in result["warnings"]:
                 print(f"  ⚠️  {warning}")
 
     # Summary
@@ -176,6 +191,6 @@ def validate_portfolio_data():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit_code = validate_portfolio_data()
     sys.exit(exit_code)

@@ -9,7 +9,7 @@ import logging
 import os
 
 
-def create_app(config_name='production'):
+def create_app(config_name="production"):
     """Application factory pattern"""
     app = Flask(__name__)
     CORS(app)
@@ -17,14 +17,14 @@ def create_app(config_name='production'):
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     # Register blueprints
     from app.api.routes import api_bp
     from app.web.dashboard import web_bp
 
-    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(web_bp)
 
     return app

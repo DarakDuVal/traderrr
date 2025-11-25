@@ -9,7 +9,7 @@ import logging
 import pandas as pd
 from datetime import datetime
 
-web_bp = Blueprint('web', __name__)
+web_bp = Blueprint("web", __name__)
 logger = logging.getLogger(__name__)
 
 # Dashboard HTML template
@@ -490,7 +490,7 @@ DASHBOARD_HTML = """
 """
 
 
-@web_bp.route('/')
+@web_bp.route("/")
 def dashboard():
     """Main dashboard"""
     try:
@@ -504,6 +504,7 @@ def dashboard():
             # In a real deployment, you'd call the API endpoints
             # For now, we'll use placeholder data or import directly
             from app.api.routes import current_signals, last_update
+
             signals_data = current_signals
         except Exception as e:
             logger.warning(f"Could not get signals: {e}")
@@ -522,23 +523,30 @@ def dashboard():
                 try:
                     data = dm.get_stock_data(ticker, period="5d")
                     if not data.empty:
-                        current_price = data['Close'].iloc[-1]
-                        daily_change = data['Close'].pct_change().iloc[-1]
-                        volume_ratio = data['Volume'].iloc[-1] / data['Volume'].rolling(5).mean().iloc[-1]
+                        current_price = data["Close"].iloc[-1]
+                        daily_change = data["Close"].pct_change().iloc[-1]
+                        volume_ratio = (
+                            data["Volume"].iloc[-1]
+                            / data["Volume"].rolling(5).mean().iloc[-1]
+                        )
 
                         portfolio_overview[ticker] = {
-                            'price': current_price,
-                            'daily_change': daily_change if not pd.isna(daily_change) else 0,
-                            'volume_ratio': volume_ratio if not pd.isna(volume_ratio) else 1,
-                            'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
+                            "price": current_price,
+                            "daily_change": (
+                                daily_change if not pd.isna(daily_change) else 0
+                            ),
+                            "volume_ratio": (
+                                volume_ratio if not pd.isna(volume_ratio) else 1
+                            ),
+                            "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
                         }
                 except Exception as e:
                     logger.warning(f"Error getting data for {ticker}: {e}")
                     portfolio_overview[ticker] = {
-                        'price': 0,
-                        'daily_change': 0,
-                        'volume_ratio': 1,
-                        'weight': Config.PORTFOLIO_WEIGHTS().get(ticker, 0)
+                        "price": 0,
+                        "daily_change": 0,
+                        "volume_ratio": 1,
+                        "weight": Config.PORTFOLIO_WEIGHTS().get(ticker, 0),
                     }
 
             dm.close()
@@ -548,9 +556,13 @@ def dashboard():
 
         # Calculate summary stats
         total_signals = len(signals_data)
-        buy_signals = len([s for s in signals_data if 'BUY' in s.signal_type.value])
-        sell_signals = len([s for s in signals_data if 'SELL' in s.signal_type.value])
-        avg_confidence = sum(s.confidence for s in signals_data) / len(signals_data) if signals_data else 0
+        buy_signals = len([s for s in signals_data if "BUY" in s.signal_type.value])
+        sell_signals = len([s for s in signals_data if "SELL" in s.signal_type.value])
+        avg_confidence = (
+            sum(s.confidence for s in signals_data) / len(signals_data)
+            if signals_data
+            else 0
+        )
 
         # Determine status color
         if total_signals > 5:
@@ -563,6 +575,7 @@ def dashboard():
         # Get last update time
         try:
             from app.api.routes import last_update
+
             update_time = last_update
         except:
             update_time = None
@@ -579,21 +592,24 @@ def dashboard():
             last_update=update_time,
             portfolio_overview=portfolio_overview,
             portfolio_metrics=portfolio_metrics,
-            status_color=status_color
+            status_color=status_color,
         )
 
     except Exception as e:
         logger.error(f"Dashboard error: {e}")
-        return f"""
+        return (
+            f"""
         <div style="text-align: center; padding: 2rem; font-family: Arial, sans-serif;">
             <h1>🚨 Dashboard Error</h1>
             <p>Error loading dashboard: {e}</p>
             <p><a href="/api/health">Check System Health</a></p>
         </div>
-        """, 500
+        """,
+            500,
+        )
 
 
-@web_bp.route('/signals')
+@web_bp.route("/signals")
 def signals_page():
     """Detailed signals page"""
     try:
@@ -631,7 +647,7 @@ def signals_page():
         return f"Error: {e}", 500
 
 
-@web_bp.route('/portfolio')
+@web_bp.route("/portfolio")
 def portfolio_page():
     """Detailed portfolio page"""
     try:

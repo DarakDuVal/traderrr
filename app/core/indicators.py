@@ -8,7 +8,7 @@ import numpy as np
 from typing import Tuple, Optional
 import warnings
 
-warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore")
 
 
 class TechnicalIndicators:
@@ -50,10 +50,12 @@ class TechnicalIndicators:
         return rsi.fillna(50.0)  # Fill NaN with neutral value
 
     @staticmethod
-    def macd(data: pd.Series,
-             fast_period: int = 12,
-             slow_period: int = 26,
-             signal_period: int = 9) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    def macd(
+        data: pd.Series,
+        fast_period: int = 12,
+        slow_period: int = 26,
+        signal_period: int = 9,
+    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """MACD with signal line and histogram"""
         ema_fast = TechnicalIndicators.ema(data, fast_period)
         ema_slow = TechnicalIndicators.ema(data, slow_period)
@@ -65,9 +67,9 @@ class TechnicalIndicators:
         return macd_line, signal_line, histogram
 
     @staticmethod
-    def bollinger_bands(data: pd.Series,
-                        period: int = 20,
-                        std_dev: float = 2.0) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    def bollinger_bands(
+        data: pd.Series, period: int = 20, std_dev: float = 2.0
+    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """Bollinger Bands with middle, upper, and lower bands"""
         middle = data.rolling(window=period, min_periods=period).mean()
         std = data.rolling(window=period, min_periods=period).std()
@@ -78,11 +80,13 @@ class TechnicalIndicators:
         return upper, middle, lower
 
     @staticmethod
-    def stochastic(high: pd.Series,
-                   low: pd.Series,
-                   close: pd.Series,
-                   k_period: int = 14,
-                   d_period: int = 3) -> Tuple[pd.Series, pd.Series]:
+    def stochastic(
+        high: pd.Series,
+        low: pd.Series,
+        close: pd.Series,
+        k_period: int = 14,
+        d_period: int = 3,
+    ) -> Tuple[pd.Series, pd.Series]:
         """Stochastic Oscillator %K and %D"""
         lowest_low = low.rolling(window=k_period, min_periods=k_period).min()
         highest_high = high.rolling(window=k_period, min_periods=k_period).max()
@@ -97,10 +101,9 @@ class TechnicalIndicators:
         return k_percent, d_percent
 
     @staticmethod
-    def atr(high: pd.Series,
-            low: pd.Series,
-            close: pd.Series,
-            period: int = 14) -> pd.Series:
+    def atr(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+    ) -> pd.Series:
         """Average True Range"""
         tr1 = high - low
         tr2 = abs(high - close.shift(1))
@@ -110,10 +113,9 @@ class TechnicalIndicators:
         return true_range.rolling(window=period, min_periods=period).mean()
 
     @staticmethod
-    def williams_r(high: pd.Series,
-                   low: pd.Series,
-                   close: pd.Series,
-                   period: int = 14) -> pd.Series:
+    def williams_r(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+    ) -> pd.Series:
         """Williams %R"""
         highest_high = high.rolling(window=period, min_periods=period).max()
         lowest_low = low.rolling(window=period, min_periods=period).min()
@@ -124,10 +126,9 @@ class TechnicalIndicators:
         return wr.fillna(-50.0)
 
     @staticmethod
-    def cci(high: pd.Series,
-            low: pd.Series,
-            close: pd.Series,
-            period: int = 20) -> pd.Series:
+    def cci(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20
+    ) -> pd.Series:
         """Commodity Channel Index"""
         typical_price = (high + low + close) / 3
         sma_tp = typical_price.rolling(window=period, min_periods=period).mean()
@@ -139,10 +140,9 @@ class TechnicalIndicators:
         return cci.fillna(0.0)
 
     @staticmethod
-    def adx(high: pd.Series,
-            low: pd.Series,
-            close: pd.Series,
-            period: int = 14) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    def adx(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+    ) -> Tuple[pd.Series, pd.Series, pd.Series]:
         """Average Directional Index with +DI and -DI"""
         # True Range
         tr = TechnicalIndicators.atr(high, low, close, 1)
@@ -180,13 +180,13 @@ class TechnicalIndicators:
         """Calculate Fibonacci retracement levels"""
         diff = high - low
         return {
-            'level_0': high,
-            'level_236': high - 0.236 * diff,
-            'level_382': high - 0.382 * diff,
-            'level_500': high - 0.500 * diff,
-            'level_618': high - 0.618 * diff,
-            'level_786': high - 0.786 * diff,
-            'level_100': low
+            "level_0": high,
+            "level_236": high - 0.236 * diff,
+            "level_382": high - 0.382 * diff,
+            "level_500": high - 0.500 * diff,
+            "level_618": high - 0.618 * diff,
+            "level_786": high - 0.786 * diff,
+            "level_100": low,
         }
 
     @staticmethod
@@ -195,25 +195,23 @@ class TechnicalIndicators:
         pivot = (high + low + close) / 3
 
         return {
-            'pivot': pivot,
-            'r1': 2 * pivot - low,
-            'r2': pivot + (high - low),
-            'r3': high + 2 * (pivot - low),
-            's1': 2 * pivot - high,
-            's2': pivot - (high - low),
-            's3': low - 2 * (high - pivot)
+            "pivot": pivot,
+            "r1": 2 * pivot - low,
+            "r2": pivot + (high - low),
+            "r3": high + 2 * (pivot - low),
+            "s1": 2 * pivot - high,
+            "s2": pivot - (high - low),
+            "s3": low - 2 * (high - pivot),
         }
 
     @staticmethod
-    def ichimoku_cloud(high: pd.Series,
-                       low: pd.Series,
-                       close: pd.Series) -> dict:
+    def ichimoku_cloud(high: pd.Series, low: pd.Series, close: pd.Series) -> dict:
         """Ichimoku Cloud components"""
         # Tenkan-sen (Conversion Line)
-        tenkan_sen = ((high.rolling(9).max() + low.rolling(9).min()) / 2)
+        tenkan_sen = (high.rolling(9).max() + low.rolling(9).min()) / 2
 
         # Kijun-sen (Base Line)
-        kijun_sen = ((high.rolling(26).max() + low.rolling(26).min()) / 2)
+        kijun_sen = (high.rolling(26).max() + low.rolling(26).min()) / 2
 
         # Senkou Span A (Leading Span A)
         senkou_span_a = ((tenkan_sen + kijun_sen) / 2).shift(26)
@@ -225,11 +223,11 @@ class TechnicalIndicators:
         chikou_span = close.shift(-26)
 
         return {
-            'tenkan_sen': tenkan_sen,
-            'kijun_sen': kijun_sen,
-            'senkou_span_a': senkou_span_a,
-            'senkou_span_b': senkou_span_b,
-            'chikou_span': chikou_span
+            "tenkan_sen": tenkan_sen,
+            "kijun_sen": kijun_sen,
+            "senkou_span_a": senkou_span_a,
+            "senkou_span_b": senkou_span_b,
+            "chikou_span": chikou_span,
         }
 
 
@@ -306,15 +304,15 @@ class MarketRegimeDetector:
             return 0.0
 
     @staticmethod
-    def volatility_regime(prices: pd.Series,
-                          short_period: int = 10,
-                          long_period: int = 30) -> str:
+    def volatility_regime(
+        prices: pd.Series, short_period: int = 10, long_period: int = 30
+    ) -> str:
         """
         Classify volatility regime
         Returns: 'low', 'normal', 'high'
         """
         if len(prices) < long_period:
-            return 'normal'
+            return "normal"
 
         # Calculate rolling volatilities
         returns = prices.pct_change(fill_method=None).dropna()
@@ -325,14 +323,14 @@ class MarketRegimeDetector:
         avg_vol = long_vol.iloc[-1]
 
         if pd.isna(current_vol) or pd.isna(avg_vol):
-            return 'normal'
+            return "normal"
 
         if current_vol < avg_vol * 0.8:
-            return 'low'
+            return "low"
         elif current_vol > avg_vol * 1.2:
-            return 'high'
+            return "high"
         else:
-            return 'normal'
+            return "normal"
 
 
 class AdvancedIndicators:
@@ -341,13 +339,15 @@ class AdvancedIndicators:
     """
 
     @staticmethod
-    def squeeze_momentum(high: pd.Series,
-                         low: pd.Series,
-                         close: pd.Series,
-                         length: int = 20,
-                         mult: float = 2.0,
-                         length_kc: int = 20,
-                         mult_kc: float = 1.5) -> dict:
+    def squeeze_momentum(
+        high: pd.Series,
+        low: pd.Series,
+        close: pd.Series,
+        length: int = 20,
+        mult: float = 2.0,
+        length_kc: int = 20,
+        mult_kc: float = 1.5,
+    ) -> dict:
         """
         TTM Squeeze indicator
         Identifies periods of low volatility followed by breakouts
@@ -375,10 +375,10 @@ class AdvancedIndicators:
         momentum = close - (m1 + TechnicalIndicators.sma(close, length_kc)) / 2
 
         return {
-            'squeeze_on': squeeze_on,
-            'squeeze_off': squeeze_off,
-            'no_squeeze': no_squeeze,
-            'momentum': momentum
+            "squeeze_on": squeeze_on,
+            "squeeze_off": squeeze_off,
+            "no_squeeze": no_squeeze,
+            "momentum": momentum,
         }
 
     @staticmethod
@@ -387,9 +387,9 @@ class AdvancedIndicators:
         Composite momentum score combining multiple indicators
         Returns score between -100 and 100
         """
-        close = data['Close']
-        high = data['High']
-        low = data['Low']
+        close = data["Close"]
+        high = data["High"]
+        low = data["Low"]
 
         # Individual momentum components
         rsi = TechnicalIndicators.rsi(close, 14)
@@ -398,17 +398,14 @@ class AdvancedIndicators:
         williams = TechnicalIndicators.williams_r(high, low, close)
 
         # Normalize indicators to -50 to 50 scale
-        rsi_norm = (rsi - 50)  # Already -50 to 50
+        rsi_norm = rsi - 50  # Already -50 to 50
         macd_norm = np.where(macd_line > macd_signal, 25, -25)  # Binary signal
-        stoch_norm = (stoch_k - 50)  # -50 to 50
-        williams_norm = (williams + 50)  # Convert from -100,0 to -50,50
+        stoch_norm = stoch_k - 50  # -50 to 50
+        williams_norm = williams + 50  # Convert from -100,0 to -50,50
 
         # Combine with weights
         composite = (
-                0.3 * rsi_norm +
-                0.3 * macd_norm +
-                0.2 * stoch_norm +
-                0.2 * williams_norm
+            0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
         )
 
         return composite.fillna(0)
@@ -419,9 +416,9 @@ class AdvancedIndicators:
         Mean reversion score based on multiple indicators
         Returns score between -100 and 100
         """
-        close = data['Close']
-        high = data['High']
-        low = data['Low']
+        close = data["Close"]
+        high = data["High"]
+        low = data["Low"]
 
         # Bollinger Band position
         bb_upper, bb_middle, bb_lower = TechnicalIndicators.bollinger_bands(close)
@@ -440,10 +437,6 @@ class AdvancedIndicators:
         rsi_mr_norm = np.clip(rsi_mr * 2.5, -50, 50)
 
         # Combine scores
-        mr_score = (
-                0.4 * bb_score +
-                0.4 * z_score_norm +
-                0.2 * rsi_mr_norm
-        )
+        mr_score = 0.4 * bb_score + 0.4 * z_score_norm + 0.2 * rsi_mr_norm
 
         return mr_score.fillna(0)

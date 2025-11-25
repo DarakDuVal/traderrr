@@ -9,15 +9,15 @@ from .signal_generator import SignalGenerator, SignalType, MarketRegime, Trading
 from .portfolio_analyzer import PortfolioAnalyzer, PortfolioMetrics, PositionRisk
 
 __all__ = [
-    'DataManager',
-    'TechnicalIndicators',
-    'MarketRegimeDetector',
-    'AdvancedIndicators',
-    'SignalGenerator',
-    'SignalType',
-    'MarketRegime',
-    'TradingSignal',
-    'PortfolioAnalyzer',
-    'PortfolioMetrics',
-    'PositionRisk'
+    "DataManager",
+    "TechnicalIndicators",
+    "MarketRegimeDetector",
+    "AdvancedIndicators",
+    "SignalGenerator",
+    "SignalType",
+    "MarketRegime",
+    "TradingSignal",
+    "PortfolioAnalyzer",
+    "PortfolioMetrics",
+    "PositionRisk",
 ]

@@ -4,6 +4,17 @@ API package initialization
 """
 
 from .routes import api_bp
-from .models import SignalType, MarketRegime, TradingSignalResponse, PortfolioMetricsResponse
+from .models import (
+    SignalType,
+    MarketRegime,
+    TradingSignalResponse,
+    PortfolioMetricsResponse,
+)
 
-__all__ = ['api_bp', 'SignalType', 'MarketRegime', 'TradingSignalResponse', 'PortfolioMetricsResponse']
+__all__ = [
+    "api_bp",
+    "SignalType",
+    "MarketRegime",
+    "TradingSignalResponse",
+    "PortfolioMetricsResponse",
+]

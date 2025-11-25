@@ -1,0 +1,26 @@
+[MASTER]
+ignore=tests
+
+[MESSAGES CONTROL]
+disable=
+    missing-docstring,
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-few-public-methods,
+    import-outside-toplevel,
+    protected-access,
+    broad-exception-caught,
+    fixme,
+
+[FORMAT]
+max-line-length=100
+
+[DESIGN]
+max-attributes=10
+max-locals=20
+max-statements=50
+
+[TYPECHECK]
+ignore-none=yes

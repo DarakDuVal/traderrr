@@ -54,13 +54,13 @@ class DataManager:
 
     def _setup_logging(self) -> logging.Logger:
         """Setup logging configuration"""
-        logger = logging.getLogger('DataManager')
+        logger = logging.getLogger("DataManager")
         logger.setLevel(logging.INFO)
 
         if not logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
@@ -72,7 +72,8 @@ class DataManager:
         cursor = self.conn.cursor()
 
         # Daily data table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS daily_data (
                 ticker TEXT,
                 date DATE,
@@ -86,10 +87,12 @@ class DataManager:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (ticker, date)
             )
-        ''')
+        """
+        )
 
         # Intraday data table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS intraday_data (
                 ticker TEXT,
                 datetime TIMESTAMP,
@@ -101,10 +104,12 @@ class DataManager:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (ticker, datetime)
             )
-        ''')
+        """
+        )
 
         # Metadata table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS metadata (
                 ticker TEXT PRIMARY KEY,
                 company_name TEXT,
@@ -113,10 +118,12 @@ class DataManager:
                 market_cap REAL,
                 last_updated TIMESTAMP
             )
-        ''')
+        """
+        )
 
         # Signal history table
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS signal_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ticker TEXT,
@@ -126,7 +133,8 @@ class DataManager:
                 confidence REAL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        ''')
+        """
+        )
 
         self.conn.commit()
 
@@ -139,11 +147,13 @@ class DataManager:
                 time.sleep(self.min_request_interval - time_since_last)
         self.last_request_time[ticker] = time.time()
 
-    def get_stock_data(self,
-                       ticker: str,
-                       period: str = "2y",
-                       interval: str = "1d",
-                       force_update: bool = False) -> pd.DataFrame:
+    def get_stock_data(
+        self,
+        ticker: str,
+        period: str = "2y",
+        interval: str = "1d",
+        force_update: bool = False,
+    ) -> pd.DataFrame:
         """
         Get stock data with caching and error handling
 
@@ -208,10 +218,9 @@ class DataManager:
                 return cached_data
             return pd.DataFrame()
 
-    def get_multiple_stocks(self,
-                            tickers: List[str],
-                            period: str = "1y",
-                            max_workers: int = 5) -> Dict[str, pd.DataFrame]:
+    def get_multiple_stocks(
+        self, tickers: List[str], period: str = "1y", max_workers: int = 5
+    ) -> Dict[str, pd.DataFrame]:
         """
         Get data for multiple stocks concurrently
 
@@ -253,27 +262,27 @@ class DataManager:
             return data
 
         # Remove rows with all NaN values
-        data = data.dropna(how='all')
+        data = data.dropna(how="all")
 
         # Forward fill missing values (max 3 consecutive)
         data = data.ffill(limit=3)
 
         # Remove obvious outliers (price changes > 50% in one day)
-        if 'Close' in data.columns and len(data) > 1:
-            price_change = data['Close'].pct_change().abs()
+        if "Close" in data.columns and len(data) > 1:
+            price_change = data["Close"].pct_change().abs()
             outlier_mask = price_change > 0.5
             if outlier_mask.any():
                 self.logger.warning(f"Removing {outlier_mask.sum()} outlier records")
                 data = data[~outlier_mask]
 
         # Ensure positive prices and volumes
-        price_cols = ['Open', 'High', 'Low', 'Close']
+        price_cols = ["Open", "High", "Low", "Close"]
         for col in price_cols:
             if col in data.columns:
                 data = data[data[col] > 0]
 
-        if 'Volume' in data.columns:
-            data = data[data['Volume'] >= 0]
+        if "Volume" in data.columns:
+            data = data[data["Volume"] >= 0]
 
         return data
 
@@ -284,39 +293,41 @@ class DataManager:
 
         # Prepare data for storage
         data_copy = data.copy()
-        data_copy['ticker'] = ticker
+        data_copy["ticker"] = ticker
         data_copy = data_copy.reset_index()
 
         # Choose table based on interval
         if interval == "1d":
             table_name = "daily_data"
-            data_copy['date'] = data_copy['Date'].dt.date
+            data_copy["date"] = data_copy["Date"].dt.date
             columns_map = {
-                'ticker': 'ticker',
-                'date': 'date',
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume',
-                'Dividends': 'dividends',
-                'Stock Splits': 'stock_splits'
+                "ticker": "ticker",
+                "date": "date",
+                "Open": "open",
+                "High": "high",
+                "Low": "low",
+                "Close": "close",
+                "Volume": "volume",
+                "Dividends": "dividends",
+                "Stock Splits": "stock_splits",
             }
         else:
             table_name = "intraday_data"
-            data_copy['datetime'] = data_copy['Date']
+            data_copy["datetime"] = data_copy["Date"]
             columns_map = {
-                'ticker': 'ticker',
-                'datetime': 'datetime',
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume'
+                "ticker": "ticker",
+                "datetime": "datetime",
+                "Open": "open",
+                "High": "high",
+                "Low": "low",
+                "Close": "close",
+                "Volume": "volume",
             }
 
         # Select only existing columns and rename to match database schema
-        available_columns = [col for col in columns_map.keys() if col in data_copy.columns]
+        available_columns = [
+            col for col in columns_map.keys() if col in data_copy.columns
+        ]
         data_to_store = data_copy[available_columns].copy()
 
         # Rename columns to match database schema
@@ -325,11 +336,11 @@ class DataManager:
 
         # Store with conflict resolution
         try:
-            data_to_store.to_sql(table_name, self.conn, if_exists='append', index=False)
+            data_to_store.to_sql(table_name, self.conn, if_exists="append", index=False)
             self.conn.commit()
         except Exception as e:
             # Handle UNIQUE constraint and other integrity errors gracefully
-            if 'UNIQUE constraint failed' in str(e):
+            if "UNIQUE constraint failed" in str(e):
                 # Data already exists in database, which is expected behavior
                 # SQLite automatically rolls back the failed insert, so we just continue
                 self.logger.debug(f"Data for {ticker} on this date already exists")
@@ -355,10 +366,12 @@ class DataManager:
                     ORDER BY datetime
                 """
 
-            df = pd.read_sql_query(query, self.conn, params=[ticker], parse_dates=['Date'])
+            df = pd.read_sql_query(
+                query, self.conn, params=[ticker], parse_dates=["Date"]
+            )
 
             if not df.empty:
-                df.set_index('Date', inplace=True)
+                df.set_index("Date", inplace=True)
                 # Capitalize column names to match yfinance format
                 df.columns = [col.capitalize() for col in df.columns]
                 return df
@@ -372,27 +385,30 @@ class DataManager:
         """Update stock metadata"""
         try:
             metadata = {
-                'ticker': ticker,
-                'company_name': info.get('longName', ''),
-                'sector': info.get('sector', ''),
-                'industry': info.get('industry', ''),
-                'market_cap': info.get('marketCap', 0),
-                'last_updated': datetime.now()
+                "ticker": ticker,
+                "company_name": info.get("longName", ""),
+                "sector": info.get("sector", ""),
+                "industry": info.get("industry", ""),
+                "market_cap": info.get("marketCap", 0),
+                "last_updated": datetime.now(),
             }
 
             cursor = self.conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO metadata 
                 (ticker, company_name, sector, industry, market_cap, last_updated)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                metadata['ticker'],
-                metadata['company_name'],
-                metadata['sector'],
-                metadata['industry'],
-                metadata['market_cap'],
-                metadata['last_updated']
-            ))
+            """,
+                (
+                    metadata["ticker"],
+                    metadata["company_name"],
+                    metadata["sector"],
+                    metadata["industry"],
+                    metadata["market_cap"],
+                    metadata["last_updated"],
+                ),
+            )
             self.conn.commit()
 
         except Exception as e:
@@ -401,7 +417,7 @@ class DataManager:
     def get_portfolio_summary(self, tickers: List[str]) -> pd.DataFrame:
         """Get summary statistics for portfolio tickers"""
         try:
-            placeholders = ','.join(['?' for _ in tickers])
+            placeholders = ",".join(["?" for _ in tickers])
             query = f"""
                 SELECT 
                     m.ticker,
@@ -439,29 +455,28 @@ class DataManager:
 
             # Clean daily data
             cursor.execute(
-                "DELETE FROM daily_data WHERE date < ?",
-                (cutoff_date.date(),)
+                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
             )
             total_deleted += cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
             cursor.execute(
-                "DELETE FROM intraday_data WHERE datetime < ?",
-                (intraday_cutoff,)
+                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
             )
             total_deleted += cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
             cursor.execute(
-                "DELETE FROM signal_history WHERE created_at < ?",
-                (signal_cutoff,)
+                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
             )
             total_deleted += cursor.rowcount
 
             self.conn.commit()
-            self.logger.info(f"Cleaned data older than {days_to_keep} days. Deleted {total_deleted} records")
+            self.logger.info(
+                f"Cleaned data older than {days_to_keep} days. Deleted {total_deleted} records"
+            )
 
             return total_deleted
 
@@ -482,39 +497,38 @@ class DataManager:
     def get_data_quality_report(self, tickers: List[str]) -> Dict:
         """Generate data quality report"""
         report = {
-            'tickers_checked': len(tickers),
-            'successful_downloads': 0,
-            'missing_data': [],
-            'stale_data': [],
-            'data_gaps': [],
-            'timestamp': datetime.now()
+            "tickers_checked": len(tickers),
+            "successful_downloads": 0,
+            "missing_data": [],
+            "stale_data": [],
+            "data_gaps": [],
+            "timestamp": datetime.now(),
         }
 
         for ticker in tickers:
             try:
                 data = self._get_cached_data(ticker, "1d")
                 if data is None or data.empty:
-                    report['missing_data'].append(ticker)
+                    report["missing_data"].append(ticker)
                 else:
-                    report['successful_downloads'] += 1
+                    report["successful_downloads"] += 1
 
                     # Check for stale data
                     last_date = data.index[-1]
                     if (datetime.now() - last_date.tz_localize(None)).days > 7:
-                        report['stale_data'].append(ticker)
+                        report["stale_data"].append(ticker)
 
                     # Check for data gaps
                     date_diff = data.index.to_series().diff()
                     gaps = date_diff[date_diff > pd.Timedelta(days=7)]
                     if not gaps.empty:
-                        report['data_gaps'].append({
-                            'ticker': ticker,
-                            'gaps': len(gaps)
-                        })
+                        report["data_gaps"].append(
+                            {"ticker": ticker, "gaps": len(gaps)}
+                        )
 
             except Exception as e:
                 self.logger.error(f"Error checking data quality for {ticker}: {e}")
-                report['missing_data'].append(ticker)
+                report["missing_data"].append(ticker)
 
         return report
 

@@ -10,7 +10,6 @@ import logging
 import threading
 import schedule
 import time
-from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -28,16 +27,16 @@ from config.database import DatabaseConfig
 def setup_logging():
     """Setup application logging"""
     # Create logs directory
-    os.makedirs('logs', exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
 
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler('logs/trading_system.log', mode='a')
-        ]
+            logging.FileHandler("logs/trading_system.log", mode="a"),
+        ],
     )
 
     return logging.getLogger(__name__)
@@ -176,7 +175,7 @@ def check_environment():
             return False
 
         # Check required directories
-        required_dirs = ['data', 'logs', 'backups']
+        required_dirs = ["data", "logs", "backups"]
         for directory in required_dirs:
             os.makedirs(directory, exist_ok=True)
 
@@ -189,8 +188,9 @@ def check_environment():
 
         # Check disk space
         import shutil
-        disk_usage = shutil.disk_usage('.')
-        free_gb = disk_usage.free / (1024 ** 3)
+
+        disk_usage = shutil.disk_usage(".")
+        free_gb = disk_usage.free / (1024**3)
 
         if free_gb < 1:
             logger.error(f"Insufficient disk space: {free_gb:.1f}GB free")
@@ -210,7 +210,7 @@ def print_startup_info():
     """Print startup information"""
     logger = logging.getLogger(__name__)
 
-    config_name = get_config().__name__.split('.')[-1]
+    config_name = get_config().__name__.split(".")[-1]
 
     startup_info = f"""
 {'=' * 60}
@@ -262,30 +262,33 @@ def main():
         # Log system startup
         db_config = DatabaseConfig(Config.DATABASE_PATH())
         db_config.log_system_event(
-            'SYSTEM_STARTUP',
-            'Trading system started',
+            "SYSTEM_STARTUP",
+            "Trading system started",
             f"Configuration: {config_class.__name__}",
-            'INFO'
+            "INFO",
         )
 
         # Start background scheduler
         start_scheduler()
 
         # Start Flask application
-        logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
+        logger.info(
+            f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}"
+        )
 
-        if os.getenv('FLASK_ENV') == 'development':
+        if os.getenv("FLASK_ENV") == "development":
             # Development mode
             app.run(
                 host=Config.API_HOST(),
                 port=Config.API_PORT(),
                 debug=True,
-                use_reloader=False  # Disable reloader to avoid scheduler conflicts
+                use_reloader=False,  # Disable reloader to avoid scheduler conflicts
             )
         else:
             # Production mode
             try:
                 import gunicorn
+
                 logger.info("Starting with Gunicorn in production mode")
 
                 # For production, we'll let gunicorn handle the startup
@@ -293,12 +296,10 @@ def main():
                 return app
 
             except ImportError:
-                logger.warning("Gunicorn not available, running with Flask development server")
-                app.run(
-                    host=Config.API_HOST(),
-                    port=Config.API_PORT(),
-                    debug=False
+                logger.warning(
+                    "Gunicorn not available, running with Flask development server"
                 )
+                app.run(host=Config.API_HOST(), port=Config.API_PORT(), debug=False)
 
         return 0
 
@@ -354,9 +355,9 @@ def get_wsgi_application():
     return application
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Check if running under Gunicorn
-    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+    if "gunicorn" in os.environ.get("SERVER_SOFTWARE", ""):
         # Running under Gunicorn
         application = get_wsgi_application()
     else:

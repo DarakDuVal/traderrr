@@ -11,7 +11,6 @@ import json
 import time
 import argparse
 import logging
-from typing import Dict, List
 
 
 class IBMCloudDeployer:
@@ -25,8 +24,7 @@ class IBMCloudDeployer:
     def _setup_logging(self):
         """Setup logging"""
         logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
         )
         return logging.getLogger(__name__)
 
@@ -36,31 +34,38 @@ class IBMCloudDeployer:
 
         # Check IBM Cloud CLI
         try:
-            result = subprocess.run(['ibmcloud', '--version'],
-                                    capture_output=True, text=True)
+            result = subprocess.run(
+                ["ibmcloud", "--version"], capture_output=True, text=True
+            )
             if result.returncode != 0:
-                self.logger.error("IBM Cloud CLI not found. Install from: https://cloud.ibm.com/docs/cli")
+                self.logger.error(
+                    "IBM Cloud CLI not found. Install from: https://cloud.ibm.com/docs/cli"
+                )
                 return False
             self.logger.info(f"IBM Cloud CLI: {result.stdout.strip()}")
         except FileNotFoundError:
-            self.logger.error("IBM Cloud CLI not found. Install from: https://cloud.ibm.com/docs/cli")
+            self.logger.error(
+                "IBM Cloud CLI not found. Install from: https://cloud.ibm.com/docs/cli"
+            )
             return False
 
         # Check Code Engine plugin
         try:
-            result = subprocess.run(['ibmcloud', 'plugin', 'list'],
-                                    capture_output=True, text=True)
-            if 'code-engine' not in result.stdout:
+            result = subprocess.run(
+                ["ibmcloud", "plugin", "list"], capture_output=True, text=True
+            )
+            if "code-engine" not in result.stdout:
                 self.logger.info("Installing Code Engine plugin...")
-                subprocess.run(['ibmcloud', 'plugin', 'install', 'code-engine', '-f'])
+                subprocess.run(["ibmcloud", "plugin", "install", "code-engine", "-f"])
         except Exception as e:
             self.logger.error(f"Failed to check/install Code Engine plugin: {e}")
             return False
 
         # Check Docker
         try:
-            result = subprocess.run(['docker', '--version'],
-                                    capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "--version"], capture_output=True, text=True
+            )
             if result.returncode != 0:
                 self.logger.error("Docker not found. Install from: https://docker.com")
                 return False
@@ -77,9 +82,9 @@ class IBMCloudDeployer:
 
         try:
             if api_key:
-                cmd = ['ibmcloud', 'login', '--apikey', api_key]
+                cmd = ["ibmcloud", "login", "--apikey", api_key]
             else:
-                cmd = ['ibmcloud', 'login', '--sso']
+                cmd = ["ibmcloud", "login", "--sso"]
 
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
@@ -100,8 +105,9 @@ class IBMCloudDeployer:
         try:
             # Check if project exists
             result = subprocess.run(
-                ['ibmcloud', 'ce', 'project', 'get', '--name', self.project_name],
-                capture_output=True, text=True
+                ["ibmcloud", "ce", "project", "get", "--name", self.project_name],
+                capture_output=True,
+                text=True,
             )
 
             if result.returncode == 0:
@@ -110,8 +116,16 @@ class IBMCloudDeployer:
                 # Create new project
                 self.logger.info(f"Creating new project: {self.project_name}")
                 result = subprocess.run(
-                    ['ibmcloud', 'ce', 'project', 'create', '--name', self.project_name],
-                    capture_output=True, text=True
+                    [
+                        "ibmcloud",
+                        "ce",
+                        "project",
+                        "create",
+                        "--name",
+                        self.project_name,
+                    ],
+                    capture_output=True,
+                    text=True,
                 )
                 if result.returncode != 0:
                     self.logger.error(f"Failed to create project: {result.stderr}")
@@ -119,8 +133,9 @@ class IBMCloudDeployer:
 
             # Select project
             result = subprocess.run(
-                ['ibmcloud', 'ce', 'project', 'select', '--name', self.project_name],
-                capture_output=True, text=True
+                ["ibmcloud", "ce", "project", "select", "--name", self.project_name],
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
                 self.logger.error(f"Failed to select project: {result.stderr}")
@@ -142,8 +157,9 @@ class IBMCloudDeployer:
         try:
             # Build image
             result = subprocess.run(
-                ['docker', 'build', '-t', image_name, '.'],
-                capture_output=True, text=True
+                ["docker", "build", "-t", image_name, "."],
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
                 self.logger.error(f"Docker build failed: {result.stderr}")
@@ -152,13 +168,12 @@ class IBMCloudDeployer:
             self.logger.info("Docker image built successfully")
 
             # Login to IBM Container Registry
-            subprocess.run(['ibmcloud', 'cr', 'login'])
+            subprocess.run(["ibmcloud", "cr", "login"])
 
             # Push image
             self.logger.info("Pushing image to IBM Container Registry...")
             result = subprocess.run(
-                ['docker', 'push', image_name],
-                capture_output=True, text=True
+                ["docker", "push", image_name], capture_output=True, text=True
             )
             if result.returncode != 0:
                 self.logger.error(f"Docker push failed: {result.stderr}")
@@ -171,42 +186,71 @@ class IBMCloudDeployer:
             self.logger.error(f"Image build/push failed: {e}")
             return None
 
-    def deploy_application(self, image_name: str = None,
-                           cpu: str = "1", memory: str = "2G",
-                           min_scale: int = 1, max_scale: int = 3) -> bool:
+    def deploy_application(
+        self,
+        image_name: str = None,
+        cpu: str = "1",
+        memory: str = "2G",
+        min_scale: int = 1,
+        max_scale: int = 3,
+    ) -> bool:
         """Deploy application to Code Engine"""
         self.logger.info(f"Deploying application: {self.app_name}")
 
         try:
             # Check if app exists
             result = subprocess.run(
-                ['ibmcloud', 'ce', 'application', 'get', '--name', self.app_name],
-                capture_output=True, text=True
+                ["ibmcloud", "ce", "application", "get", "--name", self.app_name],
+                capture_output=True,
+                text=True,
             )
 
             if result.returncode == 0:
                 # Update existing app
-                cmd = ['ibmcloud', 'ce', 'application', 'update', '--name', self.app_name]
+                cmd = [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "update",
+                    "--name",
+                    self.app_name,
+                ]
             else:
                 # Create new app
-                cmd = ['ibmcloud', 'ce', 'application', 'create', '--name', self.app_name]
+                cmd = [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "create",
+                    "--name",
+                    self.app_name,
+                ]
 
             # Add deployment parameters
             if image_name:
-                cmd.extend(['--image', image_name])
+                cmd.extend(["--image", image_name])
             else:
                 # Use build source if no image provided
-                cmd.extend(['--build-source', '.', '--build-strategy', 'dockerfile'])
+                cmd.extend(["--build-source", ".", "--build-strategy", "dockerfile"])
 
-            cmd.extend([
-                '--cpu', cpu,
-                '--memory', memory,
-                '--min-scale', str(min_scale),
-                '--max-scale', str(max_scale),
-                '--port', '8080',
-                '--env-from-configmap', 'trading-config',
-                '--env-from-secret', 'trading-secrets'
-            ])
+            cmd.extend(
+                [
+                    "--cpu",
+                    cpu,
+                    "--memory",
+                    memory,
+                    "--min-scale",
+                    str(min_scale),
+                    "--max-scale",
+                    str(max_scale),
+                    "--port",
+                    "8080",
+                    "--env-from-configmap",
+                    "trading-config",
+                    "--env-from-secret",
+                    "trading-secrets",
+                ]
+            )
 
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
@@ -218,13 +262,23 @@ class IBMCloudDeployer:
             # Get application URL
             time.sleep(10)  # Wait for deployment
             result = subprocess.run(
-                ['ibmcloud', 'ce', 'application', 'get', '--name', self.app_name, '--output', 'json'],
-                capture_output=True, text=True
+                [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "get",
+                    "--name",
+                    self.app_name,
+                    "--output",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
             )
 
             if result.returncode == 0:
                 app_info = json.loads(result.stdout)
-                url = app_info.get('status', {}).get('url')
+                url = app_info.get("status", {}).get("url")
                 if url:
                     self.logger.info(f"Application URL: {url}")
                     self.logger.info(f"Health check: {url}/api/health")
@@ -242,23 +296,29 @@ class IBMCloudDeployer:
         try:
             # Create ConfigMap
             config_vars = {
-                'DATABASE_PATH': '/app/data/market_data.db',
-                'MIN_CONFIDENCE': '0.6',
-                'UPDATE_INTERVAL_MINUTES': '30',
-                'BACKUP_ENABLED': 'true',
-                'FLASK_ENV': 'production'
+                "DATABASE_PATH": "/app/data/market_data.db",
+                "MIN_CONFIDENCE": "0.6",
+                "UPDATE_INTERVAL_MINUTES": "30",
+                "BACKUP_ENABLED": "true",
+                "FLASK_ENV": "production",
             }
 
-            cmd = ['ibmcloud', 'ce', 'configmap', 'create', '--name', 'trading-config']
+            cmd = ["ibmcloud", "ce", "configmap", "create", "--name", "trading-config"]
             for key, value in config_vars.items():
-                cmd.extend(['--from-literal', f'{key}={value}'])
+                cmd.extend(["--from-literal", f"{key}={value}"])
 
             subprocess.run(cmd, capture_output=True)
 
             # Create Secret (placeholder - user should add real secrets)
             secret_cmd = [
-                'ibmcloud', 'ce', 'secret', 'create', '--name', 'trading-secrets',
-                '--from-literal', 'SECRET_KEY=change-this-in-production'
+                "ibmcloud",
+                "ce",
+                "secret",
+                "create",
+                "--name",
+                "trading-secrets",
+                "--from-literal",
+                "SECRET_KEY=change-this-in-production",
             ]
             subprocess.run(secret_cmd, capture_output=True)
 
@@ -275,21 +335,39 @@ class IBMCloudDeployer:
 
         try:
             # Create Cloudant database
-            result = subprocess.run([
-                'ibmcloud', 'resource', 'service-instance-create',
-                'trading-cloudant-db', 'cloudantnosqldb', 'lite', 'us-south'
-            ], capture_output=True, text=True)
+            result = subprocess.run(
+                [
+                    "ibmcloud",
+                    "resource",
+                    "service-instance-create",
+                    "trading-cloudant-db",
+                    "cloudantnosqldb",
+                    "lite",
+                    "us-south",
+                ],
+                capture_output=True,
+                text=True,
+            )
 
-            if result.returncode != 0 and 'already exists' not in result.stderr:
+            if result.returncode != 0 and "already exists" not in result.stderr:
                 self.logger.warning(f"Cloudant creation failed: {result.stderr}")
 
             # Create Object Storage
-            result = subprocess.run([
-                'ibmcloud', 'resource', 'service-instance-create',
-                'trading-object-storage', 'cloud-object-storage', 'lite', 'global'
-            ], capture_output=True, text=True)
+            result = subprocess.run(
+                [
+                    "ibmcloud",
+                    "resource",
+                    "service-instance-create",
+                    "trading-object-storage",
+                    "cloud-object-storage",
+                    "lite",
+                    "global",
+                ],
+                capture_output=True,
+                text=True,
+            )
 
-            if result.returncode != 0 and 'already exists' not in result.stderr:
+            if result.returncode != 0 and "already exists" not in result.stderr:
                 self.logger.warning(f"Object Storage creation failed: {result.stderr}")
 
             self.logger.info("Services creation completed")
@@ -305,18 +383,34 @@ class IBMCloudDeployer:
 
         try:
             # Bind Cloudant
-            subprocess.run([
-                'ibmcloud', 'ce', 'application', 'bind',
-                '--name', self.app_name,
-                '--service-instance', 'trading-cloudant-db'
-            ], capture_output=True)
+            subprocess.run(
+                [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "bind",
+                    "--name",
+                    self.app_name,
+                    "--service-instance",
+                    "trading-cloudant-db",
+                ],
+                capture_output=True,
+            )
 
             # Bind Object Storage
-            subprocess.run([
-                'ibmcloud', 'ce', 'application', 'bind',
-                '--name', self.app_name,
-                '--service-instance', 'trading-object-storage'
-            ], capture_output=True)
+            subprocess.run(
+                [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "bind",
+                    "--name",
+                    self.app_name,
+                    "--service-instance",
+                    "trading-object-storage",
+                ],
+                capture_output=True,
+            )
 
             self.logger.info("Services bound successfully")
             return True
@@ -332,8 +426,18 @@ class IBMCloudDeployer:
         try:
             # Get application URL
             result = subprocess.run(
-                ['ibmcloud', 'ce', 'application', 'get', '--name', self.app_name, '--output', 'json'],
-                capture_output=True, text=True
+                [
+                    "ibmcloud",
+                    "ce",
+                    "application",
+                    "get",
+                    "--name",
+                    self.app_name,
+                    "--output",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
             )
 
             if result.returncode != 0:
@@ -341,7 +445,7 @@ class IBMCloudDeployer:
                 return False
 
             app_info = json.loads(result.stdout)
-            url = app_info.get('status', {}).get('url')
+            url = app_info.get("status", {}).get("url")
 
             if not url:
                 self.logger.error("Application URL not found")
@@ -349,6 +453,7 @@ class IBMCloudDeployer:
 
             # Test health endpoint
             import requests
+
             health_url = f"{url}/api/health"
 
             for attempt in range(5):
@@ -356,12 +461,18 @@ class IBMCloudDeployer:
                     response = requests.get(health_url, timeout=30)
                     if response.status_code == 200:
                         health_data = response.json()
-                        self.logger.info(f"Health check passed: {health_data.get('status')}")
+                        self.logger.info(
+                            f"Health check passed: {health_data.get('status')}"
+                        )
                         return True
                     else:
-                        self.logger.warning(f"Health check attempt {attempt + 1} failed: {response.status_code}")
+                        self.logger.warning(
+                            f"Health check attempt {attempt + 1} failed: {response.status_code}"
+                        )
                 except requests.RequestException as e:
-                    self.logger.warning(f"Health check attempt {attempt + 1} failed: {e}")
+                    self.logger.warning(
+                        f"Health check attempt {attempt + 1} failed: {e}"
+                    )
 
                 time.sleep(10)
 
@@ -372,8 +483,13 @@ class IBMCloudDeployer:
             self.logger.error(f"Health check failed: {e}")
             return False
 
-    def full_deployment(self, registry_namespace: str, api_key: str = None,
-                        cpu: str = "1", memory: str = "2G") -> bool:
+    def full_deployment(
+        self,
+        registry_namespace: str,
+        api_key: str = None,
+        cpu: str = "1",
+        memory: str = "2G",
+    ) -> bool:
         """Run complete deployment process"""
         self.logger.info("Starting full deployment process...")
 
@@ -414,8 +530,12 @@ class IBMCloudDeployer:
         self.logger.info(f"Project: {self.project_name}")
         self.logger.info(f"Application: {self.app_name}")
         self.logger.info("Next steps:")
-        self.logger.info("1. Check application logs: ibmcloud ce application logs --name trading-app")
-        self.logger.info("2. Monitor application: ibmcloud ce application get --name trading-app")
+        self.logger.info(
+            "1. Check application logs: ibmcloud ce application logs --name trading-app"
+        )
+        self.logger.info(
+            "2. Monitor application: ibmcloud ce application get --name trading-app"
+        )
         self.logger.info("3. Update configuration as needed")
 
         return True
@@ -423,19 +543,25 @@ class IBMCloudDeployer:
 
 def main():
     """Main deployment function"""
-    parser = argparse.ArgumentParser(description='Deploy trading system to IBM Cloud')
-    parser.add_argument('--project-name', default='trading-signals',
-                        help='Code Engine project name')
-    parser.add_argument('--registry-namespace', required=True,
-                        help='IBM Container Registry namespace')
-    parser.add_argument('--api-key',
-                        help='IBM Cloud API key (or use --sso for SSO login)')
-    parser.add_argument('--cpu', default='1',
-                        help='CPU allocation (0.25, 0.5, 1, 2, 4)')
-    parser.add_argument('--memory', default='2G',
-                        help='Memory allocation (0.5G, 1G, 2G, 4G, 8G)')
-    parser.add_argument('--dry-run', action='store_true',
-                        help='Check prerequisites only')
+    parser = argparse.ArgumentParser(description="Deploy trading system to IBM Cloud")
+    parser.add_argument(
+        "--project-name", default="trading-signals", help="Code Engine project name"
+    )
+    parser.add_argument(
+        "--registry-namespace", required=True, help="IBM Container Registry namespace"
+    )
+    parser.add_argument(
+        "--api-key", help="IBM Cloud API key (or use --sso for SSO login)"
+    )
+    parser.add_argument(
+        "--cpu", default="1", help="CPU allocation (0.25, 0.5, 1, 2, 4)"
+    )
+    parser.add_argument(
+        "--memory", default="2G", help="Memory allocation (0.5G, 1G, 2G, 4G, 8G)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Check prerequisites only"
+    )
 
     args = parser.parse_args()
 
@@ -450,12 +576,12 @@ def main():
         registry_namespace=args.registry_namespace,
         api_key=args.api_key,
         cpu=args.cpu,
-        memory=args.memory
+        memory=args.memory,
     )
 
     return 0 if success else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit_code = main()
     sys.exit(exit_code)

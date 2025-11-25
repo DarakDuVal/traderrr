@@ -11,8 +11,6 @@ Quick health check for the trading system
 import sys
 import os
 import requests
-import json
-import time
 from datetime import datetime
 
 # Add project root to path
@@ -42,7 +40,7 @@ def check_data_manager():
 
         dm = DataManager()
         # Try to get some recent data
-        test_data = dm.get_stock_data('AAPL', period='5d')
+        test_data = dm.get_stock_data("AAPL", period="5d")
         dm.close()
 
         if not test_data.empty:
@@ -63,8 +61,8 @@ def check_signal_generator():
         sg = SignalGenerator(min_confidence=0.3)
 
         # Get test data and generate signal
-        test_data = dm.get_stock_data('AAPL', period='3mo')
-        signal = sg.generate_signal('AAPL', test_data)
+        test_data = dm.get_stock_data("AAPL", period="3mo")
+        signal = sg.generate_signal("AAPL", test_data)
 
         dm.close()
 
@@ -78,7 +76,7 @@ def check_signal_generator():
 
 def check_api_endpoints(base_url="http://localhost:5000"):
     """Check API endpoints"""
-    endpoints = ['/api/health', '/api/signals', '/api/portfolio']
+    endpoints = ["/api/health", "/api/signals", "/api/portfolio"]
     results = []
 
     for endpoint in endpoints:
@@ -98,8 +96,9 @@ def check_yahoo_finance():
     """Check Yahoo Finance connectivity"""
     try:
         import yfinance as yf
-        ticker = yf.Ticker('AAPL')
-        data = ticker.history(period='1d')
+
+        ticker = yf.Ticker("AAPL")
+        data = ticker.history(period="1d")
 
         if not data.empty:
             return True, "Yahoo Finance connectivity OK"
@@ -111,21 +110,16 @@ def check_yahoo_finance():
 
 def check_file_permissions():
     """Check file and directory permissions"""
-    paths_to_check = [
-        'data',
-        'logs',
-        'backups',
-        'config.json'
-    ]
+    paths_to_check = ["data", "logs", "backups", "config.json"]
 
     issues = []
     for path in paths_to_check:
         if not os.path.exists(path):
-            if path.endswith('.json'):
+            if path.endswith(".json"):
                 issues.append(f"Missing file: {path}")
             else:
                 issues.append(f"Missing directory: {path}")
-        elif path != 'config.json':  # Directories
+        elif path != "config.json":  # Directories
             if not os.access(path, os.W_OK):
                 issues.append(f"No write permission: {path}")
 
@@ -139,8 +133,9 @@ def check_disk_space():
     """Check available disk space"""
     try:
         import shutil
-        total, used, free = shutil.disk_usage('.')
-        free_gb = free / (1024 ** 3)
+
+        total, used, free = shutil.disk_usage(".")
+        free_gb = free / (1024**3)
 
         if free_gb < 1:
             return False, f"Low disk space: {free_gb:.1f}GB free"
@@ -181,7 +176,7 @@ def main():
             results.append((name, False, f"Error: {str(e)}"))
 
     # Check API endpoints if requested
-    if len(sys.argv) > 1 and sys.argv[1] == '--api':
+    if len(sys.argv) > 1 and sys.argv[1] == "--api":
         print("\nChecking API endpoints...")
         api_results = check_api_endpoints()
         for success, message in api_results:
@@ -204,7 +199,6 @@ def main():
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit_code = main()
     sys.exit(exit_code)
-    

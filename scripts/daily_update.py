@@ -22,15 +22,15 @@ from config.settings import Config
 from config.database import DatabaseConfig
 
 
-def setup_logging(log_level='INFO'):
+def setup_logging(log_level="INFO"):
     """Setup logging configuration"""
     logging.basicConfig(
         level=getattr(logging, log_level),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler('logs/daily_update.log', mode='a')
-        ]
+            logging.FileHandler("logs/daily_update.log", mode="a"),
+        ],
     )
     return logging.getLogger(__name__)
 
@@ -44,17 +44,13 @@ def update_portfolio_data(dm: DataManager, force_update: bool = False):
 
         # Update data for all portfolio tickers
         portfolio_data = dm.get_multiple_stocks(
-            Config.PORTFOLIO_TICKERS,
-            period="6mo",
-            max_workers=5
+            Config.PORTFOLIO_TICKERS, period="6mo", max_workers=5
         )
 
         if force_update:
             # Force update for recent data
             recent_data = dm.get_multiple_stocks(
-                Config.PORTFOLIO_TICKERS,
-                period="5d",
-                max_workers=3
+                Config.PORTFOLIO_TICKERS, period="5d", max_workers=3
             )
             logger.info(f"Force updated recent data for {len(recent_data)} tickers")
 
@@ -81,21 +77,24 @@ def generate_signals(dm: DataManager, sg: SignalGenerator, portfolio_data: dict)
             db_config = DatabaseConfig(Config.DATABASE_PATH)
             for signal in signals:
                 try:
-                    db_config.execute_query('''
+                    db_config.execute_query(
+                        """
                         INSERT INTO signal_history 
                         (ticker, date, signal_type, confidence, entry_price, target_price, stop_loss, regime, reasons)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        signal.ticker,
-                        signal.timestamp.date(),
-                        signal.signal_type.value,
-                        signal.confidence,
-                        signal.entry_price,
-                        signal.target_price,
-                        signal.stop_loss,
-                        signal.regime.value,
-                        ', '.join(signal.reasons)
-                    ))
+                    """,
+                        (
+                            signal.ticker,
+                            signal.timestamp.date(),
+                            signal.signal_type.value,
+                            signal.confidence,
+                            signal.entry_price,
+                            signal.target_price,
+                            signal.stop_loss,
+                            signal.regime.value,
+                            ", ".join(signal.reasons),
+                        ),
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to log signal for {signal.ticker}: {e}")
 
@@ -119,39 +118,44 @@ def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict):
 
         # Calculate position risks
         position_risks = pa.calculate_position_risks(
-            portfolio_data,
-            Config.PORTFOLIO_WEIGHTS,
-            Config.PORTFOLIO_VALUE
+            portfolio_data, Config.PORTFOLIO_WEIGHTS, Config.PORTFOLIO_VALUE
         )
 
         # Log portfolio performance
         db_config = DatabaseConfig(Config.DATABASE_PATH)
         try:
-            db_config.execute_query('''
+            db_config.execute_query(
+                """
                 INSERT INTO portfolio_performance 
                 (date, portfolio_value, daily_return, volatility, sharpe_ratio, max_drawdown)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                datetime.now().date(),
-                Config.PORTFOLIO_VALUE,
-                metrics.daily_return,
-                metrics.volatility,
-                metrics.sharpe_ratio,
-                metrics.max_drawdown
-            ))
+            """,
+                (
+                    datetime.now().date(),
+                    Config.PORTFOLIO_VALUE,
+                    metrics.daily_return,
+                    metrics.volatility,
+                    metrics.sharpe_ratio,
+                    metrics.max_drawdown,
+                ),
+            )
         except Exception as e:
             logger.warning(f"Failed to log portfolio performance: {e}")
 
         # Check risk alerts
         risk_alerts = []
         if metrics.volatility > Config.VOLATILITY_LIMIT:
-            risk_alerts.append(f"Portfolio volatility ({metrics.volatility:.1%}) exceeds limit")
+            risk_alerts.append(
+                f"Portfolio volatility ({metrics.volatility:.1%}) exceeds limit"
+            )
 
         if metrics.max_drawdown < -0.20:
             risk_alerts.append(f"Max drawdown ({metrics.max_drawdown:.1%}) exceeds 20%")
 
         # Check concentration risk
-        high_concentration = [pos for pos in position_risks if pos.concentration_risk > 0.6]
+        high_concentration = [
+            pos for pos in position_risks if pos.concentration_risk > 0.6
+        ]
         if high_concentration:
             tickers = [pos.ticker for pos in high_concentration]
             risk_alerts.append(f"High concentration risk in: {', '.join(tickers)}")
@@ -163,10 +167,10 @@ def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict):
 
                 # Log system event
                 db_config.log_system_event(
-                    'RISK_ALERT',
+                    "RISK_ALERT",
                     alert,
                     f"Portfolio value: ${Config.PORTFOLIO_VALUE:,}",
-                    'WARNING'
+                    "WARNING",
                 )
 
         logger.info("Portfolio risk analysis completed")
@@ -188,7 +192,9 @@ def send_notifications(signals: list, risk_alerts: list):
         if high_conf_signals:
             logger.info(f"High confidence signals detected: {len(high_conf_signals)}")
             for signal in high_conf_signals:
-                logger.info(f"  {signal.ticker}: {signal.signal_type.value} ({signal.confidence:.1%})")
+                logger.info(
+                    f"  {signal.ticker}: {signal.signal_type.value} ({signal.confidence:.1%})"
+                )
 
         # Risk alerts
         if risk_alerts:
@@ -216,10 +222,10 @@ def cleanup_database(db_config: DatabaseConfig):
 
         # Clean old data
         cleanup_stats = db_config.cleanup_old_data(
-            days_to_keep=Config.get('data.data_retention_days', 730)
+            days_to_keep=Config.get("data.data_retention_days", 730)
         )
 
-        if 'error' not in cleanup_stats:
+        if "error" not in cleanup_stats:
             total_deleted = sum(cleanup_stats.values())
             logger.info(f"Cleaned up {total_deleted} old records")
 
@@ -229,10 +235,10 @@ def cleanup_database(db_config: DatabaseConfig):
 
         # Log cleanup event
         db_config.log_system_event(
-            'DATABASE_CLEANUP',
+            "DATABASE_CLEANUP",
             f"Cleaned up {total_deleted} old records",
             str(cleanup_stats),
-            'INFO'
+            "INFO",
         )
 
     except Exception as e:
@@ -245,18 +251,19 @@ def create_backup(dm: DataManager):
 
     try:
         if Config.BACKUP_ENABLED:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
             backup_path = f"backups/backup_{timestamp}.db"
 
             # Ensure backup directory exists
-            os.makedirs('backups', exist_ok=True)
+            os.makedirs("backups", exist_ok=True)
 
             dm.backup_database(backup_path)
             logger.info(f"Database backup created: {backup_path}")
 
             # Clean old backups (keep last 7 days)
             import glob
-            backup_files = sorted(glob.glob('backups/backup_*.db'))
+
+            backup_files = sorted(glob.glob("backups/backup_*.db"))
             if len(backup_files) > 7:
                 for old_backup in backup_files[:-7]:
                     try:
@@ -289,6 +296,7 @@ def validate_system_health():
 
         # Check disk space
         import shutil
+
         disk_usage = shutil.disk_usage(os.path.dirname(Config.DATABASE_PATH))
         free_percent = disk_usage.free / disk_usage.total * 100
 
@@ -308,26 +316,34 @@ def validate_system_health():
 
 def main():
     """Main update function"""
-    parser = argparse.ArgumentParser(description='Daily trading system update')
-    parser.add_argument('--force-update', action='store_true',
-                        help='Force update of all data')
-    parser.add_argument('--skip-backup', action='store_true',
-                        help='Skip database backup')
-    parser.add_argument('--skip-cleanup', action='store_true',
-                        help='Skip database cleanup')
-    parser.add_argument('--log-level', default='INFO',
-                        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                        help='Logging level')
+    parser = argparse.ArgumentParser(description="Daily trading system update")
+    parser.add_argument(
+        "--force-update", action="store_true", help="Force update of all data"
+    )
+    parser.add_argument(
+        "--skip-backup", action="store_true", help="Skip database backup"
+    )
+    parser.add_argument(
+        "--skip-cleanup", action="store_true", help="Skip database cleanup"
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging level",
+    )
 
     args = parser.parse_args()
 
     # Setup logging
-    os.makedirs('logs', exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
     logger = setup_logging(args.log_level)
 
     logger.info("=" * 50)
     logger.info("Starting daily trading system update")
-    logger.info(f"Arguments: force_update={args.force_update}, skip_backup={args.skip_backup}")
+    logger.info(
+        f"Arguments: force_update={args.force_update}, skip_backup={args.skip_backup}"
+    )
 
     try:
         # Validate system health
@@ -343,10 +359,10 @@ def main():
 
         # Log update start
         db_config.log_system_event(
-            'DAILY_UPDATE_START',
-            'Daily update process started',
+            "DAILY_UPDATE_START",
+            "Daily update process started",
             f"Force update: {args.force_update}",
-            'INFO'
+            "INFO",
         )
 
         # Update portfolio data
@@ -360,7 +376,9 @@ def main():
         signals = generate_signals(dm, sg, portfolio_data)
 
         # Analyze portfolio risk
-        metrics, position_risks, risk_alerts = analyze_portfolio_risk(pa, portfolio_data)
+        metrics, position_risks, risk_alerts = analyze_portfolio_risk(
+            pa, portfolio_data
+        )
 
         # Send notifications
         send_notifications(signals, risk_alerts)
@@ -375,10 +393,10 @@ def main():
 
         # Log update completion
         db_config.log_system_event(
-            'DAILY_UPDATE_COMPLETE',
-            'Daily update process completed successfully',
+            "DAILY_UPDATE_COMPLETE",
+            "Daily update process completed successfully",
             f"Signals: {len(signals)}, Alerts: {len(risk_alerts)}",
-            'INFO'
+            "INFO",
         )
 
         # Print summary
@@ -404,10 +422,7 @@ def main():
         try:
             db_config = DatabaseConfig(Config.DATABASE_PATH)
             db_config.log_system_event(
-                'DAILY_UPDATE_ERROR',
-                'Daily update process failed',
-                str(e),
-                'ERROR'
+                "DAILY_UPDATE_ERROR", "Daily update process failed", str(e), "ERROR"
             )
         except:
             pass

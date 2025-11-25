@@ -18,12 +18,12 @@ class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.test_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+        self.test_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
         self.test_db.close()
 
         # Set test environment
-        os.environ['FLASK_ENV'] = 'testing'
-        os.environ['DATABASE_PATH'] = self.test_db.name
+        os.environ["FLASK_ENV"] = "testing"
+        os.environ["DATABASE_PATH"] = self.test_db.name
 
     def tearDown(self):
         """Clean up test fixtures"""
@@ -34,7 +34,7 @@ class BaseTestCase(unittest.TestCase):
 def run_all_tests():
     """Run all tests in the test suite"""
     loader = unittest.TestLoader()
-    suite = loader.discover('tests', pattern='test_*.py')
+    suite = loader.discover("tests", pattern="test_*.py")
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
@@ -42,6 +42,6 @@ def run_all_tests():
     return result.wasSuccessful()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)

@@ -26,7 +26,8 @@ class DatabaseConfig:
             cursor = conn.cursor()
 
             # Daily data table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS daily_data (
                     ticker TEXT,
                     date DATE,
@@ -40,10 +41,12 @@ class DatabaseConfig:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (ticker, date)
                 )
-            ''')
+            """
+            )
 
             # Intraday data table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS intraday_data (
                     ticker TEXT,
                     datetime TIMESTAMP,
@@ -55,10 +58,12 @@ class DatabaseConfig:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (ticker, datetime)
                 )
-            ''')
+            """
+            )
 
             # Metadata table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS metadata (
                     ticker TEXT PRIMARY KEY,
                     company_name TEXT,
@@ -67,10 +72,12 @@ class DatabaseConfig:
                     market_cap REAL,
                     last_updated TIMESTAMP
                 )
-            ''')
+            """
+            )
 
             # Signal history table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS signal_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT,
@@ -85,10 +92,12 @@ class DatabaseConfig:
                     reasons TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            ''')
+            """
+            )
 
             # Portfolio performance table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS portfolio_performance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     date DATE,
@@ -99,10 +108,12 @@ class DatabaseConfig:
                     max_drawdown REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            ''')
+            """
+            )
 
             # Trade log table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS trade_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT,
@@ -114,10 +125,12 @@ class DatabaseConfig:
                     executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (signal_id) REFERENCES signal_history(id)
                 )
-            ''')
+            """
+            )
 
             # System events table
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS system_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     event_type TEXT,
@@ -126,23 +139,30 @@ class DatabaseConfig:
                     severity TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            ''')
+            """
+            )
 
             # Create indexes for performance
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_daily_data_ticker_date 
                 ON daily_data(ticker, date DESC)
-            ''')
+            """
+            )
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_signal_history_ticker_date 
                 ON signal_history(ticker, date DESC)
-            ''')
+            """
+            )
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_trade_log_ticker_date 
                 ON trade_log(ticker, executed_at DESC)
-            ''')
+            """
+            )
 
             conn.commit()
             conn.close()
@@ -172,9 +192,13 @@ class DatabaseConfig:
             cursor = conn.cursor()
 
             info = {
-                'path': self.db_path,
-                'size_mb': os.path.getsize(self.db_path) / (1024 * 1024) if os.path.exists(self.db_path) else 0,
-                'tables': {}
+                "path": self.db_path,
+                "size_mb": (
+                    os.path.getsize(self.db_path) / (1024 * 1024)
+                    if os.path.exists(self.db_path)
+                    else 0
+                ),
+                "tables": {},
             }
 
             # Get table information
@@ -184,25 +208,22 @@ class DatabaseConfig:
             for (table_name,) in tables:
                 cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
                 count = cursor.fetchone()[0]
-                info['tables'][table_name] = count
+                info["tables"][table_name] = count
 
             # Get data range for daily_data
             try:
                 cursor.execute("SELECT MIN(date), MAX(date) FROM daily_data")
                 min_date, max_date = cursor.fetchone()
-                info['data_range'] = {
-                    'start': min_date,
-                    'end': max_date
-                }
+                info["data_range"] = {"start": min_date, "end": max_date}
             except:
-                info['data_range'] = None
+                info["data_range"] = None
 
             conn.close()
             return info
 
         except Exception as e:
             self.logger.error(f"Error getting database info: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}
 
     def vacuum_database(self) -> bool:
         """Optimize database by running VACUUM"""
@@ -224,6 +245,7 @@ class DatabaseConfig:
 
             # Copy database file
             import shutil
+
             shutil.copy2(self.db_path, backup_path)
 
             self.logger.info(f"Database backed up to {backup_path}")
@@ -244,6 +266,7 @@ class DatabaseConfig:
 
             # Restore from backup
             import shutil
+
             shutil.copy2(backup_path, self.db_path)
 
             self.logger.info(f"Database restored from {backup_path}")
@@ -272,17 +295,25 @@ class DatabaseConfig:
             self.logger.error(f"Query execution failed: {e}")
             return []
 
-    def log_system_event(self, event_type: str, description: str,
-                         details: str = None, severity: str = 'INFO'):
+    def log_system_event(
+        self,
+        event_type: str,
+        description: str,
+        details: str = None,
+        severity: str = "INFO",
+    ):
         """Log system event to database"""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO system_events (event_type, description, details, severity)
                 VALUES (?, ?, ?, ?)
-            ''', (event_type, description, details, severity))
+            """,
+                (event_type, description, details, severity),
+            )
 
             conn.commit()
             conn.close()
@@ -296,23 +327,26 @@ class DatabaseConfig:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT event_type, description, details, severity, created_at
                 FROM system_events
                 ORDER BY created_at DESC
                 LIMIT ?
-            ''', (limit,))
+            """,
+                (limit,),
+            )
 
             events = cursor.fetchall()
             conn.close()
 
             return [
                 {
-                    'event_type': event[0],
-                    'description': event[1],
-                    'details': event[2],
-                    'severity': event[3],
-                    'created_at': event[4]
+                    "event_type": event[0],
+                    "description": event[1],
+                    "details": event[2],
+                    "severity": event[3],
+                    "created_at": event[4],
                 }
                 for event in events
             ]
@@ -325,6 +359,7 @@ class DatabaseConfig:
         """Clean up old data"""
         try:
             from datetime import datetime, timedelta
+
             cutoff_date = datetime.now() - timedelta(days=days_to_keep)
 
             conn = sqlite3.connect(self.db_path)
@@ -334,34 +369,30 @@ class DatabaseConfig:
 
             # Clean daily data
             cursor.execute(
-                "DELETE FROM daily_data WHERE date < ?",
-                (cutoff_date.date(),)
+                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
             )
-            cleanup_stats['daily_data'] = cursor.rowcount
+            cleanup_stats["daily_data"] = cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
             cursor.execute(
-                "DELETE FROM intraday_data WHERE datetime < ?",
-                (intraday_cutoff,)
+                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
             )
-            cleanup_stats['intraday_data'] = cursor.rowcount
+            cleanup_stats["intraday_data"] = cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
             cursor.execute(
-                "DELETE FROM signal_history WHERE created_at < ?",
-                (signal_cutoff,)
+                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
             )
-            cleanup_stats['signal_history'] = cursor.rowcount
+            cleanup_stats["signal_history"] = cursor.rowcount
 
             # Clean old system events
             event_cutoff = datetime.now() - timedelta(days=30)
             cursor.execute(
-                "DELETE FROM system_events WHERE created_at < ?",
-                (event_cutoff,)
+                "DELETE FROM system_events WHERE created_at < ?", (event_cutoff,)
             )
-            cleanup_stats['system_events'] = cursor.rowcount
+            cleanup_stats["system_events"] = cursor.rowcount
 
             conn.commit()
             conn.close()
@@ -373,4 +404,4 @@ class DatabaseConfig:
 
         except Exception as e:
             self.logger.error(f"Cleanup failed: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}

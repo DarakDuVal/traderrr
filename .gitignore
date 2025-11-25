@@ -155,3 +155,4 @@ tmp/
 config_local.json
 .env.local
 local_config.py
+.claude/
