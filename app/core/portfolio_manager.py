@@ -17,7 +17,9 @@ class PortfolioManager:
         """Get database connection"""
         return sqlite3.connect(self.db_path)
 
-    def add_or_update_position(self, ticker: str, shares: float) -> Tuple[bool, List[str]]:
+    def add_or_update_position(
+        self, ticker: str, shares: float
+    ) -> Tuple[bool, List[str]]:
         """Add or update a portfolio position. Returns (success, issues)"""
         # Validate input
         issues = []
@@ -37,7 +39,9 @@ class PortfolioManager:
             cursor = conn.cursor()
 
             # Check if position exists
-            cursor.execute("SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,))
+            cursor.execute(
+                "SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,)
+            )
             existing = cursor.fetchone()
 
             if existing:
@@ -75,11 +79,15 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,))
+            cursor.execute(
+                "SELECT id FROM portfolio_positions WHERE ticker = ?", (ticker,)
+            )
             if not cursor.fetchone():
                 return False, [f"Position {ticker} not found"]
 
-            cursor.execute("DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,))
+            cursor.execute(
+                "DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,)
+            )
             conn.commit()
             conn.close()
             return True, []
@@ -93,7 +101,9 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("SELECT ticker, shares FROM portfolio_positions ORDER BY ticker")
+            cursor.execute(
+                "SELECT ticker, shares FROM portfolio_positions ORDER BY ticker"
+            )
             positions = {row[0]: row[1] for row in cursor.fetchall()}
 
             conn.close()

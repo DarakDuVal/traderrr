@@ -448,7 +448,16 @@ def get_portfolio_positions_api():
         positions = portfolio_manager.get_all_positions()
 
         if not positions:
-            return jsonify({"positions": [], "total_value": 0, "updated_at": datetime.now().isoformat()}), 200
+            return (
+                jsonify(
+                    {
+                        "positions": [],
+                        "total_value": 0,
+                        "updated_at": datetime.now().isoformat(),
+                    }
+                ),
+                200,
+            )
 
         # Get current prices
         tickers = list(positions.keys())
@@ -515,7 +524,8 @@ def add_portfolio_position():
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data
+                and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -524,18 +534,21 @@ def add_portfolio_position():
 
         position_value = float(shares) * current_price
 
-        return jsonify(
-            {
-                "message": f"Position {ticker.upper()} updated successfully",
-                "position": {
-                    "ticker": ticker.upper(),
-                    "shares": float(shares),
-                    "current_price": current_price,
-                    "position_value": position_value,
-                },
-                "updated_at": datetime.now().isoformat(),
-            }
-        ), 201
+        return (
+            jsonify(
+                {
+                    "message": f"Position {ticker.upper()} updated successfully",
+                    "position": {
+                        "ticker": ticker.upper(),
+                        "shares": float(shares),
+                        "current_price": current_price,
+                        "position_value": position_value,
+                    },
+                    "updated_at": datetime.now().isoformat(),
+                }
+            ),
+            201,
+        )
 
     except Exception as e:
         logger.error(f"Add position API error: {e}")
@@ -563,7 +576,8 @@ def update_portfolio_position(ticker):
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data
+                and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -572,18 +586,21 @@ def update_portfolio_position(ticker):
 
         position_value = float(shares) * current_price
 
-        return jsonify(
-            {
-                "message": f"Position {ticker.upper()} updated successfully",
-                "position": {
-                    "ticker": ticker.upper(),
-                    "shares": float(shares),
-                    "current_price": current_price,
-                    "position_value": position_value,
-                },
-                "updated_at": datetime.now().isoformat(),
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "message": f"Position {ticker.upper()} updated successfully",
+                    "position": {
+                        "ticker": ticker.upper(),
+                        "shares": float(shares),
+                        "current_price": current_price,
+                        "position_value": position_value,
+                    },
+                    "updated_at": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Update position API error: {e}")
@@ -597,14 +614,20 @@ def delete_portfolio_position(ticker):
         success, issues = portfolio_manager.remove_position(ticker)
 
         if not success:
-            return jsonify({"error": "Could not remove position", "issues": issues}), 400
+            return (
+                jsonify({"error": "Could not remove position", "issues": issues}),
+                400,
+            )
 
-        return jsonify(
-            {
-                "message": f"Position {ticker.upper()} removed successfully",
-                "updated_at": datetime.now().isoformat(),
-            }
-        ), 200
+        return (
+            jsonify(
+                {
+                    "message": f"Position {ticker.upper()} removed successfully",
+                    "updated_at": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Delete position API error: {e}")
