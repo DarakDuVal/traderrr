@@ -35,7 +35,10 @@ class BaseTestCase(unittest.TestCase):
 
         # Initialize database schema in both memory and file
         self._init_test_database(self.test_db_memory)
-        self._init_test_database(sqlite3.connect(self.test_db.name))
+        # Create and properly close file-based connection
+        file_db_conn = sqlite3.connect(self.test_db.name)
+        self._init_test_database(file_db_conn)
+        file_db_conn.close()
 
         # Set test environment
         os.environ["FLASK_ENV"] = "testing"
@@ -43,13 +46,25 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         """Clean up test fixtures"""
-        if self.test_db_memory:
-            self.test_db_memory.close()
-        if hasattr(self, "test_db") and os.path.exists(self.test_db.name):
+        # Close in-memory database connection
+        if hasattr(self, "test_db_memory") and self.test_db_memory:
             try:
-                os.unlink(self.test_db.name)
+                self.test_db_memory.close()
             except Exception:
                 pass
+
+        # Clean up temporary database file
+        if hasattr(self, "test_db") and self.test_db.name:
+            try:
+                if os.path.exists(self.test_db.name):
+                    os.unlink(self.test_db.name)
+            except Exception:
+                pass
+
+        # Force garbage collection to clean up any remaining connections
+        import gc
+
+        gc.collect()
 
     def _init_test_database(self, connection=None):
         """Initialize database schema for testing"""
