@@ -122,16 +122,25 @@ All contributions must meet these standards:
 
 ### Pre-commit Hook
 
-A pre-commit git hook is automatically installed to enforce code formatting:
+A pre-commit git hook is automatically installed during setup to enforce code formatting:
 
 - **Automatic formatting**: Runs Black on all staged Python files before each commit
 - **Re-staging**: Automatically stages reformatted files
 - **Line length**: 100 characters (PEP 8 extended)
+- **Auto-deployment**: Hooks are installed automatically when you run `make setup` or `make dev-setup`
 
-The hook is located at `.git/hooks/pre-commit`. If you need to bypass it (not recommended):
+The hook scripts are located in `scripts/hooks/` and git is configured to use them via `core.hooksPath`.
+
+**Installation**: The hooks are automatically installed during setup, but you can reinstall them manually:
 
 ```bash
-git commit --no-verify  # Use with caution - skips formatting checks
+bash scripts/install-hooks.sh
+```
+
+**Bypass** (not recommended):
+
+```bash
+git commit --no-verify  # Skips formatting checks
 ```
 
 ### Performance
@@ -166,7 +175,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 make setup
 ```
 
-**Note**: The pre-commit hook is included in the repository at `.git/hooks/pre-commit`. Make sure Black is installed (`pip install black`) before making commits, as the hook will run automatically on all staged Python files.
+**Note**: Git hooks are automatically installed during setup. Make sure Black is installed (included in `requirements-dev.txt`) before making commits, as the pre-commit hook will run automatically on all staged Python files.
 
 ## Useful Make Commands
 

@@ -11,6 +11,7 @@ setup:
 	. trading_env/bin/activate && pip install -r requirements-dev.txt
 	mkdir -p data logs backups cache
 	python -c "from config.database import DatabaseConfig; DatabaseConfig('data/market_data.db').init_database()"
+	bash scripts/install-hooks.sh
 
 # Run tests
 test:
