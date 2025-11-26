@@ -23,6 +23,9 @@ from config.database import DatabaseConfig
 class BaseTestCase(unittest.TestCase):
     """Base test case with in-memory SQLite and temporary file fallback"""
 
+    # Demo API key for testing (from app/api/auth.py)
+    TEST_API_KEY = "test-api-key-67890"
+
     def setUp(self):
         """Set up test fixtures"""
         # Create temporary database file for tests that require file paths
@@ -43,6 +46,19 @@ class BaseTestCase(unittest.TestCase):
         # Set test environment
         os.environ["FLASK_ENV"] = "testing"
         os.environ["DATABASE_PATH"] = self.test_db.name
+
+    def get_auth_headers(self, api_key=None):
+        """Get headers with Bearer token authentication
+
+        Args:
+            api_key: API key to use (default: TEST_API_KEY)
+
+        Returns:
+            dict: Headers dict with Authorization bearer token
+        """
+        if api_key is None:
+            api_key = self.TEST_API_KEY
+        return {"Authorization": f"Bearer {api_key}"}
 
     def tearDown(self):
         """Clean up test fixtures"""

@@ -26,7 +26,7 @@ class TestAPIHealth(BaseTestCase):
 
     def test_health_check(self):
         """Test health check endpoint returns 200"""
-        response = self.client.get("/api/health")
+        response = self.client.get("/api/health", headers=self.get_auth_headers())
         self.assertEqual(response.status_code, 200)
 
         data = json.loads(response.data)
@@ -45,13 +45,13 @@ class TestAPISignals(BaseTestCase):
 
     def test_get_signals_endpoint(self):
         """Test GET /api/signals endpoint"""
-        response = self.client.get("/api/signals")
+        response = self.client.get("/api/signals", headers=self.get_auth_headers())
         # Should return 200 or empty list
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_signal_history(self):
         """Test GET /api/signal-history endpoint"""
-        response = self.client.get("/api/signal-history")
+        response = self.client.get("/api/signal-history", headers=self.get_auth_headers())
         # Should return 200 or empty list
         self.assertIn(response.status_code, [200, 404])
 
@@ -61,22 +61,22 @@ class TestAPISignals(BaseTestCase):
 
     def test_get_signal_history_with_limit(self):
         """Test signal history with limit parameter"""
-        response = self.client.get("/api/signal-history?limit=10")
+        response = self.client.get("/api/signal-history?limit=10", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_signal_history_for_ticker(self):
         """Test GET /api/signal-history/<ticker> endpoint"""
-        response = self.client.get("/api/signal-history/AAPL")
+        response = self.client.get("/api/signal-history/AAPL", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_signal_stats(self):
         """Test GET /api/signal-stats endpoint"""
-        response = self.client.get("/api/signal-stats")
+        response = self.client.get("/api/signal-stats", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
     def test_post_update_signals(self):
         """Test POST /api/update endpoint"""
-        response = self.client.post("/api/update")
+        response = self.client.post("/api/update", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 202])
 
 
@@ -91,7 +91,7 @@ class TestAPIPortfolioPerformance(BaseTestCase):
 
     def test_get_portfolio_performance(self):
         """Test GET /api/portfolio-performance endpoint"""
-        response = self.client.get("/api/portfolio-performance")
+        response = self.client.get("/api/portfolio-performance", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -100,12 +100,16 @@ class TestAPIPortfolioPerformance(BaseTestCase):
 
     def test_get_portfolio_performance_with_limit(self):
         """Test portfolio performance with limit parameter"""
-        response = self.client.get("/api/portfolio-performance?limit=30")
+        response = self.client.get(
+            "/api/portfolio-performance?limit=30", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_performance_summary(self):
         """Test GET /api/portfolio-performance/summary endpoint"""
-        response = self.client.get("/api/portfolio-performance/summary")
+        response = self.client.get(
+            "/api/portfolio-performance/summary", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -114,12 +118,16 @@ class TestAPIPortfolioPerformance(BaseTestCase):
 
     def test_get_performance_summary_with_days(self):
         """Test performance summary with days parameter"""
-        response = self.client.get("/api/portfolio-performance/summary?days=30")
+        response = self.client.get(
+            "/api/portfolio-performance/summary?days=30", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_performance_metrics(self):
         """Test GET /api/portfolio-performance/metrics endpoint"""
-        response = self.client.get("/api/portfolio-performance/metrics")
+        response = self.client.get(
+            "/api/portfolio-performance/metrics", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -128,7 +136,9 @@ class TestAPIPortfolioPerformance(BaseTestCase):
 
     def test_get_performance_latest(self):
         """Test GET /api/portfolio-performance/latest endpoint"""
-        response = self.client.get("/api/portfolio-performance/latest")
+        response = self.client.get(
+            "/api/portfolio-performance/latest", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
 
@@ -143,7 +153,7 @@ class TestAPIPortfolioManagement(BaseTestCase):
 
     def test_get_portfolio_overview(self):
         """Test GET /api/portfolio endpoint"""
-        response = self.client.get("/api/portfolio")
+        response = self.client.get("/api/portfolio", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -152,7 +162,7 @@ class TestAPIPortfolioManagement(BaseTestCase):
 
     def test_get_portfolio_positions(self):
         """Test GET /api/portfolio/positions endpoint"""
-        response = self.client.get("/api/portfolio/positions")
+        response = self.client.get("/api/portfolio/positions", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -166,6 +176,7 @@ class TestAPIPortfolioManagement(BaseTestCase):
             "/api/portfolio/positions",
             data=json.dumps(position_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [200, 201, 400, 404])
 
@@ -176,6 +187,7 @@ class TestAPIPortfolioManagement(BaseTestCase):
             "/api/portfolio/positions",
             data=json.dumps(position_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [400, 404])
 
@@ -186,6 +198,7 @@ class TestAPIPortfolioManagement(BaseTestCase):
             "/api/portfolio/positions",
             data=json.dumps(position_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [400, 404])
 
@@ -196,12 +209,15 @@ class TestAPIPortfolioManagement(BaseTestCase):
             "/api/portfolio/positions/AAPL",
             data=json.dumps(update_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [200, 400, 404])
 
     def test_delete_portfolio_position(self):
         """Test DELETE /api/portfolio/positions/<ticker> endpoint"""
-        response = self.client.delete("/api/portfolio/positions/AAPL")
+        response = self.client.delete(
+            "/api/portfolio/positions/AAPL", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 204, 404])
 
 
@@ -216,7 +232,7 @@ class TestAPIRiskAnalysis(BaseTestCase):
 
     def test_get_risk_report(self):
         """Test GET /api/risk-report endpoint"""
-        response = self.client.get("/api/risk-report")
+        response = self.client.get("/api/risk-report", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -225,7 +241,7 @@ class TestAPIRiskAnalysis(BaseTestCase):
 
     def test_get_correlation_matrix(self):
         """Test GET /api/correlation endpoint"""
-        response = self.client.get("/api/correlation")
+        response = self.client.get("/api/correlation", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404, 500])
 
         if response.status_code == 200:
@@ -239,6 +255,7 @@ class TestAPIRiskAnalysis(BaseTestCase):
             "/api/optimization",
             data=json.dumps(optimization_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [200, 400, 404, 500])
 
@@ -249,6 +266,7 @@ class TestAPIRiskAnalysis(BaseTestCase):
             "/api/optimization",
             data=json.dumps(optimization_data),
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [200, 400, 404, 500])
 
@@ -264,7 +282,7 @@ class TestAPITickerData(BaseTestCase):
 
     def test_get_ticker_data(self):
         """Test GET /api/tickers/<ticker> endpoint"""
-        response = self.client.get("/api/tickers/AAPL")
+        response = self.client.get("/api/tickers/AAPL", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404, 500])
 
         if response.status_code == 200:
@@ -273,17 +291,19 @@ class TestAPITickerData(BaseTestCase):
 
     def test_get_ticker_with_period(self):
         """Test ticker data with period parameter"""
-        response = self.client.get("/api/tickers/AAPL?period=1y")
+        response = self.client.get("/api/tickers/AAPL?period=1y", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [200, 404, 500])
 
     def test_get_ticker_with_indicators(self):
         """Test ticker data with indicators parameter"""
-        response = self.client.get("/api/tickers/AAPL?indicators=rsi,macd")
+        response = self.client.get(
+            "/api/tickers/AAPL?indicators=rsi,macd", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404, 500])
 
     def test_get_ticker_invalid(self):
         """Test getting invalid ticker"""
-        response = self.client.get("/api/tickers/INVALID123456789")
+        response = self.client.get("/api/tickers/INVALID123456789", headers=self.get_auth_headers())
         self.assertIn(response.status_code, [404, 400])
 
 
@@ -298,7 +318,7 @@ class TestAPIErrorHandling(BaseTestCase):
 
     def test_invalid_endpoint(self):
         """Test invalid endpoint returns 404"""
-        response = self.client.get("/api/nonexistent")
+        response = self.client.get("/api/nonexistent", headers=self.get_auth_headers())
         self.assertEqual(response.status_code, 404)
 
     def test_malformed_json(self):
@@ -307,6 +327,7 @@ class TestAPIErrorHandling(BaseTestCase):
             "/api/portfolio/positions",
             data="{invalid json}",
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [400, 404, 500])
 
@@ -316,12 +337,15 @@ class TestAPIErrorHandling(BaseTestCase):
             "/api/portfolio/positions",
             data=json.dumps({"ticker": "AAPL"}),  # Missing shares
             content_type="application/json",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [400, 404])
 
     def test_invalid_method(self):
         """Test invalid HTTP method returns 405"""
-        response = self.client.delete("/api/signals")  # DELETE not allowed
+        response = self.client.delete(
+            "/api/signals", headers=self.get_auth_headers()
+        )  # DELETE not allowed
         self.assertIn(response.status_code, [405, 404])
 
 
@@ -336,7 +360,7 @@ class TestAPIResponseFormats(BaseTestCase):
 
     def test_json_response_format(self):
         """Test that API returns valid JSON"""
-        response = self.client.get("/api/health")
+        response = self.client.get("/api/health", headers=self.get_auth_headers())
         if response.status_code == 200:
             # Should be valid JSON
             data = json.loads(response.data)
@@ -344,12 +368,12 @@ class TestAPIResponseFormats(BaseTestCase):
 
     def test_response_content_type(self):
         """Test that API returns JSON content type"""
-        response = self.client.get("/api/health")
+        response = self.client.get("/api/health", headers=self.get_auth_headers())
         self.assertIn("application/json", response.content_type)
 
     def test_error_response_format(self):
         """Test error response contains error message"""
-        response = self.client.get("/api/nonexistent")
+        response = self.client.get("/api/nonexistent", headers=self.get_auth_headers())
         self.assertEqual(response.status_code, 404)
         # Response should be JSON
         try:
@@ -370,30 +394,40 @@ class TestAPIParameterValidation(BaseTestCase):
 
     def test_limit_parameter_max_value(self):
         """Test limit parameter with value exceeding max"""
-        response = self.client.get("/api/signal-history?limit=2000")
+        response = self.client.get(
+            "/api/signal-history?limit=2000", headers=self.get_auth_headers()
+        )
         # Should either cap at 1000 or return 200/400
         self.assertIn(response.status_code, [200, 400, 404])
 
     def test_days_parameter_negative(self):
         """Test days parameter with negative value"""
-        response = self.client.get("/api/portfolio-performance/summary?days=-30")
+        response = self.client.get(
+            "/api/portfolio-performance/summary?days=-30", headers=self.get_auth_headers()
+        )
         # Should handle gracefully
         self.assertIn(response.status_code, [200, 400, 404])
 
     def test_days_parameter_exceeds_max(self):
         """Test days parameter exceeding max"""
-        response = self.client.get("/api/portfolio-performance/metrics?days=500")
+        response = self.client.get(
+            "/api/portfolio-performance/metrics?days=500", headers=self.get_auth_headers()
+        )
         # Should either cap at 365 or return 200/400
         self.assertIn(response.status_code, [200, 400, 404])
 
     def test_confidence_filter(self):
         """Test signal history with confidence filter"""
-        response = self.client.get("/api/signal-history?min_confidence=0.8")
+        response = self.client.get(
+            "/api/signal-history?min_confidence=0.8", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 400, 404])
 
     def test_invalid_confidence_value(self):
         """Test signal history with invalid confidence value"""
-        response = self.client.get("/api/signal-history?min_confidence=2.0")
+        response = self.client.get(
+            "/api/signal-history?min_confidence=2.0", headers=self.get_auth_headers()
+        )
         # Should handle gracefully
         self.assertIn(response.status_code, [200, 400, 404])
 
@@ -409,21 +443,58 @@ class TestAPIAuthenticationHeaders(BaseTestCase):
 
     def test_request_without_user_agent(self):
         """Test API request without User-Agent header"""
+        headers = self.get_auth_headers()
+        headers["User-Agent"] = ""
         response = self.client.get(
             "/api/health",
-            headers={"User-Agent": ""},
+            headers=headers,
         )
         # Should still work or return 400
         self.assertIn(response.status_code, [200, 400])
 
     def test_request_with_custom_headers(self):
         """Test API request with custom headers"""
+        headers = self.get_auth_headers()
+        headers["X-Custom-Header"] = "test-value"
         response = self.client.get(
             "/api/health",
-            headers={"X-Custom-Header": "test-value"},
+            headers=headers,
         )
         # Should work regardless of custom headers
         self.assertIn(response.status_code, [200, 400])
+
+    def test_missing_api_key(self):
+        """Test API request without Authorization header"""
+        response = self.client.get("/api/health")
+        # Should return 401 Unauthorized
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_api_key(self):
+        """Test API request with invalid API key"""
+        response = self.client.get(
+            "/api/health",
+            headers={"Authorization": "Bearer invalid-api-key-xyz"},
+        )
+        # Should return 401 Unauthorized
+        self.assertEqual(response.status_code, 401)
+
+    def test_malformed_auth_header(self):
+        """Test API request with malformed Authorization header"""
+        response = self.client.get(
+            "/api/health",
+            headers={"Authorization": "InvalidFormat api-key"},
+        )
+        # Should return 401 Unauthorized
+        self.assertEqual(response.status_code, 401)
+
+    def test_valid_api_key_works(self):
+        """Test API request with valid API key"""
+        response = self.client.get(
+            "/api/health",
+            headers=self.get_auth_headers(),
+        )
+        # Should succeed with valid key
+        self.assertIn(response.status_code, [200, 503])  # 200 or 503 (degraded)
 
 
 if __name__ == "__main__":
