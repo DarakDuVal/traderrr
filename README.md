@@ -4,7 +4,9 @@ A comprehensive algorithmic trading system built with Yahoo Finance data, advanc
 
 ## Current Status
 
-✅ **Production Ready** | ✅ **67/67 Tests Passing** | ✅ **Fully Documented**
+[![CodeQL](https://github.com/DarakDuVal/traderrr/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/github-code-scanning/codeql)
+[![Tests & Coverage](https://github.com/DarakDuVal/traderrr/actions/workflows/tests.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/tests.yml)
+[![Code Quality & Linting](https://github.com/DarakDuVal/traderrr/actions/workflows/code-quality.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/code-quality.yml)
 
 - **Latest Version**: All core issues resolved and tested
 - **Test Coverage**: Comprehensive unit tests for data management, indicators, signals, and portfolio analysis
