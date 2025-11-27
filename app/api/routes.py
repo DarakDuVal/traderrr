@@ -565,7 +565,11 @@ def get_performance_summary() -> Tuple[Response, int]:
 
         if not summary:
             return (
-                jsonify({"message": "No performance data available for the specified period"}),
+                jsonify(
+                    {
+                        "message": "No performance data available for the specified period"
+                    }
+                ),
                 404,
             )
 
@@ -617,7 +621,11 @@ def get_performance_metrics() -> Tuple[Response, int]:
 
         if not metrics:
             return (
-                jsonify({"message": "No performance data available for the specified period"}),
+                jsonify(
+                    {
+                        "message": "No performance data available for the specified period"
+                    }
+                ),
                 404,
             )
 
@@ -775,7 +783,8 @@ def get_portfolio() -> Tuple[Response, int]:
                         current_price = data["Close"].iloc[-1]
                         daily_change = data["Close"].pct_change().iloc[-1]
                         volume_ratio = (
-                            data["Volume"].iloc[-1] / data["Volume"].rolling(20).mean().iloc[-1]
+                            data["Volume"].iloc[-1]
+                            / data["Volume"].rolling(20).mean().iloc[-1]
                         )
 
                         overview[ticker] = {
@@ -941,7 +950,8 @@ def add_portfolio_position() -> Tuple[Response, int]:
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data
+                and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -1023,7 +1033,8 @@ def update_portfolio_position(ticker: str) -> Tuple[Response, int]:
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data
+                and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -1189,7 +1200,9 @@ def get_ticker_data(ticker: str) -> Tuple[Response, int]:
                 }
             except Exception as e:
                 logger.warning(f"Error calculating indicators for {ticker}: {e}")
-                response_data["indicators"] = {"error": "Could not calculate indicators"}
+                response_data["indicators"] = {
+                    "error": "Could not calculate indicators"
+                }
 
         return jsonify(response_data), 200
 
@@ -1374,8 +1387,12 @@ def optimize_portfolio() -> Tuple[Response, int]:
             risk_tolerance=risk_tolerance,
         )
 
-        current_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, current_weights)
-        optimized_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, optimized_weights)
+        current_metrics = portfolio_analyzer.analyze_portfolio(
+            portfolio_data, current_weights
+        )
+        optimized_metrics = portfolio_analyzer.analyze_portfolio(
+            portfolio_data, optimized_weights
+        )
 
         return (
             jsonify(
@@ -1433,7 +1450,9 @@ def initialize_signals() -> None:
                 "QTUM": 100,
                 "QBTS": 50,
             }
-            portfolio_manager.initialize_from_config(cast(Dict[str, float], initial_positions))
+            portfolio_manager.initialize_from_config(
+                cast(Dict[str, float], initial_positions)
+            )
             logger.info("Portfolio initialized")
         except Exception as e:
             logger.warning(f"Could not initialize portfolio: {e}")
