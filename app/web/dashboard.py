@@ -3,6 +3,7 @@ app/web/dashboard.py - Web dashboard interface
 """
 
 from flask import Blueprint, render_template_string, request
+import json
 import logging
 import pandas as pd
 from typing import List, Dict, Any, Union, Tuple
