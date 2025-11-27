@@ -68,9 +68,7 @@ class SignalGenerator:
 
         self.logger = logging.getLogger(__name__)
 
-    def generate_signal(
-        self, ticker: str, data: pd.DataFrame
-    ) -> Optional[TradingSignal]:
+    def generate_signal(self, ticker: str, data: pd.DataFrame) -> Optional[TradingSignal]:
         """
         Generate trading signal for a single ticker
 
@@ -102,9 +100,7 @@ class SignalGenerator:
                 return None
 
             # Calculate confidence score
-            confidence = self._calculate_confidence(
-                indicators, regime, signal_data["signal_type"]
-            )
+            confidence = self._calculate_confidence(indicators, regime, signal_data["signal_type"])
 
             if confidence < self.min_confidence:
                 return None
@@ -212,9 +208,14 @@ class SignalGenerator:
             indicators["bb_upper"] = bb_upper.iloc[-1]
             indicators["bb_middle"] = bb_middle.iloc[-1]
             indicators["bb_lower"] = bb_lower.iloc[-1]
-            indicators["bb_position"] = (close.iloc[-1] - bb_lower.iloc[-1]) / (
-                bb_upper.iloc[-1] - bb_lower.iloc[-1]
-            )
+
+            # Calculate BB position safely to avoid division by zero
+            bb_range = bb_upper.iloc[-1] - bb_lower.iloc[-1]
+            if bb_range > 1e-10:  # Avoid division by zero when bands are equal
+                indicators["bb_position"] = (close.iloc[-1] - bb_lower.iloc[-1]) / bb_range
+            else:
+                # If bands are equal, price is at middle
+                indicators["bb_position"] = 0.5
 
             # Stochastic
             stoch_k, stoch_d = self.ti.stochastic(high, low, close)
@@ -254,12 +255,8 @@ class SignalGenerator:
             indicators["volume_surge"] = indicators["volume_ratio"] > 1.5
 
             # Advanced composite indicators
-            indicators["momentum_score"] = self.advanced.composite_momentum(data).iloc[
-                -1
-            ]
-            indicators["mean_reversion_score"] = self.advanced.mean_reversion_score(
-                data
-            ).iloc[-1]
+            indicators["momentum_score"] = self.advanced.composite_momentum(data).iloc[-1]
+            indicators["mean_reversion_score"] = self.advanced.mean_reversion_score(data).iloc[-1]
 
             # Squeeze momentum
             squeeze_data = self.advanced.squeeze_momentum(high, low, close)
@@ -308,14 +305,10 @@ class SignalGenerator:
             reasons.append("RSI showing bearish momentum")
 
         # Moving average alignment
-        if indicators.get("above_sma_20", False) and indicators.get(
-            "ma_bullish", False
-        ):
+        if indicators.get("above_sma_20", False) and indicators.get("ma_bullish", False):
             bullish_conditions += 1
             reasons.append("Price above MA20 and MA bullish")
-        elif not indicators.get("above_sma_20", True) and not indicators.get(
-            "ma_bullish", True
-        ):
+        elif not indicators.get("above_sma_20", True) and not indicators.get("ma_bullish", True):
             bearish_conditions += 1
             reasons.append("Price below MA20 and MA bearish")
 
@@ -504,18 +497,10 @@ class SignalGenerator:
             }
 
         buy_signals = len(
-            [
-                s
-                for s in signals
-                if s.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]
-            ]
+            [s for s in signals if s.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]]
         )
         sell_signals = len(
-            [
-                s
-                for s in signals
-                if s.signal_type in [SignalType.SELL, SignalType.STRONG_SELL]
-            ]
+            [s for s in signals if s.signal_type in [SignalType.SELL, SignalType.STRONG_SELL]]
         )
         avg_confidence = np.mean([s.confidence for s in signals])
 
