@@ -12,6 +12,9 @@ from datetime import datetime
 web_bp = Blueprint("web", __name__)
 logger = logging.getLogger(__name__)
 
+# Default API key for development (should be set via environment in production)
+DEFAULT_API_KEY = "test-api-key-67890"
+
 # Dashboard HTML template
 DASHBOARD_HTML = """
 <!DOCTYPE html>
@@ -361,6 +364,16 @@ DASHBOARD_HTML = """
         }
     </style>
     <script>
+        // API authentication
+        const API_KEY = "{{ api_key }}";
+
+        function getAuthHeaders() {
+            return {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
         let isUpdating = false;
 
         function showLoading() {
@@ -386,7 +399,10 @@ DASHBOARD_HTML = """
             isUpdating = true;
             showLoading();
 
-            fetch('/api/update', {method: 'POST'})
+            fetch('/api/update', {
+                method: 'POST',
+                headers: getAuthHeaders()
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
@@ -441,7 +457,7 @@ DASHBOARD_HTML = """
 
             fetch('/api/portfolio/positions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ ticker, shares })
             })
             .then(response => response.json())
@@ -471,7 +487,7 @@ DASHBOARD_HTML = """
 
             fetch(`/api/portfolio/positions/${ticker}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ shares: sharesNum })
             })
             .then(response => response.json())
@@ -493,7 +509,7 @@ DASHBOARD_HTML = """
 
             fetch(`/api/portfolio/positions/${ticker}`, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
+                headers: getAuthHeaders()
             })
             .then(response => response.json())
             .then(data => {
@@ -508,7 +524,9 @@ DASHBOARD_HTML = """
         }
 
         function loadPortfolioPositions() {
-            fetch('/api/portfolio/positions')
+            fetch('/api/portfolio/positions', {
+                headers: getAuthHeaders()
+            })
             .then(response => response.json())
             .then(data => {
                 const container = document.getElementById('positionsContainer');
@@ -898,6 +916,7 @@ def dashboard():
 
         return render_template_string(
             DASHBOARD_HTML,
+            api_key=DEFAULT_API_KEY,
             signals=signals_data,
             total_signals=total_signals,
             buy_signals=buy_signals,
@@ -1058,21 +1077,29 @@ def performance_page():
         days = max(1, min(days, 365))
 
         try:
+            # Setup authentication headers
+            auth_headers = {
+                "Authorization": f"Bearer {DEFAULT_API_KEY}",
+                "Content-Type": "application/json",
+            }
+
             # Get performance data
             perf_response = requests.get(
-                f"http://localhost:5000/api/portfolio-performance?limit=1000"
+                f"http://localhost:5000/api/portfolio-performance?limit=1000", headers=auth_headers
             )
             perf_data = perf_response.json().get("performance", [])
 
             # Get summary
             summary_response = requests.get(
-                f"http://localhost:5000/api/portfolio-performance/summary?days={days}"
+                f"http://localhost:5000/api/portfolio-performance/summary?days={days}",
+                headers=auth_headers,
             )
             summary = summary_response.json().get("summary", {})
 
             # Get metrics
             metrics_response = requests.get(
-                f"http://localhost:5000/api/portfolio-performance/metrics?days={days}"
+                f"http://localhost:5000/api/portfolio-performance/metrics?days={days}",
+                headers=auth_headers,
             )
             metrics = metrics_response.json().get("metrics", {})
 
