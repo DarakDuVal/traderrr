@@ -288,18 +288,25 @@ def main():
         start_scheduler()
 
         # Start Flask application
-        logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
-
         if os.getenv("FLASK_ENV") == "development":
-            # Development mode
+            # Development mode - restrict to localhost for security
+            # Using 127.0.0.1 instead of 0.0.0.0 prevents remote access to the
+            # debug server and Werkzeug debugger (CWE-215, CWE-489)
+            dev_host = "127.0.0.1"
+            dev_port = Config.API_PORT()
+            logger.info(
+                f"Starting Flask development server on {dev_host}:{dev_port} "
+                "(localhost only - for security)"
+            )
             app.run(
-                host=Config.API_HOST(),
-                port=Config.API_PORT(),
+                host=dev_host,  # Restrict to localhost only
+                port=dev_port,
                 debug=True,
                 use_reloader=False,  # Disable reloader to avoid scheduler conflicts
             )
         else:
             # Production mode
+            logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
             try:
                 import gunicorn
 
@@ -311,7 +318,8 @@ def main():
 
             except ImportError:
                 logger.warning("Gunicorn not available, running with Flask development server")
-                app.run(host=Config.API_HOST(), port=Config.API_PORT(), debug=False)
+                # Even in fallback, restrict to localhost for development
+                app.run(host="127.0.0.1", port=Config.API_PORT(), debug=False)
 
         return 0
 

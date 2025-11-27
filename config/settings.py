@@ -97,7 +97,9 @@ class Config:
                 "alert_threshold": 0.8,
             },
             "api": {
-                "host": "0.0.0.0",
+                # Note: Development mode overrides host to 127.0.0.1 for security
+                # This 0.0.0.0 is only used in production with proper WSGI server (Gunicorn)
+                "host": "0.0.0.0",  # Production: listen on all interfaces behind reverse proxy
                 "port": 5000,
                 "debug": False,
                 "cors_enabled": True,
