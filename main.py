@@ -127,11 +127,13 @@ def run_scheduled_tasks():
             from scripts.daily_update import update_portfolio_data, generate_signals
             from app.core.data_manager import DataManager
             from app.core.signal_generator import SignalGenerator
+            from app.core.portfolio_manager import PortfolioManager
 
             dm = DataManager(db_path=Config.DATABASE_PATH())
+            pm = PortfolioManager(db_path=Config.DATABASE_PATH())
             sg = SignalGenerator(min_confidence=Config.MIN_CONFIDENCE())
 
-            portfolio_data = update_portfolio_data(dm, force_update=False)
+            portfolio_data = update_portfolio_data(dm, pm, force_update=False)
             signals = generate_signals(dm, sg, portfolio_data)
 
             dm.close()
