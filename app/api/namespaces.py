@@ -13,7 +13,9 @@ health_ns = Namespace("health", description="System health and status checks")
 
 signals_ns = Namespace("signals", description="Trading signal generation and retrieval")
 
-portfolio_ns = Namespace("portfolio", description="Portfolio management and position tracking")
+portfolio_ns = Namespace(
+    "portfolio", description="Portfolio management and position tracking"
+)
 
 performance_ns = Namespace(
     "portfolio-performance", description="Portfolio performance metrics and analysis"
@@ -38,7 +40,9 @@ health_response = health_ns.model(
         ),
         "timestamp": fields.String(description="Health check timestamp (ISO8601)"),
         "database": fields.String(description="Database connection status"),
-        "last_update": fields.String(description="Last system update timestamp (ISO8601)"),
+        "last_update": fields.String(
+            description="Last system update timestamp (ISO8601)"
+        ),
         "signal_count": fields.Integer(description="Number of active trading signals"),
         "version": fields.String(description="API version"),
         "warning": fields.String(description="Optional warning message"),
@@ -57,8 +61,12 @@ signal_model = signals_ns.model(
             enum=["BUY", "SELL", "HOLD", "STRONG_BUY", "STRONG_SELL"],
             description="Type of trading signal",
         ),
-        "confidence": fields.Float(description="Confidence level (0.0 - 1.0, higher is better)"),
-        "entry_price": fields.Float(description="Recommended entry price for the position"),
+        "confidence": fields.Float(
+            description="Confidence level (0.0 - 1.0, higher is better)"
+        ),
+        "entry_price": fields.Float(
+            description="Recommended entry price for the position"
+        ),
         "stop_loss": fields.Float(description="Stop loss price for risk management"),
         "target_price": fields.Float(description="Target price for take profit"),
         "regime": fields.String(
@@ -81,8 +89,12 @@ signal_model = signals_ns.model(
 signals_response = signals_ns.model(
     "SignalsResponse",
     {
-        "signals": fields.List(fields.Nested(signal_model), description="Array of trading signals"),
-        "last_update": fields.String(description="Last signal update timestamp (ISO8601)"),
+        "signals": fields.List(
+            fields.Nested(signal_model), description="Array of trading signals"
+        ),
+        "last_update": fields.String(
+            description="Last signal update timestamp (ISO8601)"
+        ),
         "total_count": fields.Integer(description="Total number of signals"),
     },
 )
@@ -116,7 +128,9 @@ position_response = portfolio_ns.model(
         "ticker": fields.String(description="Stock ticker symbol"),
         "shares": fields.Float(description="Number of shares held"),
         "current_price": fields.Float(description="Current market price per share"),
-        "position_value": fields.Float(description="Total position value (shares × price)"),
+        "position_value": fields.Float(
+            description="Total position value (shares × price)"
+        ),
         "weight": fields.Float(description="Portfolio weight percentage (0.0 - 1.0)"),
     },
 )
@@ -153,8 +167,12 @@ portfolio_response = portfolio_ns.model(
         "position_risks": fields.List(
             fields.Nested(position_risk), description="Per-position risk analysis"
         ),
-        "portfolio_overview": fields.Raw(description="Price and weight data for each position"),
-        "total_value": fields.Float(description="Total portfolio value in base currency"),
+        "portfolio_overview": fields.Raw(
+            description="Price and weight data for each position"
+        ),
+        "total_value": fields.Float(
+            description="Total portfolio value in base currency"
+        ),
         "updated_at": fields.String(description="Last update timestamp"),
     },
 )
@@ -199,11 +217,15 @@ performance_metrics_model = performance_ns.model(
 correlation_matrix = risk_ns.model(
     "CorrelationMatrix",
     {
-        "tickers": fields.List(fields.String, description="Ordered list of tickers in matrix"),
+        "tickers": fields.List(
+            fields.String, description="Ordered list of tickers in matrix"
+        ),
         "matrix": fields.List(
             fields.List(fields.Float), description="Correlation matrix (2D array)"
         ),
-        "average_correlation": fields.Float(description="Average correlation between assets"),
+        "average_correlation": fields.Float(
+            description="Average correlation between assets"
+        ),
         "max_correlation": fields.Float(description="Maximum correlation value"),
         "min_correlation": fields.Float(description="Minimum correlation value"),
     },

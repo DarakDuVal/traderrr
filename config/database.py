@@ -356,22 +356,30 @@ class DatabaseConfig:
             cleanup_stats = {}
 
             # Clean daily data
-            cursor.execute("DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),))
+            cursor.execute(
+                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
+            )
             cleanup_stats["daily_data"] = cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute("DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,))
+            cursor.execute(
+                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
+            )
             cleanup_stats["intraday_data"] = cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
-            cursor.execute("DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,))
+            cursor.execute(
+                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
+            )
             cleanup_stats["signal_history"] = cursor.rowcount
 
             # Clean old system events
             event_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute("DELETE FROM system_events WHERE created_at < ?", (event_cutoff,))
+            cursor.execute(
+                "DELETE FROM system_events WHERE created_at < ?", (event_cutoff,)
+            )
             cleanup_stats["system_events"] = cursor.rowcount
 
             conn.commit()

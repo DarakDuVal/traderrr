@@ -42,7 +42,9 @@ def init_jwt(app) -> JWTManager:
         JWTManager: Configured JWT manager instance
     """
     # Get secret key from environment or use default (change in production!)
-    secret_key = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production-12345")
+    secret_key = os.getenv(
+        "JWT_SECRET_KEY", "your-secret-key-change-in-production-12345"
+    )
     app.config["JWT_SECRET_KEY"] = secret_key
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
 
@@ -190,7 +192,9 @@ def list_api_keys(username: str) -> list:
 # ============================================================================
 
 
-def create_access_token_for_user(username: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token_for_user(
+    username: str, expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Create a JWT access token for a user
 

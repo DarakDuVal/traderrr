@@ -51,7 +51,9 @@ class TestAPISignals(BaseTestCase):
 
     def test_get_signal_history(self):
         """Test GET /api/signal-history endpoint"""
-        response = self.client.get("/api/signal-history", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/signal-history", headers=self.get_auth_headers()
+        )
         # Should return 200 or empty list
         self.assertIn(response.status_code, [200, 404])
 
@@ -61,12 +63,16 @@ class TestAPISignals(BaseTestCase):
 
     def test_get_signal_history_with_limit(self):
         """Test signal history with limit parameter"""
-        response = self.client.get("/api/signal-history?limit=10", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/signal-history?limit=10", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_signal_history_for_ticker(self):
         """Test GET /api/signal-history/<ticker> endpoint"""
-        response = self.client.get("/api/signal-history/AAPL", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/signal-history/AAPL", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
     def test_get_signal_stats(self):
@@ -91,7 +97,9 @@ class TestAPIPortfolioPerformance(BaseTestCase):
 
     def test_get_portfolio_performance(self):
         """Test GET /api/portfolio-performance endpoint"""
-        response = self.client.get("/api/portfolio-performance", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/portfolio-performance", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -164,7 +172,9 @@ class TestAPIPortfolioManagement(BaseTestCase):
 
     def test_get_portfolio_positions(self):
         """Test GET /api/portfolio/positions endpoint"""
-        response = self.client.get("/api/portfolio/positions", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/portfolio/positions", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404])
 
         if response.status_code == 200:
@@ -296,7 +306,9 @@ class TestAPITickerData(BaseTestCase):
 
     def test_get_ticker_with_period(self):
         """Test ticker data with period parameter"""
-        response = self.client.get("/api/tickers/AAPL?period=1y", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/tickers/AAPL?period=1y", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [200, 404, 500])
 
     def test_get_ticker_with_indicators(self):
@@ -308,7 +320,9 @@ class TestAPITickerData(BaseTestCase):
 
     def test_get_ticker_invalid(self):
         """Test getting invalid ticker"""
-        response = self.client.get("/api/tickers/INVALID123456789", headers=self.get_auth_headers())
+        response = self.client.get(
+            "/api/tickers/INVALID123456789", headers=self.get_auth_headers()
+        )
         self.assertIn(response.status_code, [404, 400])
 
 
