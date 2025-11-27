@@ -110,17 +110,17 @@ def run_black(files: List[str]) -> Tuple[bool, bool]:
                 check=True,
             )
 
-            print(Colors.green("✓ Black formatted the following files:"))
+            print(Colors.green("[OK] Black formatted the following files:"))
             for file in files:
                 print(f"  - {file}")
             print(Colors.yellow("Files have been formatted and re-staged."))
             return True, True
         else:
-            print(Colors.green("✓ All files are properly formatted"))
+            print(Colors.green("[OK] All files are properly formatted"))
             return True, False
 
     except subprocess.CalledProcessError as e:
-        print(Colors.red(f"✗ Black formatting failed: {e}"))
+        print(Colors.red(f"[ERROR] Black formatting failed: {e}"))
         print(Colors.red(e.stderr))
         return False, False
 
@@ -145,20 +145,20 @@ def run_mypy(files: List[str]) -> bool:
         )
 
         if result.returncode == 0:
-            print(Colors.green("✓ All type checks passed"))
+            print(Colors.green("[OK] All type checks passed"))
             return True
         else:
-            print(Colors.red("✗ Type checking failed:"))
+            print(Colors.red("[ERROR] Type checking failed:"))
             print(result.stdout)
             return False
 
     except subprocess.CalledProcessError as e:
-        print(Colors.red(f"✗ Mypy type checker failed: {e}"))
+        print(Colors.red(f"[ERROR] Mypy type checker failed: {e}"))
         return False
     except FileNotFoundError:
         print(
             Colors.yellow(
-                "⚠ Mypy not installed. Install with: pip install mypy"
+                "[WARNING] Mypy not installed. Install with: pip install mypy"
             )
         )
         return True  # Don't fail if mypy not installed
@@ -217,22 +217,22 @@ def main() -> int:
 
     # Report final status
     if not black_success:
-        print(Colors.red("✗ Code formatting check failed"))
+        print(Colors.red("[ERROR] Code formatting check failed"))
         return 1
 
     if not mypy_success:
-        print(Colors.red("✗ Type checking failed"))
+        print(Colors.red("[ERROR] Type checking failed"))
         return 1
 
     if black_changed:
         print(
             Colors.yellow(
-                "⚠ Files were formatted by Black and re-staged. Please review changes."
+                "[WARNING] Files were formatted by Black and re-staged. Please review changes."
             )
         )
         return 0
 
-    print(Colors.green("✓ All checks passed"))
+    print(Colors.green("[OK] All checks passed"))
     return 0
 
 
