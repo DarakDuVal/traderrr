@@ -1,0 +1,31 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# Python files - always use LF
+*.py text eol=lf
+*.pyx text eol=lf
+*.pyi text eol=lf
+
+# Shell scripts - always use LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# YAML/JSON - always use LF
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+
+# Markdown - always use LF
+*.md text eol=lf
+
+# Windows batch/PowerShell - use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files - do not convert
+*.db binary
+*.sqlite binary
+*.pyc binary
+*.pyo binary
+*.egg-info/** binary
