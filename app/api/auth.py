@@ -6,11 +6,9 @@ Authentication and authorization for the API
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
-    jwt_required,
-    get_jwt_identity,
 )
 from functools import wraps
-from flask import current_app, request, Flask
+from flask import request, Flask
 from datetime import timedelta
 import os
 import secrets
@@ -42,18 +40,14 @@ def init_jwt(app: Flask) -> JWTManager:
         JWTManager: Configured JWT manager instance
     """
     # Get secret key from environment or use default (change in production!)
-    secret_key = os.getenv(
-        "JWT_SECRET_KEY", "your-secret-key-change-in-production-12345"
-    )
+    secret_key = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production-12345")
     app.config["JWT_SECRET_KEY"] = secret_key
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
 
     jwt = JWTManager(app)
 
     @jwt.user_lookup_loader
-    def user_lookup_callback(
-        _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
-    ) -> str:
+    def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> str:
         """Load user identity from JWT"""
         identity: str = jwt_data["sub"]
         return identity
@@ -196,9 +190,7 @@ def list_api_keys(username: str) -> list:
 # ============================================================================
 
 
-def create_access_token_for_user(
-    username: str, expires_delta: Optional[timedelta] = None
-) -> str:
+def create_access_token_for_user(username: str, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a JWT access token for a user
 

@@ -5,7 +5,6 @@ This module provides configuration and fixtures for Behave BDD tests.
 It handles application initialization, test setup, and cleanup.
 """
 
-import os
 import sys
 import logging
 from pathlib import Path

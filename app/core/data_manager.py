@@ -4,13 +4,11 @@ app/core/data_manager.py - Core data management system using Yahoo Finance
 
 import yfinance as yf
 import pandas as pd
-import numpy as np
 import sqlite3
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Union, Any
-import json
+from typing import List, Dict, Optional, Any
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests  # type: ignore
@@ -60,9 +58,7 @@ class DataManager:
 
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
 
@@ -167,8 +163,7 @@ class DataManager:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             future_to_ticker = {
-                executor.submit(self.get_stock_data, ticker, period): ticker
-                for ticker in tickers
+                executor.submit(self.get_stock_data, ticker, period): ticker for ticker in tickers
             }
 
             # Collect results
@@ -255,9 +250,7 @@ class DataManager:
             }
 
         # Select only existing columns and rename to match database schema
-        available_columns = [
-            col for col in columns_map.keys() if col in data_copy.columns
-        ]
+        available_columns = [col for col in columns_map.keys() if col in data_copy.columns]
         data_to_store = data_copy[available_columns].copy()
 
         # Rename columns to match database schema
@@ -296,9 +289,7 @@ class DataManager:
                     ORDER BY datetime
                 """
 
-            df = pd.read_sql_query(
-                query, self.conn, params=[ticker], parse_dates=["Date"]
-            )
+            df = pd.read_sql_query(query, self.conn, params=[ticker], parse_dates=["Date"])
 
             if not df.empty:
                 df.set_index("Date", inplace=True)
@@ -384,23 +375,17 @@ class DataManager:
             total_deleted = 0
 
             # Clean daily data
-            cursor.execute(
-                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
-            )
+            cursor.execute("DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),))
             total_deleted += cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute(
-                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
-            )
+            cursor.execute("DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,))
             total_deleted += cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
-            cursor.execute(
-                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
-            )
+            cursor.execute("DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,))
             total_deleted += cursor.rowcount
 
             self.conn.commit()
@@ -452,9 +437,7 @@ class DataManager:
                     date_diff = data.index.to_series().diff()
                     gaps = date_diff[date_diff > pd.Timedelta(days=7)]
                     if not gaps.empty:
-                        report["data_gaps"].append(
-                            {"ticker": ticker, "gaps": len(gaps)}
-                        )
+                        report["data_gaps"].append({"ticker": ticker, "gaps": len(gaps)})
 
             except Exception as e:
                 self.logger.error(f"Error checking data quality for {ticker}: {e}")
@@ -554,9 +537,7 @@ class DataManager:
         self, start_date: str, end_date: str, limit: int = 100
     ) -> List[Dict]:
         """Get signals within a date range"""
-        return self.get_signal_history(
-            start_date=start_date, end_date=end_date, limit=limit
-        )
+        return self.get_signal_history(start_date=start_date, end_date=end_date, limit=limit)
 
     def get_signals_stats(self, ticker: Optional[str] = None) -> Dict:
         """Get statistics about signals"""
@@ -749,9 +730,7 @@ class DataManager:
         self, start_date: str, end_date: str, limit: int = 1000
     ) -> List[Dict]:
         """Get performance data for a specific date range"""
-        return self.get_portfolio_performance(
-            start_date=start_date, end_date=end_date, limit=limit
-        )
+        return self.get_portfolio_performance(start_date=start_date, end_date=end_date, limit=limit)
 
     def get_performance_metrics(self, days: int = 90) -> Dict:
         """
@@ -817,12 +796,8 @@ class DataManager:
                     if volatilities_filtered
                     else None
                 ),
-                "max_volatility": (
-                    max(volatilities_filtered) if volatilities_filtered else None
-                ),
-                "min_volatility": (
-                    min(volatilities_filtered) if volatilities_filtered else None
-                ),
+                "max_volatility": (max(volatilities_filtered) if volatilities_filtered else None),
+                "min_volatility": (min(volatilities_filtered) if volatilities_filtered else None),
                 "avg_sharpe_ratio": (
                     sum(sharpe_ratios_filtered) / len(sharpe_ratios_filtered)
                     if sharpe_ratios_filtered
@@ -839,20 +814,14 @@ class DataManager:
                     if daily_returns_filtered
                     else None
                 ),
-                "worst_drawdown": (
-                    min(max_drawdowns_filtered) if max_drawdowns_filtered else None
-                ),
+                "worst_drawdown": (min(max_drawdowns_filtered) if max_drawdowns_filtered else None),
             }
 
             # Calculate total return if we have start and end values
-            if (
-                metrics["start_value"]
-                and metrics["end_value"]
-                and metrics["start_value"] != 0
-            ):
-                metrics["total_return"] = (
-                    metrics["end_value"] - metrics["start_value"]
-                ) / metrics["start_value"]
+            if metrics["start_value"] and metrics["end_value"] and metrics["start_value"] != 0:
+                metrics["total_return"] = (metrics["end_value"] - metrics["start_value"]) / metrics[
+                    "start_value"
+                ]
             else:
                 metrics["total_return"] = None
 

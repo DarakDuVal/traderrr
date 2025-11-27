@@ -5,7 +5,6 @@ Step implementations for API-related BDD scenarios.
 """
 
 from behave import given, when, then
-import json
 
 
 @given("the API server is running")

@@ -17,8 +17,6 @@ import numpy as np
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from config.database import DatabaseConfig
-
 
 class BaseTestCase(unittest.TestCase):
     """Base test case with in-memory SQLite and temporary file fallback"""
@@ -283,9 +281,7 @@ class SampleDataGenerator:
         return {"ticker": ticker, "shares": shares}
 
     @staticmethod
-    def generate_performance_data(
-        days: int = 30, starting_value: float = 100000
-    ) -> List[Dict]:
+    def generate_performance_data(days: int = 30, starting_value: float = 100000) -> List[Dict]:
         """Generate sample portfolio performance data"""
         performance = []
         values = [starting_value]

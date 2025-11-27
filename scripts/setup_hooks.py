@@ -10,7 +10,6 @@ Usage:
 
 import os
 import sys
-import shutil
 import stat
 from pathlib import Path
 

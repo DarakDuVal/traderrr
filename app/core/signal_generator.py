@@ -5,9 +5,9 @@ Combines multiple technical indicators with market regime detection
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from enum import Enum
 

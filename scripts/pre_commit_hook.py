@@ -12,7 +12,6 @@ This hook:
 
 import subprocess
 import sys
-from pathlib import Path
 from typing import List, Tuple
 
 
@@ -156,11 +155,7 @@ def run_mypy(files: List[str]) -> bool:
         print(Colors.red(f"[ERROR] Mypy type checker failed: {e}"))
         return False
     except FileNotFoundError:
-        print(
-            Colors.yellow(
-                "[WARNING] Mypy not installed. Install with: pip install mypy"
-            )
-        )
+        print(Colors.yellow("[WARNING] Mypy not installed. Install with: pip install mypy"))
         return True  # Don't fail if mypy not installed
 
 
@@ -181,11 +176,7 @@ def check_tools_installed() -> bool:
 
     if missing:
         print(Colors.red(f"Error: Required tools not installed: {', '.join(missing)}"))
-        print(
-            Colors.yellow(
-                "Install development dependencies with: pip install -e '.[dev]'"
-            )
-        )
+        print(Colors.yellow("Install development dependencies with: pip install -e '.[dev]'"))
         return False
 
     return True

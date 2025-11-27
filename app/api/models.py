@@ -3,8 +3,7 @@ app/api/models.py - Data models for API responses
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
-from datetime import datetime
+from typing import List, Optional, Any
 from enum import Enum
 
 
