@@ -1,48 +1,67 @@
-name: Code Quality
+name: Code Quality & Linting
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  quality:
+  code-quality:
     runs-on: ubuntu-latest
+    name: Code Quality Checks
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.13'
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install black flake8 mypy
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black mypy pylint
 
-    - name: Check code formatting with Black
-      run: |
-        black --check app/ scripts/ config/ tests/
+      # =====================================================================
+      # REQUIRED: Fail CI if these fail
+      # =====================================================================
 
-    - name: Lint with Flake8
-      run: |
-        # Stop on error, exclude certain rules
-        flake8 app/ scripts/ config/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Exit-zero treats all errors as warnings
-        flake8 app/ scripts/ config/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Check code formatting with Black (REQUIRED)
+        run: |
+          black --check app/ scripts/ config/ tests/
 
-    - name: Type checking with Mypy
-      run: |
-        mypy app/ --ignore-missing-imports || true
+      - name: Type checking with Mypy (REQUIRED)
+        run: |
+          mypy app/ --ignore-missing-imports
+
+      # =====================================================================
+      # INFORMATIONAL: Report only, don't fail CI
+      # =====================================================================
+
+      - name: Code quality analysis with Pylint (REPORT ONLY)
+        if: always()
+        run: |
+          pylint app/ scripts/ config/ --exit-zero
+
+      - name: Generate Pylint Report
+        if: always()
+        run: |
+          pylint app/ scripts/ config/ --output-format=json > pylint-report.json || true
+
+      - name: Upload Pylint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylint-report-py3.13
+          path: pylint-report.json
