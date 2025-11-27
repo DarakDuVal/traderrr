@@ -110,7 +110,7 @@ class DataManager:
                     else:
                         cutoff = datetime.now() - timedelta(minutes=30)
 
-                    if last_date.tz_localize(None) > cutoff:  # type: ignore
+                    if last_date.tz_localize(None) > cutoff:
                         self.logger.info(f"Using cached data for {ticker}")
                         return cached_data
 
@@ -445,7 +445,7 @@ class DataManager:
 
                     # Check for stale data
                     last_date = data.index[-1]
-                    if (datetime.now() - last_date.tz_localize(None)).days > 7:  # type: ignore
+                    if (datetime.now() - last_date.tz_localize(None)).days > 7:
                         report["stale_data"].append(ticker)
 
                     # Check for data gaps

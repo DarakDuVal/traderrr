@@ -1165,8 +1165,8 @@ def get_ticker_data(ticker: str) -> Tuple[Response, int]:
             "period": period,
             "data_points": len(data),
             "date_range": {
-                "start": data.index[0].isoformat(),  # type: ignore
-                "end": data.index[-1].isoformat(),  # type: ignore
+                "start": data.index[0].isoformat(),
+                "end": data.index[-1].isoformat(),
             },
             "current_price": data["Close"].iloc[-1],
             "daily_change": data["Close"].pct_change().iloc[-1],

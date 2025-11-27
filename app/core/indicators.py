@@ -47,7 +47,7 @@ class TechnicalIndicators:
         rs = avg_gain / avg_loss.replace(0, np.nan)
         rsi = 100.0 - (100.0 / (1.0 + rs))
 
-        return rsi.fillna(50.0)  # type: ignore
+        return rsi.fillna(50.0)
 
     @staticmethod
     def macd(
@@ -110,7 +110,7 @@ class TechnicalIndicators:
         tr3 = abs(low - close.shift(1))
 
         true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-        return true_range.rolling(window=period, min_periods=period).mean()  # type: ignore
+        return true_range.rolling(window=period, min_periods=period).mean()
 
     @staticmethod
     def williams_r(
@@ -123,7 +123,7 @@ class TechnicalIndicators:
         range_val = highest_high - lowest_low
         wr = ((highest_high - close) / range_val.replace(0, np.nan)) * -100
 
-        return wr.fillna(-50.0)  # type: ignore
+        return wr.fillna(-50.0)
 
     @staticmethod
     def cci(
@@ -137,7 +137,7 @@ class TechnicalIndicators:
         )
 
         cci = (typical_price - sma_tp) / (0.015 * mean_deviation)
-        return cci.fillna(0.0)  # type: ignore
+        return cci.fillna(0.0)
 
     @staticmethod
     def adx(
@@ -252,15 +252,15 @@ class MarketRegimeDetector:
 
         for lag in lags:
             # Calculate the variance of the differences
-            pp = np.subtract(prices[lag:].values, prices[:-lag].values)
+            pp = np.subtract(prices[lag:].values, prices[:-lag].values)  # type: ignore
             tau.append(np.sqrt(np.std(pp)))
 
         # Linear regression on log-log plot
-        tau = np.array(tau)
-        lags = np.array(lags)
+        tau = np.array(tau)  # type: ignore
+        lags = np.array(lags)  # type: ignore
 
         # Remove any NaN or infinite values
-        valid_idx = np.isfinite(tau) & (tau > 0)
+        valid_idx = np.isfinite(tau) & (tau > 0)  # type: ignore
         if not np.any(valid_idx):
             return 0.5
 
@@ -287,7 +287,7 @@ class MarketRegimeDetector:
 
         try:
             # Linear regression
-            poly = np.polyfit(x, recent_prices.values, 1)
+            poly = np.polyfit(x, recent_prices.values, 1)  # type: ignore
             trend_line = np.polyval(poly, x)
 
             # Calculate R-squared
@@ -410,7 +410,7 @@ class AdvancedIndicators:
             0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
         )
 
-        return composite.fillna(0)  # type: ignore
+        return composite.fillna(0)
 
     @staticmethod
     def mean_reversion_score(data: pd.DataFrame) -> pd.Series:
@@ -441,4 +441,4 @@ class AdvancedIndicators:
         # Combine scores
         mr_score = 0.4 * bb_score + 0.4 * z_score_norm + 0.2 * rsi_mr_norm
 
-        return mr_score.fillna(0)  # type: ignore
+        return mr_score.fillna(0)
