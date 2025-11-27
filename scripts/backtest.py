@@ -32,9 +32,7 @@ class BacktestEngine:
 
         # Trading components
         self.dm = DataManager()
-        self.signal_gen = SignalGenerator(
-            min_confidence=0.5
-        )  # Lower threshold for backtest
+        self.signal_gen = SignalGenerator(min_confidence=0.5)  # Lower threshold for backtest
         self.portfolio_analyzer = PortfolioAnalyzer()
 
         # Backtest state
@@ -95,9 +93,7 @@ class BacktestEngine:
         self.dm.close()
         return results
 
-    def _get_common_dates(
-        self, portfolio_data: Dict[str, pd.DataFrame]
-    ) -> pd.DatetimeIndex:
+    def _get_common_dates(self, portfolio_data: Dict[str, pd.DataFrame]) -> pd.DatetimeIndex:
         """Get common dates across all stocks"""
         all_dates = None
         for data in portfolio_data.values():
@@ -107,9 +103,7 @@ class BacktestEngine:
                 all_dates = all_dates.intersection(data.index)
         return all_dates.sort_values()
 
-    def _should_rebalance(
-        self, current_date: pd.Timestamp, frequency: str, day_index: int
-    ) -> bool:
+    def _should_rebalance(self, current_date: pd.Timestamp, frequency: str, day_index: int) -> bool:
         """Check if should rebalance on this date"""
         if frequency == "daily":
             return True
@@ -158,14 +152,10 @@ class BacktestEngine:
         """Execute trades based on signals"""
 
         buy_signals = [
-            s
-            for s in signals
-            if s.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]
+            s for s in signals if s.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]
         ]
         sell_signals = [
-            s
-            for s in signals
-            if s.signal_type in [SignalType.SELL, SignalType.STRONG_SELL]
+            s for s in signals if s.signal_type in [SignalType.SELL, SignalType.STRONG_SELL]
         ]
 
         # Execute sells first
@@ -181,9 +171,7 @@ class BacktestEngine:
 
             for signal in buy_signals:
                 if cash_per_position > 100:  # Minimum trade size
-                    self._execute_buy(
-                        current_date, signal, cash_per_position, portfolio_data
-                    )
+                    self._execute_buy(current_date, signal, cash_per_position, portfolio_data)
 
     def _execute_buy(
         self,
@@ -381,9 +369,7 @@ def main():
     args = parser.parse_args()
 
     # Setup logging
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     # Run backtest
     engine = BacktestEngine(initial_capital=args.capital)

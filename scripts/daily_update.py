@@ -36,9 +36,7 @@ def setup_logging(log_level="INFO"):
     return logging.getLogger(__name__)
 
 
-def update_portfolio_data(
-    dm: DataManager, pm: PortfolioManager, force_update: bool = False
-):
+def update_portfolio_data(dm: DataManager, pm: PortfolioManager, force_update: bool = False):
     """Update portfolio data"""
     logger = logging.getLogger(__name__)
 
@@ -111,9 +109,7 @@ def generate_signals(dm: DataManager, sg: SignalGenerator, portfolio_data: dict)
         return []
 
 
-def analyze_portfolio_risk(
-    pa: PortfolioAnalyzer, portfolio_data: dict, pm: PortfolioManager
-):
+def analyze_portfolio_risk(pa: PortfolioAnalyzer, portfolio_data: dict, pm: PortfolioManager):
     """Analyze portfolio risk metrics"""
     logger = logging.getLogger(__name__)
 
@@ -136,9 +132,7 @@ def analyze_portfolio_risk(
         metrics = pa.analyze_portfolio(portfolio_data, weights)
 
         # Calculate position risks
-        position_risks = pa.calculate_position_risks(
-            portfolio_data, weights, total_value
-        )
+        position_risks = pa.calculate_position_risks(portfolio_data, weights, total_value)
 
         # Log portfolio performance
         db_config = DatabaseConfig(Config.DATABASE_PATH())
@@ -164,17 +158,13 @@ def analyze_portfolio_risk(
         # Check risk alerts
         risk_alerts = []
         if metrics.volatility > Config.VOLATILITY_LIMIT():
-            risk_alerts.append(
-                f"Portfolio volatility ({metrics.volatility:.1%}) exceeds limit"
-            )
+            risk_alerts.append(f"Portfolio volatility ({metrics.volatility:.1%}) exceeds limit")
 
         if metrics.max_drawdown < -0.20:
             risk_alerts.append(f"Max drawdown ({metrics.max_drawdown:.1%}) exceeds 20%")
 
         # Check concentration risk
-        high_concentration = [
-            pos for pos in position_risks if pos.concentration_risk > 0.6
-        ]
+        high_concentration = [pos for pos in position_risks if pos.concentration_risk > 0.6]
         if high_concentration:
             tickers = [pos.ticker for pos in high_concentration]
             risk_alerts.append(f"High concentration risk in: {', '.join(tickers)}")
@@ -336,15 +326,9 @@ def validate_system_health():
 def main():
     """Main update function"""
     parser = argparse.ArgumentParser(description="Daily trading system update")
-    parser.add_argument(
-        "--force-update", action="store_true", help="Force update of all data"
-    )
-    parser.add_argument(
-        "--skip-backup", action="store_true", help="Skip database backup"
-    )
-    parser.add_argument(
-        "--skip-cleanup", action="store_true", help="Skip database cleanup"
-    )
+    parser.add_argument("--force-update", action="store_true", help="Force update of all data")
+    parser.add_argument("--skip-backup", action="store_true", help="Skip database backup")
+    parser.add_argument("--skip-cleanup", action="store_true", help="Skip database cleanup")
     parser.add_argument(
         "--log-level",
         default="INFO",
@@ -360,9 +344,7 @@ def main():
 
     logger.info("=" * 50)
     logger.info("Starting daily trading system update")
-    logger.info(
-        f"Arguments: force_update={args.force_update}, skip_backup={args.skip_backup}"
-    )
+    logger.info(f"Arguments: force_update={args.force_update}, skip_backup={args.skip_backup}")
 
     try:
         # Validate system health
@@ -396,9 +378,7 @@ def main():
         signals = generate_signals(dm, sg, portfolio_data)
 
         # Analyze portfolio risk
-        metrics, position_risks, risk_alerts = analyze_portfolio_risk(
-            pa, portfolio_data, pm
-        )
+        metrics, position_risks, risk_alerts = analyze_portfolio_risk(pa, portfolio_data, pm)
 
         # Send notifications
         send_notifications(signals, risk_alerts)

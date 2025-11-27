@@ -138,9 +138,7 @@ class TestTechnicalIndicators(BaseTestCase):
         self.assertEqual(len(lower), len(prices))
 
         # Upper should be greater than middle, middle greater than lower
-        valid_data = pd.DataFrame(
-            {"upper": upper, "middle": middle, "lower": lower}
-        ).dropna()
+        valid_data = pd.DataFrame({"upper": upper, "middle": middle, "lower": lower}).dropna()
 
         self.assertTrue((valid_data["upper"] >= valid_data["middle"]).all())
         self.assertTrue((valid_data["middle"] >= valid_data["lower"]).all())
@@ -326,9 +324,7 @@ class TestMarketRegimeDetector(BaseTestCase):
 
         # Create mean-reverting data
         self.mean_reverting_data = pd.Series(
-            100
-            + 5 * np.sin(np.linspace(0, 4 * np.pi, 100))
-            + np.random.normal(0, 0.5, 100)
+            100 + 5 * np.sin(np.linspace(0, 4 * np.pi, 100)) + np.random.normal(0, 0.5, 100)
         )
 
     def test_hurst_exponent_trending(self):
