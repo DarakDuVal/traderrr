@@ -62,7 +62,10 @@ def step_get_request_no_auth(context, endpoint):
     """Send unauthenticated GET request."""
     context.logger.info(f"GET {endpoint} (no auth)")
     context.last_request = {"method": "GET", "endpoint": endpoint, "headers": {}}
-    context.last_response = {"status": 401, "data": {"error": "Authentication required"}}
+    context.last_response = {
+        "status": 401,
+        "data": {"error": "Authentication required"},
+    }
     context.api_responses.append(context.last_response)
 
 
@@ -70,10 +73,17 @@ def step_get_request_no_auth(context, endpoint):
 def step_post_invalid_data(context, endpoint):
     """Send POST request with invalid data."""
     context.logger.info(f"POST {endpoint} (invalid data)")
-    context.last_request = {"method": "POST", "endpoint": endpoint, "data": {"invalid": "data"}}
+    context.last_request = {
+        "method": "POST",
+        "endpoint": endpoint,
+        "data": {"invalid": "data"},
+    }
     context.last_response = {
         "status": 400,
-        "data": {"error": "Validation failed", "details": ["Missing required field: ticker"]},
+        "data": {
+            "error": "Validation failed",
+            "details": ["Missing required field: ticker"],
+        },
     }
     context.api_responses.append(context.last_response)
 
@@ -106,7 +116,10 @@ def step_rapid_requests(context, count):
         if i < 95:  # First 95 pass
             response = {
                 "status": 200,
-                "headers": {"X-RateLimit-Limit": "100", "X-RateLimit-Remaining": str(100 - i)},
+                "headers": {
+                    "X-RateLimit-Limit": "100",
+                    "X-RateLimit-Remaining": str(100 - i),
+                },
             }
         else:  # Remaining are rate limited
             response = {

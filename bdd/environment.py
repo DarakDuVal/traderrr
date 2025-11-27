@@ -22,7 +22,8 @@ def before_all(context):
     """
     # Setup logging for BDD tests
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     context.logger = logging.getLogger("bdd.tests")
     context.logger.info("BDD test suite starting...")
