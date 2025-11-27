@@ -1065,6 +1065,298 @@ def portfolio_page():
         return f"Error: {e}", 500
 
 
+@web_bp.route("/api-guide")
+def api_guide():
+    """API authentication and usage guide"""
+    try:
+        guide_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Traderrr API Guide - Authentication</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    color: #333;
+                    padding: 2rem;
+                }
+                .container {
+                    max-width: 900px;
+                    margin: 0 auto;
+                    background: white;
+                    border-radius: 16px;
+                    padding: 2rem;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                }
+                h1 {
+                    color: #2d3748;
+                    margin-bottom: 1.5rem;
+                    border-bottom: 3px solid #3b82f6;
+                    padding-bottom: 1rem;
+                }
+                h2 {
+                    color: #374151;
+                    margin-top: 2rem;
+                    margin-bottom: 1rem;
+                    font-size: 1.3rem;
+                }
+                h3 {
+                    color: #4b5563;
+                    margin-top: 1.5rem;
+                    margin-bottom: 0.5rem;
+                    font-size: 1.1rem;
+                }
+                p, li {
+                    color: #555;
+                    line-height: 1.6;
+                    margin-bottom: 0.8rem;
+                }
+                ul {
+                    margin-left: 2rem;
+                    margin-bottom: 1rem;
+                }
+                code {
+                    background: #f3f4f6;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-family: 'Courier New', monospace;
+                    color: #d946ef;
+                }
+                .code-block {
+                    background: #1f2937;
+                    color: #e5e7eb;
+                    padding: 1.5rem;
+                    border-radius: 8px;
+                    overflow-x: auto;
+                    margin: 1rem 0;
+                    border-left: 4px solid #3b82f6;
+                }
+                .code-block code {
+                    background: none;
+                    padding: 0;
+                    color: inherit;
+                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                }
+                .highlight {
+                    background: #fef3c7;
+                    padding: 1rem;
+                    border-left: 4px solid #f59e0b;
+                    margin: 1rem 0;
+                    border-radius: 4px;
+                }
+                .success {
+                    background: #ecfdf5;
+                    padding: 1rem;
+                    border-left: 4px solid #10b981;
+                    margin: 1rem 0;
+                    border-radius: 4px;
+                    color: #047857;
+                }
+                .tabs {
+                    display: flex;
+                    gap: 1rem;
+                    margin: 1.5rem 0;
+                    border-bottom: 2px solid #e5e7eb;
+                }
+                .tab {
+                    padding: 0.75rem 1.5rem;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    border-bottom: 3px solid transparent;
+                    color: #6b7280;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                }
+                .tab:hover {
+                    color: #3b82f6;
+                }
+                .tab.active {
+                    color: #3b82f6;
+                    border-bottom-color: #3b82f6;
+                }
+                .tab-content {
+                    display: none;
+                }
+                .tab-content.active {
+                    display: block;
+                }
+                .nav-buttons {
+                    display: flex;
+                    gap: 1rem;
+                    margin-top: 2rem;
+                }
+                a {
+                    display: inline-block;
+                    padding: 0.75rem 1.5rem;
+                    background: #3b82f6;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                    font-weight: 600;
+                }
+                a:hover {
+                    background: #2563eb;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                }
+                a.secondary {
+                    background: #e5e7eb;
+                    color: #374151;
+                }
+                a.secondary:hover {
+                    background: #d1d5db;
+                }
+                .header-nav {
+                    display: flex;
+                    gap: 1.5rem;
+                    margin-bottom: 2rem;
+                    border-bottom: 1px solid #e5e7eb;
+                    padding-bottom: 1rem;
+                }
+                .header-nav a {
+                    display: inline;
+                    padding: 0;
+                    background: none;
+                    color: #3b82f6;
+                    font-weight: normal;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header-nav">
+                    <a href="/">← Back to Dashboard</a>
+                    <a href="/api/docs" style="color: #10b981;">→ Swagger UI</a>
+                </div>
+
+                <h1>🔐 Traderrr API Authentication Guide</h1>
+
+                <p>All API endpoints require <strong>Bearer token authentication</strong> using a valid API key. This guide explains how to authenticate and use the API.</p>
+
+                <h2>Quick Start</h2>
+                <p>Every API request must include an Authorization header with your API key:</p>
+                <div class="code-block"><code>Authorization: Bearer YOUR_API_KEY</code></div>
+
+                <div class="highlight">
+                    <strong>Development API Key:</strong><br/>
+                    <code>test-api-key-67890</code>
+                </div>
+
+                <h2>Authentication Methods</h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('curl')">cURL</button>
+                    <button class="tab" onclick="switchTab('python')">Python</button>
+                    <button class="tab" onclick="switchTab('javascript')">JavaScript</button>
+                </div>
+
+                <div id="curl" class="tab-content active">
+                    <h3>cURL Example</h3>
+                    <div class="code-block"><code>curl -H "Authorization: Bearer test-api-key-67890" \\
+  http://localhost:5000/api/portfolio</code></div>
+                </div>
+
+                <div id="python" class="tab-content">
+                    <h3>Python Example</h3>
+                    <div class="code-block"><code>import requests
+
+headers = {
+    'Authorization': 'Bearer test-api-key-67890',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get(
+    'http://localhost:5000/api/portfolio',
+    headers=headers
+)
+
+print(response.json())</code></div>
+                </div>
+
+                <div id="javascript" class="tab-content">
+                    <h3>JavaScript/Fetch Example</h3>
+                    <div class="code-block"><code>const apiKey = 'test-api-key-67890';
+
+fetch('http://localhost:5000/api/portfolio', {
+    headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+    }
+})
+.then(response => response.json())
+.then(data => console.log(data));</code></div>
+                </div>
+
+                <h2>Using Swagger UI with Authentication</h2>
+                <p>To test endpoints interactively in the Swagger UI:</p>
+                <ol>
+                    <li>Go to <a href="/api/docs">/api/docs</a></li>
+                    <li>Look for the <strong>"Authorize"</strong> button (🔒) in the top right</li>
+                    <li>Click it and enter: <code>Bearer test-api-key-67890</code></li>
+                    <li>Click "Authorize" to apply to all endpoints</li>
+                    <li>Now test any endpoint directly in the UI</li>
+                </ol>
+
+                <h2>Error Responses</h2>
+                <p>If authentication fails, you'll receive a 401 Unauthorized response:</p>
+                <div class="code-block"><code>{
+  "error": "Missing authorization header. Use: Authorization: Bearer &lt;api_key&gt;",
+  "timestamp": "2024-11-27T10:30:45"
+}</code></div>
+
+                <div class="success">
+                    <strong>Common Issues:</strong>
+                    <ul>
+                        <li><strong>Missing header:</strong> Make sure Authorization header is included</li>
+                        <li><strong>Invalid key:</strong> Check that your API key is correct</li>
+                        <li><strong>Wrong format:</strong> Must be "Bearer YOUR_KEY" (with space)</li>
+                    </ul>
+                </div>
+
+                <h2>Available Endpoints</h2>
+                <p>Visit the <a href="/api/docs">interactive Swagger documentation</a> to see all endpoints and test them directly.</p>
+
+                <h2>Production Considerations</h2>
+                <ul>
+                    <li><strong>Never hardcode API keys</strong> in your source code</li>
+                    <li><strong>Store keys securely</strong> in environment variables or secrets manager</li>
+                    <li><strong>Use HTTPS</strong> in production to encrypt API keys in transit</li>
+                    <li><strong>Rotate keys regularly</strong> for security</li>
+                    <li><strong>Monitor usage</strong> to detect unauthorized access</li>
+                </ul>
+
+                <div class="nav-buttons">
+                    <a href="/">← Back to Dashboard</a>
+                    <a href="/api/docs">Go to Swagger UI →</a>
+                </div>
+            </div>
+
+            <script>
+                function switchTab(tabName) {
+                    const contents = document.querySelectorAll('.tab-content');
+                    contents.forEach(content => content.classList.remove('active'));
+                    const tabs = document.querySelectorAll('.tab');
+                    tabs.forEach(tab => tab.classList.remove('active'));
+                    document.getElementById(tabName).classList.add('active');
+                    event.target.classList.add('active');
+                }
+            </script>
+        </body>
+        </html>
+        """
+        return guide_html
+
+    except Exception as e:
+        logger.error(f"API guide error: {e}")
+        return f"Error: {e}", 500
+
+
 @web_bp.route("/performance")
 def performance_page():
     """Performance analytics dashboard with charts"""

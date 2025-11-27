@@ -68,17 +68,27 @@ def create_app(config_name="production"):
         "static_url_path": "/flasgger_static",
         "swagger_ui": True,
         "specs_route": "/api/docs",
+        "uiversion": 3,
         "info": {
             "title": "Traderrr Trading System API",
             "version": "1.0.0",
             "description": (
                 "Professional algorithmic trading system with automated signal generation, "
                 "portfolio optimization, and risk management. "
-                "All endpoints require API key authentication."
+                "All endpoints require API key authentication via Bearer token."
             ),
             "contact": {"email": "support@traderrr.com"},
         },
         "schemes": ["http", "https"],
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "Enter your API key as: Bearer YOUR_API_KEY",
+            }
+        },
+        "security": [{"Bearer": []}],
     }
 
     flasgger = Flasgger(app, config=swagger_config)
