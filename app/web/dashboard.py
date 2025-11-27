@@ -1367,7 +1367,6 @@ def performance_page() -> Union[str, Tuple[str, int]]:
     """Performance analytics dashboard with charts"""
     try:
         import requests
-        from datetime import datetime, timedelta
 
         # Fetch performance metrics from API
         days = request.args.get("days", default=90, type=int)

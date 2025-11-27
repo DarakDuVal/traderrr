@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black mypy pylint
+          pip install black mypy pylint flake8
 
       # =====================================================================
       # REQUIRED: Fail CI if these fail
@@ -47,6 +47,10 @@ jobs:
       - name: Type checking with Mypy (REQUIRED)
         run: |
           mypy app/ --ignore-missing-imports
+
+      - name: Check for unused imports with Flake8 (REQUIRED)
+        run: |
+          flake8 app/ --select=F401 --show-source --statistics
 
       # =====================================================================
       # INFORMATIONAL: Report only, don't fail CI
