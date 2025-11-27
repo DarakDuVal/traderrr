@@ -66,7 +66,10 @@ sys.exit(result.returncode)
         # Make it executable on Unix-like systems
         if sys.platform != "win32":
             st = os.stat(hook_target)
-            os.chmod(hook_target, st.st_mode | stat.S_IEXEC | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            os.chmod(
+                hook_target,
+                st.st_mode | stat.S_IEXEC | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH,
+            )
 
         print(f"[OK] Pre-commit hook installed at {hook_target}")
         return True
@@ -103,12 +106,8 @@ def verify_dependencies() -> bool:
             print(f"  [MISSING] {package} is not installed")
 
     if missing_packages:
-        print(
-            f"\n[WARNING] Missing packages: {', '.join(missing_packages)}"
-        )
-        print(
-            "Install them with: pip install -e '.[dev]'"
-        )
+        print(f"\n[WARNING] Missing packages: {', '.join(missing_packages)}")
+        print("Install them with: pip install -e '.[dev]'")
         return False
 
     return True
@@ -124,16 +123,12 @@ def main() -> int:
 
     # Verify dependencies
     if not verify_dependencies():
-        print(
-            "\n[WARNING] Some dependencies are missing."
-        )
+        print("\n[WARNING] Some dependencies are missing.")
         print("The hook will still work, but type checking will be skipped.")
         print("Install them when ready with: pip install -e '.[dev]'\n")
 
     print("\n[OK] Git hooks setup complete!")
-    print(
-        "\nThe pre-commit hook will now automatically:"
-    )
+    print("\nThe pre-commit hook will now automatically:")
     print("  1. Format your code with Black")
     print("  2. Check types with Mypy")
     print("  3. Re-stage any files formatted by Black")
