@@ -174,7 +174,9 @@ def step_signal_has_confidence(context):
     """Verify signal has confidence."""
     assert "confidence" in context.generated_signal
     assert 0 <= context.generated_signal["confidence"] <= 1
-    context.logger.info(f"Signal has confidence: {context.generated_signal['confidence']:.0%}")
+    context.logger.info(
+        f"Signal has confidence: {context.generated_signal['confidence']:.0%}"
+    )
 
 
 @then("the signal should have a timestamp")
@@ -182,7 +184,9 @@ def step_signal_has_timestamp(context):
     """Verify signal has timestamp."""
     assert "timestamp" in context.generated_signal
     assert context.generated_signal["timestamp"] is not None
-    context.logger.info(f"Signal has timestamp: {context.generated_signal['timestamp']}")
+    context.logger.info(
+        f"Signal has timestamp: {context.generated_signal['timestamp']}"
+    )
 
 
 @given('multiple technical indicators align for "{ticker}"')

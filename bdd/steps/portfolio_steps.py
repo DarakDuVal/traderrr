@@ -96,7 +96,9 @@ def step_portfolio_value_positive(context):
 def step_update_position(context, shares):
     """Update position size (uses last mentioned ticker)."""
     # Get the last mentioned ticker from the context
-    last_ticker = context.scenario_data.get("last_ticker", list(context.portfolio.keys())[-1])
+    last_ticker = context.scenario_data.get(
+        "last_ticker", list(context.portfolio.keys())[-1]
+    )
     context.logger.info(f"Updating {last_ticker} to {shares} shares")
     if last_ticker in context.portfolio:
         context.portfolio[last_ticker]["shares"] = shares
@@ -120,7 +122,9 @@ def step_user_has_position_with_price(context, ticker, shares, price):
 def step_request_portfolio_weights(context):
     """Calculate portfolio weights."""
     context.logger.info("Calculating portfolio weights")
-    total_value = sum(pos.get("value", pos["shares"] * 100) for pos in context.portfolio.values())
+    total_value = sum(
+        pos.get("value", pos["shares"] * 100) for pos in context.portfolio.values()
+    )
     context.weights = {
         ticker: (pos.get("value", pos["shares"] * 100) / total_value * 100)
         for ticker, pos in context.portfolio.items()
@@ -141,5 +145,7 @@ def step_total_weight_100(context):
 def step_weights_calculated(context):
     """Verify each position weight is calculated correctly."""
     assert len(context.weights) > 0, "Weights should be calculated"
-    assert all(w > 0 for w in context.weights.values()), "All weights should be positive"
+    assert all(
+        w > 0 for w in context.weights.values()
+    ), "All weights should be positive"
     context.logger.info(f"Weights calculated: {context.weights}")

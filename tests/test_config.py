@@ -257,7 +257,8 @@ class TestDatabaseConfig(BaseTestCase):
             info_str = str(info).lower()
             # Check if any of these strings appear in the info
             has_content = any(
-                keyword in info_str for keyword in ["size", "tables", "records", "database"]
+                keyword in info_str
+                for keyword in ["size", "tables", "records", "database"]
             )
             # Either it's empty or has content
             self.assertTrue(True)  # get_database_info worked

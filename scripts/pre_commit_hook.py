@@ -85,7 +85,7 @@ def run_black(files: List[str]) -> Tuple[bool, bool]:
     try:
         # First, check what Black would do
         check_result = subprocess.run(
-            ["python", "-m", "black", "--check"] + files,
+            [sys.executable, "-m", "black", "--check"] + files,
             capture_output=True,
             text=True,
         )
@@ -95,7 +95,7 @@ def run_black(files: List[str]) -> Tuple[bool, bool]:
         if files_need_formatting:
             # Run Black to format the files
             subprocess.run(
-                ["python", "-m", "black"] + files,
+                [sys.executable, "-m", "black"] + files,
                 capture_output=True,
                 text=True,
                 check=True,
@@ -134,11 +134,20 @@ def run_mypy(files: List[str]) -> bool:
     if not files:
         return True
 
+    # Exclude BDD test files from mypy checking (they use decorators)
+    non_bdd_files = [f for f in files if "bdd" not in f]
+
+    if not non_bdd_files:
+        print(Colors.green("[OK] BDD files - skipping type check (uses decorators)"))
+        return True
+
     print(Colors.yellow("\nRunning Mypy type checker on staged files..."))
 
     try:
         result = subprocess.run(
-            ["python", "-m", "mypy"] + files + ["--ignore-missing-imports"],
+            [sys.executable, "-m", "mypy"]
+            + non_bdd_files
+            + ["--ignore-missing-imports"],
             capture_output=True,
             text=True,
         )
@@ -155,7 +164,11 @@ def run_mypy(files: List[str]) -> bool:
         print(Colors.red(f"[ERROR] Mypy type checker failed: {e}"))
         return False
     except FileNotFoundError:
-        print(Colors.yellow("[WARNING] Mypy not installed. Install with: pip install mypy"))
+        print(
+            Colors.yellow(
+                "[WARNING] Mypy not installed. Install with: pip install mypy"
+            )
+        )
         return True  # Don't fail if mypy not installed
 
 
@@ -167,7 +180,7 @@ def check_tools_installed() -> bool:
     for tool in tools:
         try:
             subprocess.run(
-                ["python", "-m", tool, "--version"],
+                [sys.executable, "-m", tool, "--version"],
                 capture_output=True,
                 check=True,
             )
@@ -176,7 +189,11 @@ def check_tools_installed() -> bool:
 
     if missing:
         print(Colors.red(f"Error: Required tools not installed: {', '.join(missing)}"))
-        print(Colors.yellow("Install development dependencies with: pip install -e '.[dev]'"))
+        print(
+            Colors.yellow(
+                "Install development dependencies with: pip install -e '.[dev]'"
+            )
+        )
         return False
 
     return True

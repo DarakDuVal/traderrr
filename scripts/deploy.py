@@ -22,7 +22,9 @@ class IBMCloudDeployer:
 
     def _setup_logging(self):
         """Setup logging"""
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
         return logging.getLogger(__name__)
 
     def check_prerequisites(self) -> bool:
@@ -31,7 +33,9 @@ class IBMCloudDeployer:
 
         # Check IBM Cloud CLI
         try:
-            result = subprocess.run(["ibmcloud", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["ibmcloud", "--version"], capture_output=True, text=True
+            )
             if result.returncode != 0:
                 self.logger.error(
                     "IBM Cloud CLI not found. Install from: https://cloud.ibm.com/docs/cli"
@@ -46,7 +50,9 @@ class IBMCloudDeployer:
 
         # Check Code Engine plugin
         try:
-            result = subprocess.run(["ibmcloud", "plugin", "list"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["ibmcloud", "plugin", "list"], capture_output=True, text=True
+            )
             if "code-engine" not in result.stdout:
                 self.logger.info("Installing Code Engine plugin...")
                 subprocess.run(["ibmcloud", "plugin", "install", "code-engine", "-f"])
@@ -56,7 +62,9 @@ class IBMCloudDeployer:
 
         # Check Docker
         try:
-            result = subprocess.run(["docker", "--version"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "--version"], capture_output=True, text=True
+            )
             if result.returncode != 0:
                 self.logger.error("Docker not found. Install from: https://docker.com")
                 return False
@@ -163,7 +171,9 @@ class IBMCloudDeployer:
 
             # Push image
             self.logger.info("Pushing image to IBM Container Registry...")
-            result = subprocess.run(["docker", "push", image_name], capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "push", image_name], capture_output=True, text=True
+            )
             if result.returncode != 0:
                 self.logger.error(f"Docker push failed: {result.stderr}")
                 return None
@@ -450,14 +460,18 @@ class IBMCloudDeployer:
                     response = requests.get(health_url, timeout=30)
                     if response.status_code == 200:
                         health_data = response.json()
-                        self.logger.info(f"Health check passed: {health_data.get('status')}")
+                        self.logger.info(
+                            f"Health check passed: {health_data.get('status')}"
+                        )
                         return True
                     else:
                         self.logger.warning(
                             f"Health check attempt {attempt + 1} failed: {response.status_code}"
                         )
                 except requests.RequestException as e:
-                    self.logger.warning(f"Health check attempt {attempt + 1} failed: {e}")
+                    self.logger.warning(
+                        f"Health check attempt {attempt + 1} failed: {e}"
+                    )
 
                 time.sleep(10)
 
@@ -515,8 +529,12 @@ class IBMCloudDeployer:
         self.logger.info(f"Project: {self.project_name}")
         self.logger.info(f"Application: {self.app_name}")
         self.logger.info("Next steps:")
-        self.logger.info("1. Check application logs: ibmcloud ce application logs --name traderrr")
-        self.logger.info("2. Monitor application: ibmcloud ce application get --name traderrr")
+        self.logger.info(
+            "1. Check application logs: ibmcloud ce application logs --name traderrr"
+        )
+        self.logger.info(
+            "2. Monitor application: ibmcloud ce application get --name traderrr"
+        )
         self.logger.info("3. Update configuration as needed")
 
         return True
@@ -531,10 +549,18 @@ def main():
     parser.add_argument(
         "--registry-namespace", required=True, help="IBM Container Registry namespace"
     )
-    parser.add_argument("--api-key", help="IBM Cloud API key (or use --sso for SSO login)")
-    parser.add_argument("--cpu", default="1", help="CPU allocation (0.25, 0.5, 1, 2, 4)")
-    parser.add_argument("--memory", default="2G", help="Memory allocation (0.5G, 1G, 2G, 4G, 8G)")
-    parser.add_argument("--dry-run", action="store_true", help="Check prerequisites only")
+    parser.add_argument(
+        "--api-key", help="IBM Cloud API key (or use --sso for SSO login)"
+    )
+    parser.add_argument(
+        "--cpu", default="1", help="CPU allocation (0.25, 0.5, 1, 2, 4)"
+    )
+    parser.add_argument(
+        "--memory", default="2G", help="Memory allocation (0.5G, 1G, 2G, 4G, 8G)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Check prerequisites only"
+    )
 
     args = parser.parse_args()
 

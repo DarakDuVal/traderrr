@@ -340,9 +340,7 @@ class TestDatabaseErrors(BaseTestCase):
 
         def insert_data():
             try:
-                query = (
-                    "INSERT INTO system_events (event_type, description, severity) VALUES (?, ?, ?)"
-                )
+                query = "INSERT INTO system_events (event_type, description, severity) VALUES (?, ?, ?)"
                 self.db_config.execute_query(query, ("test", "concurrent", "info"))
                 results.append("success")
             except Exception as e:

@@ -137,7 +137,9 @@ def step_rapid_requests(context, count):
 def step_response_status(context, status_code):
     """Verify response status code."""
     actual_status = context.last_response["status"]
-    assert actual_status == status_code, f"Expected status {status_code} but got {actual_status}"
+    assert (
+        actual_status == status_code
+    ), f"Expected status {status_code} but got {actual_status}"
     context.logger.info(f"Response status: {status_code}")
 
 
