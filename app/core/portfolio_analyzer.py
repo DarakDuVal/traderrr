@@ -4,7 +4,7 @@ app/core/portfolio_analyzer.py - Advanced portfolio analysis and risk management
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, cast
 from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
@@ -594,7 +594,7 @@ class PortfolioAnalyzer:
             for i in range(len(correlation_matrix.columns)):
                 for j in range(i + 1, len(correlation_matrix.columns)):
                     corr = correlation_matrix.iloc[i, j]
-                    if abs(corr) > 0.7:  # type: ignore  # High correlation threshold
+                    if abs(cast(float, corr)) > 0.7:  # High correlation threshold
                         highly_correlated.append(
                             {
                                 "asset1": correlation_matrix.columns[i],

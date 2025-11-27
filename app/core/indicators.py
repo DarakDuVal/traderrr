@@ -47,7 +47,7 @@ class TechnicalIndicators:
         rs = avg_gain / avg_loss.replace(0, np.nan)
         rsi = 100.0 - (100.0 / (1.0 + rs))
 
-        return rsi.fillna(50.0)  # type: ignore  # Fill NaN with neutral value
+        return rsi.fillna(50.0)  # type: ignore
 
     @staticmethod
     def macd(
@@ -292,7 +292,9 @@ class MarketRegimeDetector:
 
             # Calculate R-squared
             ss_res: float = float(np.sum((recent_prices.values - trend_line) ** 2))
-            ss_tot: float = float(np.sum((recent_prices.values - np.mean(recent_prices.values)) ** 2))  # type: ignore
+            ss_tot: float = float(
+                np.sum((recent_prices.values - np.mean(recent_prices.values)) ** 2)  # type: ignore
+            )
 
             if ss_tot == 0:
                 return 0.0
