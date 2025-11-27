@@ -2,12 +2,13 @@
 app/web/dashboard.py - Web dashboard interface
 """
 
-from flask import Blueprint, render_template_string, request, jsonify
-import requests
+from flask import Blueprint, render_template_string, request, jsonify, Response
+import requests  # type: ignore
 import json
 import logging
 import pandas as pd
 from datetime import datetime
+from typing import Tuple, Union, List, Dict, Any
 
 web_bp = Blueprint("web", __name__)
 logger = logging.getLogger(__name__)
@@ -812,13 +813,13 @@ DASHBOARD_HTML = """
 
 
 @web_bp.route("/")
-def dashboard():
+def dashboard() -> Union[str, Tuple[str, int]]:
     """Main dashboard"""
     try:
         # Get data from API endpoints
-        signals_data = []
-        portfolio_overview = {}
-        portfolio_metrics = {}
+        signals_data: List[Any] = []
+        portfolio_overview: Dict[str, Any] = {}
+        portfolio_metrics: Dict[str, Any] = {}
 
         # Try to get signals from API
         try:
@@ -831,7 +832,7 @@ def dashboard():
             logger.warning(f"Could not get signals: {e}")
 
         # Try to get portfolio overview from database
-        portfolio_value = 0
+        portfolio_value = 0.0
         try:
             from config.settings import Config
             from app.core.data_manager import DataManager
@@ -856,15 +857,20 @@ def dashboard():
                         current_prices[ticker] = current_price
                         daily_change = data["Close"].pct_change().iloc[-1]
                         volume_ratio = (
-                            data["Volume"].iloc[-1] / data["Volume"].rolling(5).mean().iloc[-1]
+                            data["Volume"].iloc[-1]
+                            / data["Volume"].rolling(5).mean().iloc[-1]
                         )
 
                         # Calculate weight from shares and prices
                         position_value = positions[ticker] * current_price
                         portfolio_overview[ticker] = {
                             "price": current_price,
-                            "daily_change": (daily_change if not pd.isna(daily_change) else 0),
-                            "volume_ratio": (volume_ratio if not pd.isna(volume_ratio) else 1),
+                            "daily_change": (
+                                daily_change if not pd.isna(daily_change) else 0
+                            ),
+                            "volume_ratio": (
+                                volume_ratio if not pd.isna(volume_ratio) else 1
+                            ),
                             "weight": 0,  # Will be calculated below
                         }
                 except Exception as e:
@@ -888,14 +894,16 @@ def dashboard():
 
         except Exception as e:
             logger.warning(f"Could not get portfolio overview: {e}")
-            portfolio_value = 0
+            portfolio_value = 0.0
 
         # Calculate summary stats
         total_signals = len(signals_data)
         buy_signals = len([s for s in signals_data if "BUY" in s.signal_type.value])
         sell_signals = len([s for s in signals_data if "SELL" in s.signal_type.value])
         avg_confidence = (
-            sum(s.confidence for s in signals_data) / len(signals_data) if signals_data else 0
+            sum(s.confidence for s in signals_data) / len(signals_data)
+            if signals_data
+            else 0
         )
 
         # Determine status color
@@ -945,7 +953,7 @@ def dashboard():
 
 
 @web_bp.route("/signals")
-def signals_page():
+def signals_page() -> Union[str, Tuple[str, int]]:
     """Detailed signals page"""
     try:
         from app.api.routes import current_signals
@@ -983,7 +991,7 @@ def signals_page():
 
 
 @web_bp.route("/portfolio")
-def portfolio_page():
+def portfolio_page() -> Union[str, Tuple[str, int]]:
     """Detailed portfolio page"""
     try:
         from config.settings import Config
@@ -1066,7 +1074,7 @@ def portfolio_page():
 
 
 @web_bp.route("/api-guide")
-def api_guide():
+def api_guide() -> Union[str, Tuple[str, int]]:
     """API authentication and usage guide"""
     try:
         guide_html = """
@@ -1358,7 +1366,7 @@ fetch('http://localhost:5000/api/portfolio', {
 
 
 @web_bp.route("/performance")
-def performance_page():
+def performance_page() -> Union[str, Tuple[str, int]]:
     """Performance analytics dashboard with charts"""
     try:
         import requests
@@ -1377,7 +1385,8 @@ def performance_page():
 
             # Get performance data
             perf_response = requests.get(
-                f"http://localhost:5000/api/portfolio-performance?limit=1000", headers=auth_headers
+                f"http://localhost:5000/api/portfolio-performance?limit=1000",
+                headers=auth_headers,
             )
             perf_data = perf_response.json().get("performance", [])
 
@@ -1404,8 +1413,12 @@ def performance_page():
         # Prepare chart data
         dates = [item.get("date", "") for item in perf_data]
         values = [item.get("portfolio_value", 0) for item in perf_data]
-        returns = [item.get("daily_return", 0) * 100 for item in perf_data]  # Convert to %
-        volatilities = [item.get("volatility", 0) * 100 for item in perf_data]  # Convert to %
+        returns = [
+            item.get("daily_return", 0) * 100 for item in perf_data
+        ]  # Convert to %
+        volatilities = [
+            item.get("volatility", 0) * 100 for item in perf_data
+        ]  # Convert to %
         sharpe_ratios = [item.get("sharpe_ratio", 0) for item in perf_data]
 
         # Reverse for chronological order in charts
@@ -1551,7 +1564,9 @@ def performance_page():
             avg_sharpe = summary.get("avg_sharpe_ratio") or 0
             worst_drawdown = summary.get("worst_drawdown") or 0
 
-            return_color = "positive" if (period_return and period_return >= 0) else "negative"
+            return_color = (
+                "positive" if (period_return and period_return >= 0) else "negative"
+            )
             sharpe_color = (
                 "positive"
                 if (avg_sharpe and avg_sharpe >= 1.0)

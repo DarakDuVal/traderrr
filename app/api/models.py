@@ -3,7 +3,7 @@ app/api/models.py - Data models for API responses
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 from enum import Enum
 
@@ -74,7 +74,7 @@ class ErrorResponse:
     details: Optional[str] = None
 
 
-def serialize_signal(signal) -> dict:
+def serialize_signal(signal: Any) -> dict:
     """Convert TradingSignal object to dictionary"""
     return {
         "ticker": signal.ticker,
@@ -89,7 +89,7 @@ def serialize_signal(signal) -> dict:
     }
 
 
-def serialize_portfolio_metrics(metrics) -> dict:
+def serialize_portfolio_metrics(metrics: Any) -> dict:
     """Convert PortfolioMetrics object to dictionary"""
     return {
         "volatility": metrics.volatility,
@@ -102,7 +102,7 @@ def serialize_portfolio_metrics(metrics) -> dict:
     }
 
 
-def serialize_position_risk(position_risk) -> dict:
+def serialize_position_risk(position_risk: Any) -> dict:
     """Convert PositionRisk object to dictionary"""
     return {
         "ticker": position_risk.ticker,

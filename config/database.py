@@ -6,7 +6,7 @@ import sqlite3
 import logging
 import os
 import time
-from typing import Optional
+from typing import Optional, Union, Any, cast
 
 
 class DatabaseConfig:
@@ -179,7 +179,7 @@ class DatabaseConfig:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            info = {
+            info: dict = {
                 "path": self.db_path,
                 "size_mb": (
                     os.path.getsize(self.db_path) / (1024 * 1024)
@@ -196,15 +196,18 @@ class DatabaseConfig:
             for (table_name,) in tables:
                 cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
                 count = cursor.fetchone()[0]
-                info["tables"][table_name] = count
+                tables_dict = cast(dict, info["tables"])
+                tables_dict[table_name] = count
 
             # Get data range for daily_data
             try:
                 cursor.execute("SELECT MIN(date), MAX(date) FROM daily_data")
                 min_date, max_date = cursor.fetchone()
-                info["data_range"] = {"start": min_date, "end": max_date}
+                data_range: Union[dict, None] = {"start": min_date, "end": max_date}
+                info["data_range"] = data_range
             except:
-                info["data_range"] = None
+                data_range_none: Union[dict, None] = None
+                info["data_range"] = data_range_none
 
             conn.close()
             return info
@@ -263,7 +266,7 @@ class DatabaseConfig:
             self.logger.error(f"Database restore failed: {e}")
             return False
 
-    def execute_query(self, query: str, params: tuple = None) -> list:
+    def execute_query(self, query: str, params: Optional[tuple] = None) -> list:
         """Execute a query and return results"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -287,9 +290,9 @@ class DatabaseConfig:
         self,
         event_type: str,
         description: str,
-        details: str = None,
+        details: Optional[str] = None,
         severity: str = "INFO",
-    ):
+    ) -> None:
         """Log system event to database"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -356,22 +359,30 @@ class DatabaseConfig:
             cleanup_stats = {}
 
             # Clean daily data
-            cursor.execute("DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),))
+            cursor.execute(
+                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
+            )
             cleanup_stats["daily_data"] = cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute("DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,))
+            cursor.execute(
+                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
+            )
             cleanup_stats["intraday_data"] = cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
-            cursor.execute("DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,))
+            cursor.execute(
+                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
+            )
             cleanup_stats["signal_history"] = cursor.rowcount
 
             # Clean old system events
             event_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute("DELETE FROM system_events WHERE created_at < ?", (event_cutoff,))
+            cursor.execute(
+                "DELETE FROM system_events WHERE created_at < ?", (event_cutoff,)
+            )
             cleanup_stats["system_events"] = cursor.rowcount
 
             conn.commit()

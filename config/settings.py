@@ -4,7 +4,7 @@ config/settings.py - Configuration management
 
 import os
 import json
-from typing import Dict, List
+from typing import Dict, List, Any, cast
 
 
 class Config:
@@ -14,7 +14,7 @@ class Config:
     _config_data = None
 
     @classmethod
-    def _load_config(cls):
+    def _load_config(cls) -> Dict:
         """Load configuration from file"""
         if cls._config_data is None:
             config_path = os.getenv("CONFIG_PATH", "config.json")
@@ -109,19 +109,19 @@ class Config:
     # Configuration properties as class methods
     @classmethod
     def PORTFOLIO_TICKERS(cls) -> List[str]:
-        return cls._load_config()["portfolio"]["tickers"]
+        return cast(List[str], cls._load_config()["portfolio"]["tickers"])
 
     @classmethod
     def PORTFOLIO_WEIGHTS(cls) -> Dict[str, float]:
-        return cls._load_config()["portfolio"]["weights"]
+        return cast(Dict[str, float], cls._load_config()["portfolio"]["weights"])
 
     @classmethod
     def PORTFOLIO_VALUE(cls) -> float:
-        return cls._load_config()["portfolio"]["total_value"]
+        return cast(float, cls._load_config()["portfolio"]["total_value"])
 
     @classmethod
     def MIN_CONFIDENCE(cls) -> float:
-        return cls._load_config()["signals"]["min_confidence"]
+        return cast(float, cls._load_config()["signals"]["min_confidence"])
 
     @classmethod
     def DATABASE_PATH(cls) -> str:
@@ -129,27 +129,27 @@ class Config:
 
     @classmethod
     def UPDATE_INTERVAL(cls) -> int:
-        return cls._load_config()["signals"]["update_interval_minutes"]
+        return cast(int, cls._load_config()["signals"]["update_interval_minutes"])
 
     @classmethod
     def MOMENTUM_THRESHOLD(cls) -> float:
-        return cls._load_config()["signals"]["momentum_threshold"]
+        return cast(float, cls._load_config()["signals"]["momentum_threshold"])
 
     @classmethod
     def MEAN_REVERSION_THRESHOLD(cls) -> float:
-        return cls._load_config()["signals"]["mean_reversion_threshold"]
+        return cast(float, cls._load_config()["signals"]["mean_reversion_threshold"])
 
     @classmethod
     def MAX_POSITION_SIZE(cls) -> float:
-        return cls._load_config()["risk"]["max_position_size"]
+        return cast(float, cls._load_config()["risk"]["max_position_size"])
 
     @classmethod
     def VOLATILITY_LIMIT(cls) -> float:
-        return cls._load_config()["risk"]["volatility_limit"]
+        return cast(float, cls._load_config()["risk"]["volatility_limit"])
 
     @classmethod
     def BACKUP_ENABLED(cls) -> bool:
-        return cls._load_config()["data"]["backup_enabled"]
+        return cast(bool, cls._load_config()["data"]["backup_enabled"])
 
     @classmethod
     def API_HOST(cls) -> str:
@@ -160,7 +160,7 @@ class Config:
         return int(os.getenv("PORT", cls._load_config()["api"]["port"]))
 
     @classmethod
-    def get(cls, path: str, default=None):
+    def get(cls, path: str, default: Any = None) -> Any:
         """Get configuration value by dot-separated path"""
         keys = path.split(".")
         value = cls._load_config()
@@ -259,7 +259,7 @@ class TestingConfig(Config):
         return 0.3  # Lower threshold for testing
 
 
-def get_config():
+def get_config() -> type[Config]:
     """Get configuration based on environment"""
     env = os.getenv("FLASK_ENV", "production")
 
