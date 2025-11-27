@@ -1377,7 +1377,8 @@ def performance_page():
 
             # Get performance data
             perf_response = requests.get(
-                f"http://localhost:5000/api/portfolio-performance?limit=1000", headers=auth_headers
+                f"http://localhost:5000/api/portfolio-performance?limit=1000",
+                headers=auth_headers,
             )
             perf_data = perf_response.json().get("performance", [])
 

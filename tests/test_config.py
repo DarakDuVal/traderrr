@@ -11,7 +11,13 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from tests import BaseTestCase
-from config.settings import Config, get_config, DevelopmentConfig, ProductionConfig, TestingConfig
+from config.settings import (
+    Config,
+    get_config,
+    DevelopmentConfig,
+    ProductionConfig,
+    TestingConfig,
+)
 from config.database import DatabaseConfig
 
 

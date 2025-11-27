@@ -188,7 +188,10 @@ class TestSignalGeneratorErrors(BaseTestCase):
         """Test signal generation with extreme volatility"""
         dates = pd.date_range("2023-01-01", periods=100, freq="D")
         closes = np.concatenate(
-            [np.linspace(100, 1000, 50), np.linspace(1000, 1, 50)]  # Big increase  # Big decrease
+            [
+                np.linspace(100, 1000, 50),
+                np.linspace(1000, 1, 50),
+            ]  # Big increase  # Big decrease
         )
 
         data = pd.DataFrame(

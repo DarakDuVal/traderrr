@@ -528,7 +528,11 @@ class TestSignalEdgeCases(BaseTestCase):
             self.assertIsInstance(signal, TradingSignal)
             self.assertIn(
                 signal.regime,
-                [MarketRegime.SIDEWAYS, MarketRegime.MEAN_REVERTING, MarketRegime.HIGH_VOLATILITY],
+                [
+                    MarketRegime.SIDEWAYS,
+                    MarketRegime.MEAN_REVERTING,
+                    MarketRegime.HIGH_VOLATILITY,
+                ],
             )
 
     def test_low_volatility_detection(self):
@@ -568,7 +572,10 @@ class TestSignalEdgeCases(BaseTestCase):
         """Test that stop loss is below entry price for long signals"""
         for _ in range(5):
             signal = self.signal_gen.generate_signal("LONG", self.sideways_data)
-            if signal is not None and signal.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]:
+            if signal is not None and signal.signal_type in [
+                SignalType.BUY,
+                SignalType.STRONG_BUY,
+            ]:
                 self.assertLess(signal.stop_loss, signal.entry_price)
                 self.assertGreater(signal.target_price, signal.entry_price)
 

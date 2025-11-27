@@ -1081,7 +1081,10 @@ def delete_portfolio_position(ticker):
         success, issues = portfolio_manager.remove_position(ticker)
 
         if not success:
-            return jsonify({"error": "Could not remove position", "issues": issues}), 400
+            return (
+                jsonify({"error": "Could not remove position", "issues": issues}),
+                400,
+            )
 
         return (
             jsonify(

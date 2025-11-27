@@ -3,7 +3,12 @@ app/api/auth.py
 Authentication and authorization for the API
 """
 
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+)
 from functools import wraps
 from flask import current_app, request
 from datetime import timedelta
@@ -234,7 +239,10 @@ AUTHENTICATION_EXAMPLES = {
         },
         "invalid_key": {
             "status": 401,
-            "response": {"error": "Invalid API key", "timestamp": "2024-11-25T12:00:00"},
+            "response": {
+                "error": "Invalid API key",
+                "timestamp": "2024-11-25T12:00:00",
+            },
         },
     },
 }

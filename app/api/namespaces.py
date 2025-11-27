@@ -62,7 +62,13 @@ signal_model = signals_ns.model(
         "stop_loss": fields.Float(description="Stop loss price for risk management"),
         "target_price": fields.Float(description="Target price for take profit"),
         "regime": fields.String(
-            enum=["TRENDING_UP", "TRENDING_DOWN", "MEAN_REVERTING", "SIDEWAYS", "HIGH_VOLATILITY"],
+            enum=[
+                "TRENDING_UP",
+                "TRENDING_DOWN",
+                "MEAN_REVERTING",
+                "SIDEWAYS",
+                "HIGH_VOLATILITY",
+            ],
             description="Current market regime",
         ),
         "reasons": fields.List(

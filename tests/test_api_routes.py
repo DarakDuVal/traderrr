@@ -119,7 +119,8 @@ class TestAPIPortfolioPerformance(BaseTestCase):
     def test_get_performance_summary_with_days(self):
         """Test performance summary with days parameter"""
         response = self.client.get(
-            "/api/portfolio-performance/summary?days=30", headers=self.get_auth_headers()
+            "/api/portfolio-performance/summary?days=30",
+            headers=self.get_auth_headers(),
         )
         self.assertIn(response.status_code, [200, 404])
 
@@ -407,7 +408,8 @@ class TestAPIParameterValidation(BaseTestCase):
     def test_days_parameter_negative(self):
         """Test days parameter with negative value"""
         response = self.client.get(
-            "/api/portfolio-performance/summary?days=-30", headers=self.get_auth_headers()
+            "/api/portfolio-performance/summary?days=-30",
+            headers=self.get_auth_headers(),
         )
         # Should handle gracefully
         self.assertIn(response.status_code, [200, 400, 404])
@@ -415,7 +417,8 @@ class TestAPIParameterValidation(BaseTestCase):
     def test_days_parameter_exceeds_max(self):
         """Test days parameter exceeding max"""
         response = self.client.get(
-            "/api/portfolio-performance/metrics?days=500", headers=self.get_auth_headers()
+            "/api/portfolio-performance/metrics?days=500",
+            headers=self.get_auth_headers(),
         )
         # Should either cap at 365 or return 200/400
         self.assertIn(response.status_code, [200, 400, 404])
