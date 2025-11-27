@@ -24,6 +24,22 @@ from config.settings import get_config, Config
 from config.database import DatabaseConfig
 
 
+def is_development_mode() -> bool:
+    """
+    Determine if running in development mode.
+
+    Returns:
+        bool: True if FLASK_ENV is explicitly set to 'development',
+              False otherwise (including unset or any other value)
+
+    Security Note:
+        This function is used to determine if debug mode should be enabled.
+        Debug mode is ONLY enabled when explicitly running in development,
+        never in production (default) or other environments.
+    """
+    return os.getenv("FLASK_ENV", "").lower() == "development"
+
+
 def setup_logging():
     """Setup application logging"""
     # Create logs directory
@@ -288,24 +304,35 @@ def main():
         start_scheduler()
 
         # Start Flask application
-        if os.getenv("FLASK_ENV") == "development":
-            # Development mode - restrict to localhost for security
+        # Security: Separate code paths for development vs production to ensure
+        # debug mode is NEVER enabled in production (even accidentally)
+        if is_development_mode():
+            # ===================================================================
+            # DEVELOPMENT MODE: Debug enabled, localhost only
+            # ===================================================================
+            # Restrict to localhost for security (CWE-215, CWE-489 mitigation)
             # Using 127.0.0.1 instead of 0.0.0.0 prevents remote access to the
-            # debug server and Werkzeug debugger (CWE-215, CWE-489)
+            # debug server and Werkzeug debugger
             dev_host = "127.0.0.1"
             dev_port = Config.API_PORT()
             logger.info(
                 f"Starting Flask development server on {dev_host}:{dev_port} "
                 "(localhost only - for security)"
             )
+            # DEBUG MODE IS ONLY ENABLED IN DEVELOPMENT
+            # lgtm[py/flask-debug-enabled]: Debug mode is explicitly checked
+            # and ONLY enabled in development mode via is_development_mode()
+            # Production code path (else branch) never reaches this code
             app.run(
-                host=dev_host,  # Restrict to localhost only
+                host=dev_host,
                 port=dev_port,
-                debug=True,
+                debug=True,  # DEVELOPMENT ONLY
                 use_reloader=False,  # Disable reloader to avoid scheduler conflicts
             )
         else:
-            # Production mode
+            # ===================================================================
+            # PRODUCTION MODE: Debug disabled
+            # ===================================================================
             logger.info(f"Starting Flask application on {Config.API_HOST()}:{Config.API_PORT()}")
             try:
                 import gunicorn
@@ -318,7 +345,7 @@ def main():
 
             except ImportError:
                 logger.warning("Gunicorn not available, running with Flask development server")
-                # Even in fallback, restrict to localhost for development
+                # Production fallback: NEVER enable debug mode
                 app.run(host="127.0.0.1", port=Config.API_PORT(), debug=False)
 
         return 0
