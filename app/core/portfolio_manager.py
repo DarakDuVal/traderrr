@@ -13,13 +13,11 @@ class PortfolioManager:
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def _get_connection(self):
+    def _get_connection(self) -> sqlite3.Connection:
         """Get database connection"""
         return sqlite3.connect(self.db_path)
 
-    def add_or_update_position(
-        self, ticker: str, shares: float
-    ) -> Tuple[bool, List[str]]:
+    def add_or_update_position(self, ticker: str, shares: float) -> Tuple[bool, List[str]]:
         """Add or update a portfolio position. Returns (success, issues)"""
         # Validate input
         issues = []
@@ -62,9 +60,7 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute(
-                "DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,)
-            )
+            cursor.execute("DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,))
             if cursor.rowcount == 0:
                 conn.close()
                 return False, [f"Position {ticker} not found"]
@@ -82,9 +78,7 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute(
-                "SELECT ticker, shares FROM portfolio_positions ORDER BY ticker"
-            )
+            cursor.execute("SELECT ticker, shares FROM portfolio_positions ORDER BY ticker")
             positions = {row[0]: row[1] for row in cursor.fetchall()}
 
             conn.close()
@@ -102,9 +96,7 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            cursor.execute(
-                "SELECT shares FROM portfolio_positions WHERE ticker = ?", (ticker,)
-            )
+            cursor.execute("SELECT shares FROM portfolio_positions WHERE ticker = ?", (ticker,))
             result = cursor.fetchone()
             conn.close()
 
@@ -140,8 +132,7 @@ class PortfolioManager:
 
         # Calculate values
         values = {
-            ticker: shares * current_prices.get(ticker, 0)
-            for ticker, shares in positions.items()
+            ticker: shares * current_prices.get(ticker, 0) for ticker, shares in positions.items()
         }
 
         total_value = sum(values.values())
@@ -158,7 +149,4 @@ class PortfolioManager:
         if not positions or not current_prices:
             return 0
 
-        return sum(
-            shares * current_prices.get(ticker, 0)
-            for ticker, shares in positions.items()
-        )
+        return sum(shares * current_prices.get(ticker, 0) for ticker, shares in positions.items())

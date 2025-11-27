@@ -2,11 +2,12 @@
 app/api/routes.py - REST API endpoints for trading system with Flasgger documentation
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 import logging
 import threading
 import numpy as np
+from typing import Tuple, Union, Any, List, Optional, cast, Dict
 
 from app.core.data_manager import DataManager
 from app.core.signal_generator import SignalGenerator
@@ -25,8 +26,8 @@ portfolio_analyzer = PortfolioAnalyzer()
 portfolio_manager = PortfolioManager(db_path=Config.DATABASE_PATH())
 
 # Global state for signals
-current_signals = []
-last_update = None
+current_signals: List[Any] = []
+last_update: Optional[str] = None
 
 
 # ============================================================================
@@ -36,7 +37,7 @@ last_update = None
 
 @api_bp.route("/health", methods=["GET"])
 @require_api_key
-def health_check():
+def health_check() -> Tuple[Response, int]:
     """
     Get system health status
     ---
@@ -122,7 +123,7 @@ def health_check():
 
 @api_bp.route("/signals", methods=["GET"])
 @require_api_key
-def get_signals():
+def get_signals() -> Tuple[Response, int]:
     """
     Get current trading signals
     ---
@@ -206,7 +207,7 @@ def get_signals():
 
 @api_bp.route("/signal-history", methods=["GET"])
 @require_api_key
-def get_signal_history():
+def get_signal_history() -> Tuple[Response, int]:
     """
     Get historical trading signals with optional filters
     ---
@@ -291,7 +292,7 @@ def get_signal_history():
 
 @api_bp.route("/signal-history/<ticker>", methods=["GET"])
 @require_api_key
-def get_signal_history_by_ticker(ticker):
+def get_signal_history_by_ticker(ticker: str) -> Tuple[Response, int]:
     """
     Get signal history for a specific ticker
     ---
@@ -340,7 +341,7 @@ def get_signal_history_by_ticker(ticker):
 
 @api_bp.route("/signal-stats", methods=["GET"])
 @require_api_key
-def get_signal_stats():
+def get_signal_stats() -> Tuple[Response, int]:
     """
     Get statistics about signals
     ---
@@ -399,7 +400,7 @@ def get_signal_stats():
 
 @api_bp.route("/update", methods=["POST"])
 @require_api_key
-def trigger_update():
+def trigger_update() -> Tuple[Response, int]:
     """
     Manually trigger signal update
     ---
@@ -417,7 +418,7 @@ def trigger_update():
     """
     try:
 
-        def update_signals():
+        def update_signals() -> None:
             global current_signals, last_update
 
             try:
@@ -469,7 +470,7 @@ def trigger_update():
 
 @api_bp.route("/portfolio-performance", methods=["GET"])
 @require_api_key
-def get_portfolio_performance():
+def get_portfolio_performance() -> Tuple[Response, int]:
     """
     Get historical portfolio performance data
     ---
@@ -533,7 +534,7 @@ def get_portfolio_performance():
 
 @api_bp.route("/portfolio-performance/summary", methods=["GET"])
 @require_api_key
-def get_performance_summary():
+def get_performance_summary() -> Tuple[Response, int]:
     """
     Get portfolio performance summary for a period
     ---
@@ -564,11 +565,7 @@ def get_performance_summary():
 
         if not summary:
             return (
-                jsonify(
-                    {
-                        "message": "No performance data available for the specified period"
-                    }
-                ),
+                jsonify({"message": "No performance data available for the specified period"}),
                 404,
             )
 
@@ -589,7 +586,7 @@ def get_performance_summary():
 
 @api_bp.route("/portfolio-performance/metrics", methods=["GET"])
 @require_api_key
-def get_performance_metrics():
+def get_performance_metrics() -> Tuple[Response, int]:
     """
     Get comprehensive portfolio performance metrics
     ---
@@ -620,11 +617,7 @@ def get_performance_metrics():
 
         if not metrics:
             return (
-                jsonify(
-                    {
-                        "message": "No performance data available for the specified period"
-                    }
-                ),
+                jsonify({"message": "No performance data available for the specified period"}),
                 404,
             )
 
@@ -645,7 +638,7 @@ def get_performance_metrics():
 
 @api_bp.route("/portfolio-performance/latest", methods=["GET"])
 @require_api_key
-def get_latest_performance():
+def get_latest_performance() -> Tuple[Response, int]:
     """
     Get the latest portfolio performance record
     ---
@@ -697,7 +690,7 @@ def get_latest_performance():
 
 @api_bp.route("/portfolio", methods=["GET"])
 @require_api_key
-def get_portfolio():
+def get_portfolio() -> Tuple[Response, int]:
     """
     Get portfolio overview with metrics and risk analysis
     ---
@@ -782,8 +775,7 @@ def get_portfolio():
                         current_price = data["Close"].iloc[-1]
                         daily_change = data["Close"].pct_change().iloc[-1]
                         volume_ratio = (
-                            data["Volume"].iloc[-1]
-                            / data["Volume"].rolling(20).mean().iloc[-1]
+                            data["Volume"].iloc[-1] / data["Volume"].rolling(20).mean().iloc[-1]
                         )
 
                         overview[ticker] = {
@@ -821,7 +813,7 @@ def get_portfolio():
 
 @api_bp.route("/portfolio/positions", methods=["GET"])
 @require_api_key
-def get_portfolio_positions_api():
+def get_portfolio_positions_api() -> Tuple[Response, int]:
     """
     Get all portfolio positions with current values
     ---
@@ -860,10 +852,10 @@ def get_portfolio_positions_api():
             portfolio_data = {}
 
         positions_with_values = []
-        total_value = 0
+        total_value = 0.0
 
         for ticker, shares in positions.items():
-            current_price = 0
+            current_price = 0.0
 
             if ticker in portfolio_data and not portfolio_data[ticker].empty:
                 current_price = portfolio_data[ticker]["Close"].iloc[-1]
@@ -898,7 +890,7 @@ def get_portfolio_positions_api():
 
 @api_bp.route("/portfolio/positions", methods=["POST"])
 @require_api_key
-def add_portfolio_position():
+def add_portfolio_position() -> Tuple[Response, int]:
     """
     Add or update a portfolio position
     ---
@@ -949,8 +941,7 @@ def add_portfolio_position():
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data
-                and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -982,7 +973,7 @@ def add_portfolio_position():
 
 @api_bp.route("/portfolio/positions/<ticker>", methods=["PUT"])
 @require_api_key
-def update_portfolio_position(ticker):
+def update_portfolio_position(ticker: str) -> Tuple[Response, int]:
     """
     Update shares for a specific position
     ---
@@ -1032,8 +1023,7 @@ def update_portfolio_position(ticker):
             portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
             current_price = (
                 portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data
-                and not portfolio_data[ticker.upper()].empty
+                if ticker.upper() in portfolio_data and not portfolio_data[ticker.upper()].empty
                 else 0
             )
         except Exception as e:
@@ -1065,7 +1055,7 @@ def update_portfolio_position(ticker):
 
 @api_bp.route("/portfolio/positions/<ticker>", methods=["DELETE"])
 @require_api_key
-def delete_portfolio_position(ticker):
+def delete_portfolio_position(ticker: str) -> Tuple[Response, int]:
     """
     Remove a position from the portfolio
     ---
@@ -1119,7 +1109,7 @@ def delete_portfolio_position(ticker):
 
 @api_bp.route("/tickers/<ticker>", methods=["GET"])
 @require_api_key
-def get_ticker_data(ticker):
+def get_ticker_data(ticker: str) -> Tuple[Response, int]:
     """
     Get detailed data for a specific ticker
     ---
@@ -1164,8 +1154,8 @@ def get_ticker_data(ticker):
             "period": period,
             "data_points": len(data),
             "date_range": {
-                "start": data.index[0].isoformat(),
-                "end": data.index[-1].isoformat(),
+                "start": data.index[0].isoformat(),  # type: ignore
+                "end": data.index[-1].isoformat(),  # type: ignore
             },
             "current_price": data["Close"].iloc[-1],
             "daily_change": data["Close"].pct_change().iloc[-1],
@@ -1199,9 +1189,7 @@ def get_ticker_data(ticker):
                 }
             except Exception as e:
                 logger.warning(f"Error calculating indicators for {ticker}: {e}")
-                response_data["indicators"] = {
-                    "error": "Could not calculate indicators"
-                }
+                response_data["indicators"] = {"error": "Could not calculate indicators"}
 
         return jsonify(response_data), 200
 
@@ -1217,7 +1205,7 @@ def get_ticker_data(ticker):
 
 @api_bp.route("/risk-report", methods=["GET"])
 @require_api_key
-def get_risk_report():
+def get_risk_report() -> Tuple[Response, int]:
     """
     Get comprehensive risk report
     ---
@@ -1268,7 +1256,7 @@ def get_risk_report():
 
 @api_bp.route("/correlation", methods=["GET"])
 @require_api_key
-def get_correlation_matrix():
+def get_correlation_matrix() -> Tuple[Response, int]:
     """
     Get correlation matrix for portfolio
     ---
@@ -1324,7 +1312,7 @@ def get_correlation_matrix():
 
 @api_bp.route("/optimization", methods=["POST"])
 @require_api_key
-def optimize_portfolio():
+def optimize_portfolio() -> Tuple[Response, int]:
     """
     Optimize portfolio weights
     ---
@@ -1386,12 +1374,8 @@ def optimize_portfolio():
             risk_tolerance=risk_tolerance,
         )
 
-        current_metrics = portfolio_analyzer.analyze_portfolio(
-            portfolio_data, current_weights
-        )
-        optimized_metrics = portfolio_analyzer.analyze_portfolio(
-            portfolio_data, optimized_weights
-        )
+        current_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, current_weights)
+        optimized_metrics = portfolio_analyzer.analyze_portfolio(portfolio_data, optimized_weights)
 
         return (
             jsonify(
@@ -1423,7 +1407,7 @@ def optimize_portfolio():
 
 
 # Initialize background update on first import
-def initialize_signals():
+def initialize_signals() -> None:
     """Initialize signals and portfolio on startup"""
     global current_signals, last_update
 
@@ -1449,7 +1433,7 @@ def initialize_signals():
                 "QTUM": 100,
                 "QBTS": 50,
             }
-            portfolio_manager.initialize_from_config(initial_positions)
+            portfolio_manager.initialize_from_config(cast(Dict[str, float], initial_positions))
             logger.info("Portfolio initialized")
         except Exception as e:
             logger.warning(f"Could not initialize portfolio: {e}")

@@ -8,9 +8,10 @@ from flask_cors import CORS
 from flasgger import Flasgger
 import logging
 import os
+from typing import Any
 
 
-def create_app(config_name="production"):
+def create_app(config_name: str = "production") -> Flask:
     """
     Application factory pattern
 

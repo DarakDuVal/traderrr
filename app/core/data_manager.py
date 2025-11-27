@@ -9,12 +9,12 @@ import sqlite3
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import requests
-from requests.adapters import HTTPAdapter
+import requests  # type: ignore
+from requests.adapters import HTTPAdapter  # type: ignore
 from urllib3.util.retry import Retry
 
 
@@ -50,7 +50,7 @@ class DataManager:
         self.session.mount("https://", adapter)
 
         # Rate limiting
-        self.last_request_time = {}
+        self.last_request_time: Dict[str, float] = {}
         self.min_request_interval = 0.1  # 100ms between requests
 
     def _setup_logging(self) -> logging.Logger:
@@ -60,15 +60,13 @@ class DataManager:
 
         if not logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler.setFormatter(formatter)
             logger.addHandler(handler)
 
         return logger
 
-    def _rate_limit(self, ticker: str):
+    def _rate_limit(self, ticker: str) -> None:
         """Implement rate limiting"""
         now = time.time()
         if ticker in self.last_request_time:
@@ -110,7 +108,7 @@ class DataManager:
                     else:
                         cutoff = datetime.now() - timedelta(minutes=30)
 
-                    if last_date.tz_localize(None) > cutoff:
+                    if last_date.tz_localize(None) > cutoff:  # type: ignore
                         self.logger.info(f"Using cached data for {ticker}")
                         return cached_data
 
@@ -167,8 +165,7 @@ class DataManager:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             future_to_ticker = {
-                executor.submit(self.get_stock_data, ticker, period): ticker
-                for ticker in tickers
+                executor.submit(self.get_stock_data, ticker, period): ticker for ticker in tickers
             }
 
             # Collect results
@@ -216,7 +213,7 @@ class DataManager:
 
         return data
 
-    def _store_data(self, ticker: str, data: pd.DataFrame, interval: str):
+    def _store_data(self, ticker: str, data: pd.DataFrame, interval: str) -> None:
         """Store data in database"""
         if data.empty:
             return
@@ -255,9 +252,7 @@ class DataManager:
             }
 
         # Select only existing columns and rename to match database schema
-        available_columns = [
-            col for col in columns_map.keys() if col in data_copy.columns
-        ]
+        available_columns = [col for col in columns_map.keys() if col in data_copy.columns]
         data_to_store = data_copy[available_columns].copy()
 
         # Rename columns to match database schema
@@ -296,9 +291,7 @@ class DataManager:
                     ORDER BY datetime
                 """
 
-            df = pd.read_sql_query(
-                query, self.conn, params=[ticker], parse_dates=["Date"]
-            )
+            df = pd.read_sql_query(query, self.conn, params=[ticker], parse_dates=["Date"])
 
             if not df.empty:
                 df.set_index("Date", inplace=True)
@@ -311,7 +304,7 @@ class DataManager:
 
         return None
 
-    def _update_metadata(self, ticker: str, info: dict):
+    def _update_metadata(self, ticker: str, info: Dict[str, Any]) -> None:
         """Update stock metadata"""
         try:
             metadata = {
@@ -368,7 +361,7 @@ class DataManager:
                 ORDER BY m.market_cap DESC
             """
 
-            df = pd.read_sql_query(query, self.conn, params=tickers)
+            df = pd.read_sql_query(query, self.conn, params=tickers)  # type: ignore
             return df
 
         except Exception as e:
@@ -384,23 +377,17 @@ class DataManager:
             total_deleted = 0
 
             # Clean daily data
-            cursor.execute(
-                "DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),)
-            )
+            cursor.execute("DELETE FROM daily_data WHERE date < ?", (cutoff_date.date(),))
             total_deleted += cursor.rowcount
 
             # Clean intraday data (keep less)
             intraday_cutoff = datetime.now() - timedelta(days=30)
-            cursor.execute(
-                "DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,)
-            )
+            cursor.execute("DELETE FROM intraday_data WHERE datetime < ?", (intraday_cutoff,))
             total_deleted += cursor.rowcount
 
             # Clean old signals
             signal_cutoff = datetime.now() - timedelta(days=90)
-            cursor.execute(
-                "DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,)
-            )
+            cursor.execute("DELETE FROM signal_history WHERE created_at < ?", (signal_cutoff,))
             total_deleted += cursor.rowcount
 
             self.conn.commit()
@@ -414,7 +401,7 @@ class DataManager:
             self.logger.error(f"Error cleaning old data: {e}")
             return 0
 
-    def backup_database(self, backup_path: str):
+    def backup_database(self, backup_path: str) -> None:
         """Create database backup"""
         try:
             backup_conn = sqlite3.connect(backup_path)
@@ -424,9 +411,9 @@ class DataManager:
         except Exception as e:
             self.logger.error(f"Error creating backup: {e}")
 
-    def get_data_quality_report(self, tickers: List[str]) -> Dict:
+    def get_data_quality_report(self, tickers: List[str]) -> Dict[str, Any]:
         """Generate data quality report"""
-        report = {
+        report: Dict[str, Any] = {
             "tickers_checked": len(tickers),
             "successful_downloads": 0,
             "missing_data": [],
@@ -445,16 +432,14 @@ class DataManager:
 
                     # Check for stale data
                     last_date = data.index[-1]
-                    if (datetime.now() - last_date.tz_localize(None)).days > 7:
+                    if (datetime.now() - last_date.tz_localize(None)).days > 7:  # type: ignore
                         report["stale_data"].append(ticker)
 
                     # Check for data gaps
                     date_diff = data.index.to_series().diff()
                     gaps = date_diff[date_diff > pd.Timedelta(days=7)]
                     if not gaps.empty:
-                        report["data_gaps"].append(
-                            {"ticker": ticker, "gaps": len(gaps)}
-                        )
+                        report["data_gaps"].append({"ticker": ticker, "gaps": len(gaps)})
 
             except Exception as e:
                 self.logger.error(f"Error checking data quality for {ticker}: {e}")
@@ -507,11 +492,11 @@ class DataManager:
 
             if min_confidence > 0:
                 query += " AND confidence >= ?"
-                params.append(min_confidence)
+                params.append(str(min_confidence))
 
             # Order by date descending, then by id descending for latest signals first
             query += " ORDER BY date DESC, id DESC LIMIT ?"
-            params.append(limit)
+            params.append(str(limit))
 
             cursor = self.conn.cursor()
             cursor.execute(query, params)
@@ -554,9 +539,7 @@ class DataManager:
         self, start_date: str, end_date: str, limit: int = 100
     ) -> List[Dict]:
         """Get signals within a date range"""
-        return self.get_signal_history(
-            start_date=start_date, end_date=end_date, limit=limit
-        )
+        return self.get_signal_history(start_date=start_date, end_date=end_date, limit=limit)
 
     def get_signals_stats(self, ticker: Optional[str] = None) -> Dict:
         """Get statistics about signals"""
@@ -632,7 +615,7 @@ class DataManager:
 
             # Order by date descending for latest first
             query += " ORDER BY date DESC LIMIT ?"
-            params.append(min(limit, 1000))
+            params.append(str(min(limit, 1000)))
 
             cursor = self.conn.cursor()
             cursor.execute(query, params)
@@ -749,9 +732,7 @@ class DataManager:
         self, start_date: str, end_date: str, limit: int = 1000
     ) -> List[Dict]:
         """Get performance data for a specific date range"""
-        return self.get_portfolio_performance(
-            start_date=start_date, end_date=end_date, limit=limit
-        )
+        return self.get_portfolio_performance(start_date=start_date, end_date=end_date, limit=limit)
 
     def get_performance_metrics(self, days: int = 90) -> Dict:
         """
@@ -817,12 +798,8 @@ class DataManager:
                     if volatilities_filtered
                     else None
                 ),
-                "max_volatility": (
-                    max(volatilities_filtered) if volatilities_filtered else None
-                ),
-                "min_volatility": (
-                    min(volatilities_filtered) if volatilities_filtered else None
-                ),
+                "max_volatility": (max(volatilities_filtered) if volatilities_filtered else None),
+                "min_volatility": (min(volatilities_filtered) if volatilities_filtered else None),
                 "avg_sharpe_ratio": (
                     sum(sharpe_ratios_filtered) / len(sharpe_ratios_filtered)
                     if sharpe_ratios_filtered
@@ -839,20 +816,14 @@ class DataManager:
                     if daily_returns_filtered
                     else None
                 ),
-                "worst_drawdown": (
-                    min(max_drawdowns_filtered) if max_drawdowns_filtered else None
-                ),
+                "worst_drawdown": (min(max_drawdowns_filtered) if max_drawdowns_filtered else None),
             }
 
             # Calculate total return if we have start and end values
-            if (
-                metrics["start_value"]
-                and metrics["end_value"]
-                and metrics["start_value"] != 0
-            ):
-                metrics["total_return"] = (
-                    metrics["end_value"] - metrics["start_value"]
-                ) / metrics["start_value"]
+            if metrics["start_value"] and metrics["end_value"] and metrics["start_value"] != 0:
+                metrics["total_return"] = (metrics["end_value"] - metrics["start_value"]) / metrics[
+                    "start_value"
+                ]
             else:
                 metrics["total_return"] = None
 
@@ -862,7 +833,7 @@ class DataManager:
             self.logger.error(f"Error calculating performance metrics: {e}")
             return {}
 
-    def close(self):
+    def close(self) -> None:
         """Close database connection"""
         if self.conn:
             self.conn.close()
