@@ -283,7 +283,9 @@ class SampleDataGenerator:
         return {"ticker": ticker, "shares": shares}
 
     @staticmethod
-    def generate_performance_data(days: int = 30, starting_value: float = 100000) -> List[Dict]:
+    def generate_performance_data(
+        days: int = 30, starting_value: float = 100000
+    ) -> List[Dict]:
         """Generate sample portfolio performance data"""
         performance = []
         values = [starting_value]

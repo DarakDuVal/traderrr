@@ -3,13 +3,18 @@ app/api/auth.py
 Authentication and authorization for the API
 """
 
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    jwt_required,
+    get_jwt_identity,
+)
 from functools import wraps
-from flask import current_app, request
+from flask import current_app, request, Flask
 from datetime import timedelta
 import os
 import secrets
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, Callable
 
 # ============================================================================
 # API KEY STORE (Replace with database in production)
@@ -26,7 +31,7 @@ VALID_API_KEYS: Dict[str, str] = {
 # ============================================================================
 
 
-def init_jwt(app) -> JWTManager:
+def init_jwt(app: Flask) -> JWTManager:
     """
     Initialize JWT authentication for the Flask app
 
@@ -37,20 +42,24 @@ def init_jwt(app) -> JWTManager:
         JWTManager: Configured JWT manager instance
     """
     # Get secret key from environment or use default (change in production!)
-    secret_key = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production-12345")
+    secret_key = os.getenv(
+        "JWT_SECRET_KEY", "your-secret-key-change-in-production-12345"
+    )
     app.config["JWT_SECRET_KEY"] = secret_key
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
 
     jwt = JWTManager(app)
 
     @jwt.user_lookup_loader
-    def user_lookup_callback(_jwt_header, jwt_data):
+    def user_lookup_callback(
+        _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
+    ) -> str:
         """Load user identity from JWT"""
-        identity = jwt_data["sub"]
+        identity: str = jwt_data["sub"]
         return identity
 
     @jwt.additional_claims_loader
-    def add_claims_to_access_token(identity):
+    def add_claims_to_access_token(identity: str) -> Dict[str, str]:
         """Add custom claims to JWT token"""
         return {"username": identity, "api_version": "1.0.0"}
 
@@ -62,7 +71,7 @@ def init_jwt(app) -> JWTManager:
 # ============================================================================
 
 
-def require_api_key(f):
+def require_api_key(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to require API key authentication
 
@@ -76,7 +85,7 @@ def require_api_key(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         # Get authorization header
         auth_header = request.headers.get("Authorization", "")
 
@@ -99,8 +108,10 @@ def require_api_key(f):
                 "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
             }, 401
 
-        # Store username in request context
-        current_app.username = VALID_API_KEYS[token]
+        # Store username in request context (via g object for proper context storage)
+        from flask import g
+
+        g.username = VALID_API_KEYS[token]
 
         return f(*args, **kwargs)
 
@@ -185,7 +196,9 @@ def list_api_keys(username: str) -> list:
 # ============================================================================
 
 
-def create_access_token_for_user(username: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token_for_user(
+    username: str, expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Create a JWT access token for a user
 
@@ -202,7 +215,8 @@ def create_access_token_for_user(username: str, expires_delta: Optional[timedelt
     if expires_delta is None:
         expires_delta = timedelta(days=30)
 
-    return create_access_token(identity=username, expires_delta=expires_delta)
+    token: str = create_access_token(identity=username, expires_delta=expires_delta)
+    return token
 
 
 # ============================================================================
@@ -234,7 +248,10 @@ AUTHENTICATION_EXAMPLES = {
         },
         "invalid_key": {
             "status": 401,
-            "response": {"error": "Invalid API key", "timestamp": "2024-11-25T12:00:00"},
+            "response": {
+                "error": "Invalid API key",
+                "timestamp": "2024-11-25T12:00:00",
+            },
         },
     },
 }

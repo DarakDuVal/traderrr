@@ -4,7 +4,7 @@ app/core/portfolio_analyzer.py - Advanced portfolio analysis and risk management
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any, cast
 from datetime import datetime, timedelta
 import logging
 from dataclasses import dataclass
@@ -71,7 +71,9 @@ class PortfolioAnalyzer:
                 raise ValueError("No aligned data available")
 
             # Calculate portfolio returns
-            portfolio_returns = self._calculate_portfolio_returns(aligned_data, portfolio_weights)
+            portfolio_returns = self._calculate_portfolio_returns(
+                aligned_data, portfolio_weights
+            )
 
             # Get benchmark returns
             benchmark_returns = None
@@ -79,7 +81,9 @@ class PortfolioAnalyzer:
                 benchmark_returns = aligned_data[benchmark_ticker].pct_change().dropna()
 
             # Calculate metrics
-            metrics = self._calculate_portfolio_metrics(portfolio_returns, benchmark_returns)
+            metrics = self._calculate_portfolio_metrics(
+                portfolio_returns, benchmark_returns
+            )
 
             return metrics
 
@@ -111,7 +115,9 @@ class PortfolioAnalyzer:
                 daily_var = np.percentile(ticker_returns, 5) * position_size
 
                 # Liquidity score (based on volume and volatility)
-                liquidity_score = self._calculate_liquidity_score(portfolio_data.get(ticker))
+                liquidity_score = self._calculate_liquidity_score(
+                    portfolio_data.get(ticker)
+                )
 
                 # Concentration risk
                 concentration_risk = self._calculate_concentration_risk(weight)
@@ -128,7 +134,7 @@ class PortfolioAnalyzer:
                     ticker=ticker,
                     position_size=position_size,
                     weight=weight,
-                    daily_var=daily_var,
+                    daily_var=float(daily_var),
                     contribution_to_risk=contribution_to_risk,
                     liquidity_score=liquidity_score,
                     concentration_risk=concentration_risk,
@@ -202,44 +208,56 @@ class PortfolioAnalyzer:
 
             if target_return is None:
                 # Maximize Sharpe ratio
-                def objective(weights):
+                def objective(weights: np.ndarray) -> float:
                     portfolio_return = np.dot(weights, expected_returns)
-                    portfolio_vol = np.sqrt(np.dot(weights, np.dot(cov_matrix, weights)))
-                    return -(portfolio_return - self.risk_free_rate) / portfolio_vol
+                    portfolio_vol = np.sqrt(
+                        np.dot(weights, np.dot(cov_matrix, weights))
+                    )
+                    return float(
+                        -(portfolio_return - self.risk_free_rate) / portfolio_vol
+                    )
 
             else:
                 # Minimize variance
-                def objective(weights):
-                    return np.dot(weights, np.dot(cov_matrix, weights))
+                def objective(weights: np.ndarray) -> float:
+                    return float(np.dot(weights, np.dot(cov_matrix, weights)))
 
             # Add risk tolerance constraint
-            def risk_constraint(weights):
+            def risk_constraint(weights: np.ndarray) -> float:
                 portfolio_vol = np.sqrt(np.dot(weights, np.dot(cov_matrix, weights)))
-                return risk_tolerance - portfolio_vol
+                return float(risk_tolerance - portfolio_vol)
 
             constraints.append({"type": "ineq", "fun": risk_constraint})
 
             # Perform optimization
-            result = minimize(objective, x0, method="SLSQP", bounds=bounds, constraints=constraints)
+            result = minimize(
+                objective, x0, method="SLSQP", bounds=bounds, constraints=constraints
+            )
 
             if result.success:
                 optimized_weights = dict(zip(tickers, result.x))
                 # Filter out negligible weights
                 optimized_weights = {
-                    ticker: weight for ticker, weight in optimized_weights.items() if weight > 0.01
+                    ticker: weight
+                    for ticker, weight in optimized_weights.items()
+                    if weight > 0.01
                 }
 
                 self.logger.info("Portfolio optimization successful")
                 return optimized_weights
             else:
-                self.logger.warning("Portfolio optimization failed, returning current weights")
+                self.logger.warning(
+                    "Portfolio optimization failed, returning current weights"
+                )
                 return current_weights
 
         except Exception as e:
             self.logger.error(f"Portfolio optimization error: {e}")
             return current_weights
 
-    def calculate_correlation_matrix(self, portfolio_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    def calculate_correlation_matrix(
+        self, portfolio_data: Dict[str, pd.DataFrame]
+    ) -> pd.DataFrame:
         """Calculate correlation matrix for portfolio assets"""
         try:
             aligned_data = self._align_portfolio_data(portfolio_data)
@@ -261,7 +279,9 @@ class PortfolioAnalyzer:
         """Generate comprehensive risk report"""
         try:
             # Portfolio-level metrics
-            portfolio_metrics = self.analyze_portfolio(portfolio_data, portfolio_weights)
+            portfolio_metrics = self.analyze_portfolio(
+                portfolio_data, portfolio_weights
+            )
 
             # Position-level risks
             position_risks = self.calculate_position_risks(
@@ -326,7 +346,9 @@ class PortfolioAnalyzer:
             self.logger.error(f"Risk report generation error: {e}")
             return {"error": str(e)}
 
-    def _align_portfolio_data(self, portfolio_data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    def _align_portfolio_data(
+        self, portfolio_data: Dict[str, pd.DataFrame]
+    ) -> pd.DataFrame:
         """Align portfolio data to common date index"""
         price_data = {}
 
@@ -349,7 +371,9 @@ class PortfolioAnalyzer:
         returns_data = aligned_data.pct_change().dropna()
 
         # Align weights with available data
-        available_tickers = [ticker for ticker in weights.keys() if ticker in returns_data.columns]
+        available_tickers = [
+            ticker for ticker in weights.keys() if ticker in returns_data.columns
+        ]
         total_weight = sum(weights[ticker] for ticker in available_tickers)
 
         if total_weight == 0:
@@ -380,11 +404,13 @@ class PortfolioAnalyzer:
         annual_return = daily_return * 252
 
         # Sharpe ratio
-        sharpe_ratio = (annual_return - self.risk_free_rate) / volatility if volatility > 0 else 0
+        sharpe_ratio = (
+            (annual_return - self.risk_free_rate) / volatility if volatility > 0 else 0
+        )
 
         # Maximum drawdown
-        cumulative_returns = (1 + portfolio_returns).cumprod()
-        rolling_max = cumulative_returns.expanding().max()
+        cumulative_returns: Any = (1 + portfolio_returns).cumprod()
+        rolling_max = cumulative_returns.expanding().max()  # type: ignore
         drawdowns = (cumulative_returns - rolling_max) / rolling_max
         max_drawdown = drawdowns.min()
 
@@ -392,7 +418,9 @@ class PortfolioAnalyzer:
         value_at_risk = np.percentile(portfolio_returns, 5)
 
         # Expected Shortfall (Conditional VaR)
-        expected_shortfall = portfolio_returns[portfolio_returns <= value_at_risk].mean()
+        expected_shortfall = portfolio_returns[
+            portfolio_returns <= value_at_risk
+        ].mean()
 
         # Beta and Alpha (if benchmark available)
         beta = 0.0
@@ -420,7 +448,7 @@ class PortfolioAnalyzer:
             max_drawdown=max_drawdown,
             beta=beta,
             alpha=alpha,
-            value_at_risk=value_at_risk,
+            value_at_risk=float(value_at_risk),
             expected_shortfall=expected_shortfall,
             correlation_risk=correlation_risk,
         )
@@ -441,7 +469,7 @@ class PortfolioAnalyzer:
 
             # Combine scores
             liquidity_score = volume_score * 0.6 + stability_score * 0.4
-            return np.clip(liquidity_score, 0.0, 1.0)
+            return float(np.clip(liquidity_score, 0.0, 1.0))
 
         except Exception:
             return 0.5
@@ -478,12 +506,14 @@ class PortfolioAnalyzer:
             # Risk contribution = weight * marginal contribution
             risk_contribution = weight * marginal_contribution
 
-            return risk_contribution
+            return float(risk_contribution)
 
         except Exception:
             return 0.0
 
-    def _analyze_sector_concentration(self, portfolio_weights: Dict[str, float]) -> Dict:
+    def _analyze_sector_concentration(
+        self, portfolio_weights: Dict[str, float]
+    ) -> Dict:
         """Analyze sector concentration (simplified mapping)"""
         # Simplified sector mapping - in production, use proper sector data
         sector_mapping = {
@@ -507,7 +537,7 @@ class PortfolioAnalyzer:
             "QBTS": "Technology",
         }
 
-        sector_weights = {}
+        sector_weights: Dict[str, float] = {}
         for ticker, weight in portfolio_weights.items():
             sector = sector_mapping.get(ticker, "Other")
             sector_weights[sector] = sector_weights.get(sector, 0) + weight
@@ -515,7 +545,9 @@ class PortfolioAnalyzer:
         # Calculate concentration risk
         max_sector_weight = max(sector_weights.values()) if sector_weights else 0
         concentration_risk = (
-            "High" if max_sector_weight > 0.4 else "Medium" if max_sector_weight > 0.25 else "Low"
+            "High"
+            if max_sector_weight > 0.4
+            else "Medium" if max_sector_weight > 0.25 else "Low"
         )
 
         return {
@@ -532,11 +564,15 @@ class PortfolioAnalyzer:
         """Run stress test scenarios"""
         try:
             aligned_data = self._align_portfolio_data(portfolio_data)
-            portfolio_returns = self._calculate_portfolio_returns(aligned_data, portfolio_weights)
+            portfolio_returns = self._calculate_portfolio_returns(
+                aligned_data, portfolio_weights
+            )
 
             scenarios = {
-                "market_crash_10": np.percentile(portfolio_returns, 1) * 10,  # 1% worst day * 10
-                "market_crash_20": np.percentile(portfolio_returns, 1) * 20,  # 1% worst day * 20
+                "market_crash_10": np.percentile(portfolio_returns, 1)
+                * 10,  # 1% worst day * 10
+                "market_crash_20": np.percentile(portfolio_returns, 1)
+                * 20,  # 1% worst day * 20
                 "high_volatility": portfolio_returns.std() * 3,  # 3-sigma move
                 "correlation_breakdown": portfolio_returns.std()
                 * 2,  # 2-sigma with correlation increase
@@ -548,7 +584,9 @@ class PortfolioAnalyzer:
             self.logger.error(f"Stress test error: {e}")
             return {}
 
-    def _find_highly_correlated_pairs(self, correlation_matrix: pd.DataFrame) -> List[Dict]:
+    def _find_highly_correlated_pairs(
+        self, correlation_matrix: pd.DataFrame
+    ) -> List[Dict]:
         """Find highly correlated asset pairs"""
         highly_correlated = []
 
@@ -556,7 +594,7 @@ class PortfolioAnalyzer:
             for i in range(len(correlation_matrix.columns)):
                 for j in range(i + 1, len(correlation_matrix.columns)):
                     corr = correlation_matrix.iloc[i, j]
-                    if abs(corr) > 0.7:  # High correlation threshold
+                    if abs(cast(float, corr)) > 0.7:  # High correlation threshold
                         highly_correlated.append(
                             {
                                 "asset1": correlation_matrix.columns[i],
@@ -608,7 +646,9 @@ class PortfolioAnalyzer:
             )
 
         # Liquidity risk
-        low_liquidity_positions = [pos for pos in position_risks if pos.liquidity_score < 0.3]
+        low_liquidity_positions = [
+            pos for pos in position_risks if pos.liquidity_score < 0.3
+        ]
         if low_liquidity_positions:
             tickers = [pos.ticker for pos in low_liquidity_positions]
             recommendations.append(
@@ -627,6 +667,8 @@ class PortfolioAnalyzer:
 
         # Default recommendation
         if not recommendations:
-            recommendations.append("Portfolio risk profile appears balanced. Continue monitoring.")
+            recommendations.append(
+                "Portfolio risk profile appears balanced. Continue monitoring."
+            )
 
         return recommendations

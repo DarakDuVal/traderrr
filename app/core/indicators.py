@@ -35,8 +35,8 @@ class TechnicalIndicators:
         Optimized for numerical stability
         """
         delta = data.diff()
-        gain = delta.where(delta > 0, 0.0)
-        loss = -delta.where(delta < 0, 0.0)
+        gain = delta.where(delta > 0, 0.0)  # type: ignore
+        loss = -delta.where(delta < 0, 0.0)  # type: ignore
 
         # Use Wilder's smoothing (exponential)
         alpha = 1.0 / period
@@ -47,7 +47,7 @@ class TechnicalIndicators:
         rs = avg_gain / avg_loss.replace(0, np.nan)
         rsi = 100.0 - (100.0 / (1.0 + rs))
 
-        return rsi.fillna(50.0)  # Fill NaN with neutral value
+        return rsi.fillna(50.0)
 
     @staticmethod
     def macd(
@@ -101,7 +101,9 @@ class TechnicalIndicators:
         return k_percent, d_percent
 
     @staticmethod
-    def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    def atr(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+    ) -> pd.Series:
         """Average True Range"""
         tr1 = high - low
         tr2 = abs(high - close.shift(1))
@@ -124,7 +126,9 @@ class TechnicalIndicators:
         return wr.fillna(-50.0)
 
     @staticmethod
-    def cci(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20) -> pd.Series:
+    def cci(
+        high: pd.Series, low: pd.Series, close: pd.Series, period: int = 20
+    ) -> pd.Series:
         """Commodity Channel Index"""
         typical_price = (high + low + close) / 3
         sma_tp = typical_price.rolling(window=period, min_periods=period).mean()
@@ -148,8 +152,8 @@ class TechnicalIndicators:
         dm_minus = -low.diff()
 
         # Set to 0 if not the larger movement
-        dm_plus = dm_plus.where((dm_plus > dm_minus) & (dm_plus > 0), 0)
-        dm_minus = dm_minus.where((dm_minus > dm_plus) & (dm_minus > 0), 0)
+        dm_plus = dm_plus.where((dm_plus > dm_minus) & (dm_plus > 0), 0)  # type: ignore
+        dm_minus = dm_minus.where((dm_minus > dm_plus) & (dm_minus > 0), 0)  # type: ignore
 
         # Smooth the values
         alpha = 1.0 / period
@@ -248,15 +252,15 @@ class MarketRegimeDetector:
 
         for lag in lags:
             # Calculate the variance of the differences
-            pp = np.subtract(prices[lag:].values, prices[:-lag].values)
+            pp = np.subtract(prices[lag:].values, prices[:-lag].values)  # type: ignore
             tau.append(np.sqrt(np.std(pp)))
 
         # Linear regression on log-log plot
-        tau = np.array(tau)
-        lags = np.array(lags)
+        tau = np.array(tau)  # type: ignore
+        lags = np.array(lags)  # type: ignore
 
         # Remove any NaN or infinite values
-        valid_idx = np.isfinite(tau) & (tau > 0)
+        valid_idx = np.isfinite(tau) & (tau > 0)  # type: ignore
         if not np.any(valid_idx):
             return 0.5
 
@@ -265,7 +269,7 @@ class MarketRegimeDetector:
 
         try:
             poly = np.polyfit(np.log(lags), np.log(tau), 1)
-            return poly[0] * 2.0
+            return float(poly[0] * 2.0)
         except:
             return 0.5
 
@@ -283,24 +287,28 @@ class MarketRegimeDetector:
 
         try:
             # Linear regression
-            poly = np.polyfit(x, recent_prices.values, 1)
+            poly = np.polyfit(x, recent_prices.values, 1)  # type: ignore
             trend_line = np.polyval(poly, x)
 
             # Calculate R-squared
-            ss_res = np.sum((recent_prices.values - trend_line) ** 2)
-            ss_tot = np.sum((recent_prices.values - np.mean(recent_prices.values)) ** 2)
+            ss_res: float = float(np.sum((recent_prices.values - trend_line) ** 2))
+            ss_tot: float = float(
+                np.sum((recent_prices.values - np.mean(recent_prices.values)) ** 2)  # type: ignore
+            )
 
             if ss_tot == 0:
                 return 0.0
 
             r_squared = 1 - (ss_res / ss_tot)
-            return max(0.0, min(1.0, r_squared))
+            return float(max(0.0, min(1.0, r_squared)))
 
         except:
             return 0.0
 
     @staticmethod
-    def volatility_regime(prices: pd.Series, short_period: int = 10, long_period: int = 30) -> str:
+    def volatility_regime(
+        prices: pd.Series, short_period: int = 10, long_period: int = 30
+    ) -> str:
         """
         Classify volatility regime
         Returns: 'low', 'normal', 'high'
@@ -347,7 +355,9 @@ class AdvancedIndicators:
         Identifies periods of low volatility followed by breakouts
         """
         # Bollinger Bands
-        bb_upper, bb_middle, bb_lower = TechnicalIndicators.bollinger_bands(close, length, mult)
+        bb_upper, bb_middle, bb_lower = TechnicalIndicators.bollinger_bands(
+            close, length, mult
+        )
 
         # Keltner Channels
         tr = TechnicalIndicators.atr(high, low, close, 1)
@@ -396,7 +406,9 @@ class AdvancedIndicators:
         williams_norm = williams + 50  # Convert from -100,0 to -50,50
 
         # Combine with weights
-        composite = 0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
+        composite = (
+            0.3 * rsi_norm + 0.3 * macd_norm + 0.2 * stoch_norm + 0.2 * williams_norm
+        )
 
         return composite.fillna(0)
 

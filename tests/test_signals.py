@@ -206,7 +206,9 @@ class TestSignalGenerator(BaseTestCase):
         # Signals should be sorted by confidence (highest first)
         if len(signals) > 1:
             for i in range(len(signals) - 1):
-                self.assertGreaterEqual(signals[i].confidence, signals[i + 1].confidence)
+                self.assertGreaterEqual(
+                    signals[i].confidence, signals[i + 1].confidence
+                )
 
     def test_confidence_calculation(self):
         """Test confidence score calculation"""
@@ -263,7 +265,11 @@ class TestSignalGenerator(BaseTestCase):
             # Value should not be None
             self.assertIsNotNone(value, f"Indicator {key} should not be None")
 
-            if key.endswith("_bullish") or key.endswith("_oversold") or key.endswith("_overbought"):
+            if (
+                key.endswith("_bullish")
+                or key.endswith("_oversold")
+                or key.endswith("_overbought")
+            ):
                 # Boolean indicators can be bool or numpy bool
                 self.assertIsInstance(value, (bool, np.bool_))
             else:
@@ -528,7 +534,11 @@ class TestSignalEdgeCases(BaseTestCase):
             self.assertIsInstance(signal, TradingSignal)
             self.assertIn(
                 signal.regime,
-                [MarketRegime.SIDEWAYS, MarketRegime.MEAN_REVERTING, MarketRegime.HIGH_VOLATILITY],
+                [
+                    MarketRegime.SIDEWAYS,
+                    MarketRegime.MEAN_REVERTING,
+                    MarketRegime.HIGH_VOLATILITY,
+                ],
             )
 
     def test_low_volatility_detection(self):
@@ -542,7 +552,9 @@ class TestSignalEdgeCases(BaseTestCase):
             risk_reward_ratio = abs(signal.target_price - signal.entry_price) / abs(
                 signal.entry_price - signal.stop_loss
             )
-            self.assertGreater(risk_reward_ratio, 1.0)  # Should have positive risk/reward
+            self.assertGreater(
+                risk_reward_ratio, 1.0
+            )  # Should have positive risk/reward
 
     def test_minimum_confidence_filter(self):
         """Test minimum confidence threshold"""
@@ -568,7 +580,10 @@ class TestSignalEdgeCases(BaseTestCase):
         """Test that stop loss is below entry price for long signals"""
         for _ in range(5):
             signal = self.signal_gen.generate_signal("LONG", self.sideways_data)
-            if signal is not None and signal.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]:
+            if signal is not None and signal.signal_type in [
+                SignalType.BUY,
+                SignalType.STRONG_BUY,
+            ]:
                 self.assertLess(signal.stop_loss, signal.entry_price)
                 self.assertGreater(signal.target_price, signal.entry_price)
 
