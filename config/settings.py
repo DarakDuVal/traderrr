@@ -7,8 +7,8 @@ import json
 from typing import Dict, List, Any, cast
 
 
-class Config:
-    """Base configuration class"""
+class ConfigLegacy:
+    """Base configuration class (legacy, kept for backward compatibility)"""
 
     # Load from environment or config file
     _config_data = None
@@ -215,6 +215,36 @@ class Config:
             return True
         except Exception as e:
             return False
+
+
+class Config(ConfigLegacy):
+    """Configuration class with Phase 0 database support
+
+    Extends ConfigLegacy with SQLAlchemy ORM database configuration.
+    Database configuration via environment variables:
+    - DATABASE_TYPE: sqlite (default), postgresql, or mysql
+    - DATABASE_URL: full connection string (optional)
+    - DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME: individual params
+    """
+
+    # Database configuration (Phase 0 - SQLAlchemy ORM)
+    DATABASE_TYPE: str = os.getenv("DATABASE_TYPE", "sqlite")
+    DATABASE_URL: str | None = os.getenv("DATABASE_URL")
+
+    # Database connection pool settings (for PostgreSQL/MySQL)
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "20"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "40"))
+    DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "3600"))
+
+    # Individual database connection parameters
+    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "password")
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
+    DB_NAME: str = os.getenv("DB_NAME", "traderrr")
+
+    # SQL debugging
+    SQL_ECHO: bool = os.getenv("SQL_ECHO", "False").lower() == "true"
 
 
 # Environment-specific configurations
