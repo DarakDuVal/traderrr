@@ -99,7 +99,7 @@ def setup_admin():
             # Create admin user
             click.echo("\nCreating admin user...")
             success, user, error = AuthService.register_user(
-                session, username, email, password, role=RoleEnum.ADMIN
+                session, username, email, password, role_name=RoleEnum.ADMIN
             )
 
             if success:

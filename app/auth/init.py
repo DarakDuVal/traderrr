@@ -65,7 +65,7 @@ def create_admin_from_env(session) -> Optional[str]:
         logger.info(f"Creating admin user from environment variables: {username}")
 
         success, user, error = AuthService.register_user(
-            session, username, f"{username}@admin.local", password, role=RoleEnum.ADMIN
+            session, username, f"{username}@admin.local", password, role_name=RoleEnum.ADMIN
         )
 
         if success:
