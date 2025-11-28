@@ -1597,4 +1597,8 @@ def initialize_signals() -> None:
 
 
 # Run initialization when module is imported
-initialize_signals()
+# NOTE: Commented out for Phase 1 - this was blocking Flask app startup
+# The system was trying to initialize signals/data at import time
+# Data initialization is now handled in main.py as a daemon thread
+# TODO: Refactor this to be asynchronous or called on first API request
+# initialize_signals()

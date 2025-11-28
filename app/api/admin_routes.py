@@ -46,24 +46,29 @@ def list_users():
         try:
             users = session.query(User).all()
 
-            return jsonify(
-                {
-                    "users": [
-                        {
-                            "id": user.id,
-                            "username": user.username,
-                            "email": user.email,
-                            "role": user.role.name,
-                            "status": user.status,
-                            "created_at": user.created_at.isoformat(),
-                            "last_login": user.last_login.isoformat()
-                            if user.last_login
-                            else None,
-                        }
-                        for user in users
-                    ]
-                }
-            ), 200
+            return (
+                jsonify(
+                    {
+                        "users": [
+                            {
+                                "id": user.id,
+                                "username": user.username,
+                                "email": user.email,
+                                "role": user.role.name,
+                                "status": user.status,
+                                "created_at": user.created_at.isoformat(),
+                                "last_login": (
+                                    user.last_login.isoformat()
+                                    if user.last_login
+                                    else None
+                                ),
+                            }
+                            for user in users
+                        ]
+                    }
+                ),
+                200,
+            )
 
         finally:
             session.close()
@@ -102,21 +107,24 @@ def get_user(user_id):
             if not user:
                 return jsonify({"error": "User not found"}), 404
 
-            return jsonify(
-                {
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "email": user.email,
-                        "role": user.role.name,
-                        "status": user.status,
-                        "created_at": user.created_at.isoformat(),
-                        "last_login": user.last_login.isoformat()
-                        if user.last_login
-                        else None,
+            return (
+                jsonify(
+                    {
+                        "user": {
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email,
+                            "role": user.role.name,
+                            "status": user.status,
+                            "created_at": user.created_at.isoformat(),
+                            "last_login": (
+                                user.last_login.isoformat() if user.last_login else None
+                            ),
+                        }
                     }
-                }
-            ), 200
+                ),
+                200,
+            )
 
         finally:
             session.close()
@@ -166,9 +174,14 @@ def update_user(user_id):
             if "status" in data:
                 status = data["status"].lower()
                 if status not in ("active", "inactive", "suspended"):
-                    return jsonify(
-                        {"error": "Invalid status. Must be active, inactive, or suspended"}
-                    ), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid status. Must be active, inactive, or suspended"
+                            }
+                        ),
+                        400,
+                    )
                 user.status = status
 
             # Update role if provided
@@ -182,17 +195,20 @@ def update_user(user_id):
             session.commit()
             logger.info(f"User updated by admin: {user.username}")
 
-            return jsonify(
-                {
-                    "success": True,
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "status": user.status,
-                        "role": user.role.name,
-                    },
-                }
-            ), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "user": {
+                            "id": user.id,
+                            "username": user.username,
+                            "status": user.status,
+                            "role": user.role.name,
+                        },
+                    }
+                ),
+                200,
+            )
 
         finally:
             session.close()
@@ -234,9 +250,7 @@ def delete_user(user_id):
             session.commit()
             logger.info(f"User deleted by admin: {username}")
 
-            return jsonify(
-                {"success": True, "message": "User deleted"}
-            ), 200
+            return jsonify({"success": True, "message": "User deleted"}), 200
 
         finally:
             session.close()
@@ -285,9 +299,10 @@ def reset_user_password(user_id):
                 return jsonify({"error": error}), 400
 
             logger.info(f"Password reset by admin for user: {user.username}")
-            return jsonify(
-                {"success": True, "message": "Password reset successfully"}
-            ), 200
+            return (
+                jsonify({"success": True, "message": "Password reset successfully"}),
+                200,
+            )
 
         finally:
             session.close()

@@ -42,9 +42,9 @@ def register():
     """
     try:
         # Check if registration is allowed
-        from config.settings import ALLOW_REGISTRATION
+        from config.settings import Config
 
-        if not ALLOW_REGISTRATION:
+        if not Config.ALLOW_REGISTRATION:
             return jsonify({"error": "Registration is disabled"}), 403
 
         data = request.get_json()
@@ -141,18 +141,21 @@ def login():
             access_token = AuthService.create_access_token(user)
 
             logger.info(f"User logged in: {username}")
-            return jsonify(
-                {
-                    "success": True,
-                    "access_token": access_token,
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "email": user.email,
-                        "role": user.role.name,
-                    },
-                }
-            ), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "access_token": access_token,
+                        "user": {
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email,
+                            "role": user.role.name,
+                        },
+                    }
+                ),
+                200,
+            )
 
         finally:
             session.close()
@@ -181,9 +184,7 @@ def refresh_token():
         # Create new access token
         access_token = AuthService.create_access_token(user)
 
-        return jsonify(
-            {"success": True, "access_token": access_token}
-        ), 200
+        return jsonify({"success": True, "access_token": access_token}), 200
 
     except Exception as e:
         logger.error(f"Token refresh error: {e}")
@@ -221,25 +222,30 @@ def list_api_keys():
         try:
             api_keys = AuthService.get_user_api_keys(session, user)
 
-            return jsonify(
-                {
-                    "api_keys": [
-                        {
-                            "id": key.id,
-                            "name": key.name,
-                            "created_at": key.created_at.isoformat(),
-                            "expires_at": key.expires_at.isoformat()
-                            if key.expires_at
-                            else None,
-                            "last_used": key.last_used.isoformat()
-                            if key.last_used
-                            else None,
-                            "is_revoked": key.is_revoked,
-                        }
-                        for key in api_keys
-                    ]
-                }
-            ), 200
+            return (
+                jsonify(
+                    {
+                        "api_keys": [
+                            {
+                                "id": key.id,
+                                "name": key.name,
+                                "created_at": key.created_at.isoformat(),
+                                "expires_at": (
+                                    key.expires_at.isoformat()
+                                    if key.expires_at
+                                    else None
+                                ),
+                                "last_used": (
+                                    key.last_used.isoformat() if key.last_used else None
+                                ),
+                                "is_revoked": key.is_revoked,
+                            }
+                            for key in api_keys
+                        ]
+                    }
+                ),
+                200,
+            )
 
         finally:
             session.close()
@@ -288,7 +294,9 @@ def create_api_key():
         if not name:
             return jsonify({"error": "API key name required"}), 400
 
-        if expires_in_days and (not isinstance(expires_in_days, int) or expires_in_days < 1):
+        if expires_in_days and (
+            not isinstance(expires_in_days, int) or expires_in_days < 1
+        ):
             return jsonify({"error": "expires_in_days must be a positive integer"}), 400
 
         # Get database session
@@ -313,9 +321,11 @@ def create_api_key():
                             "id": api_key_record.id,
                             "name": api_key_record.name,
                             "created_at": api_key_record.created_at.isoformat(),
-                            "expires_at": api_key_record.expires_at.isoformat()
-                            if api_key_record.expires_at
-                            else None,
+                            "expires_at": (
+                                api_key_record.expires_at.isoformat()
+                                if api_key_record.expires_at
+                                else None
+                            ),
                         },
                         "warning": "Save the API key now. It will not be displayed again.",
                     }
@@ -358,9 +368,7 @@ def revoke_api_key(key_id):
                 return jsonify({"error": "API key not found"}), 404
 
             logger.info(f"API key revoked by user {user.username}: {key_id}")
-            return jsonify(
-                {"success": True, "message": "API key revoked"}
-            ), 200
+            return jsonify({"success": True, "message": "API key revoked"}), 200
 
         finally:
             session.close()

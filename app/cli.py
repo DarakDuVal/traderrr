@@ -47,7 +47,9 @@ def setup_admin():
 
         # Get database session
         try:
-            db_manager = DatabaseManager(Config.DATABASE_URL or "sqlite:///data/market_data.db")
+            db_manager = DatabaseManager(
+                Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            )
             session = db_manager.get_session()
         except Exception as e:
             click.echo(f"Error: Could not connect to database: {e}", err=True)
@@ -138,7 +140,9 @@ def init_db():
 
         click.echo("Initializing database...")
 
-        db_manager = DatabaseManager(Config.DATABASE_URL or "sqlite:///data/market_data.db")
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
         session = db_manager.get_session()
 
         try:
@@ -181,7 +185,9 @@ def delete_user(username: str):
 
         click.echo(f"Deleting user: {username}")
 
-        db_manager = DatabaseManager(Config.DATABASE_URL or "sqlite:///data/market_data.db")
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
         session = db_manager.get_session()
 
         try:
@@ -214,7 +220,9 @@ def list_users():
         from app.models import User
         from config.settings import Config
 
-        db_manager = DatabaseManager(Config.DATABASE_URL or "sqlite:///data/market_data.db")
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
         session = db_manager.get_session()
 
         try:

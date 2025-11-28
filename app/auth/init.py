@@ -28,9 +28,7 @@ def check_admin_exists(session) -> bool:
     try:
         from app.models import User, RoleEnum
 
-        admin_user = (
-            session.query(User).join(User.role).filter_by(name="admin").first()
-        )
+        admin_user = session.query(User).join(User.role).filter_by(name="admin").first()
         return admin_user is not None
     except Exception as e:
         logger.warning(f"Error checking for admin user: {e}")
@@ -65,7 +63,11 @@ def create_admin_from_env(session) -> Optional[str]:
         logger.info(f"Creating admin user from environment variables: {username}")
 
         success, user, error = AuthService.register_user(
-            session, username, f"{username}@admin.local", password, role_name=RoleEnum.ADMIN
+            session,
+            username,
+            f"{username}@admin.local",
+            password,
+            role_name=RoleEnum.ADMIN,
         )
 
         if success:

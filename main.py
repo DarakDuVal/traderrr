@@ -128,20 +128,39 @@ def initialize_data():
         pm = PortfolioManager(db_path=Config.DATABASE_PATH())
 
         # Get initial data for a subset of tickers (faster startup)
-        all_tickers = pm.get_tickers()
+        try:
+            all_tickers = pm.get_tickers()
+        except Exception as e:
+            logger.warning(f"Could not get tickers from database: {e}")
+            all_tickers = None
+
+        # Try to fallback to config if database has no tickers
         if not all_tickers:
-            all_tickers = Config.PORTFOLIO_TICKERS()[:5]  # Fallback to config
+            try:
+                all_tickers = Config.PORTFOLIO_TICKERS()[:5]
+            except (KeyError, Exception) as e:
+                logger.warning(f"No tickers available in config or database: {e}")
+                all_tickers = []
+
+        if not all_tickers:
+            logger.info("Skipping data initialization - no tickers configured. Add tickers via database or API.")
+            dm.close()
+            return
+
         initial_tickers = all_tickers[:5]
         logger.info(f"Loading initial data for {len(initial_tickers)} tickers")
 
-        portfolio_data = dm.get_multiple_stocks(initial_tickers, period="3mo")
+        try:
+            portfolio_data = dm.get_multiple_stocks(initial_tickers, period="3mo")
 
-        if portfolio_data:
-            # Generate initial signals
-            signals = sg.generate_portfolio_signals(portfolio_data)
-            logger.info(f"Generated {len(signals)} initial signals")
-        else:
-            logger.warning("No initial portfolio data loaded")
+            if portfolio_data:
+                # Generate initial signals
+                signals = sg.generate_portfolio_signals(portfolio_data)
+                logger.info(f"Generated {len(signals)} initial signals")
+            else:
+                logger.warning("No initial portfolio data loaded")
+        except Exception as e:
+            logger.warning(f"Could not load portfolio data: {e}")
 
         dm.close()
         logger.info("System data initialization completed")

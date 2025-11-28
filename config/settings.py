@@ -251,7 +251,9 @@ class Config(ConfigLegacy):
         "JWT_SECRET_KEY",
         "your-secret-key-change-in-production-12345",
     )
-    JWT_ACCESS_TOKEN_EXPIRES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400))  # 24 hours
+    JWT_ACCESS_TOKEN_EXPIRES: int = int(
+        os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400)
+    )  # 24 hours
     ALLOW_REGISTRATION: bool = os.getenv("ALLOW_REGISTRATION", "true").lower() == "true"
     ADMIN_USERNAME: str | None = os.getenv("ADMIN_USERNAME")
     ADMIN_PASSWORD: str | None = os.getenv("ADMIN_PASSWORD")

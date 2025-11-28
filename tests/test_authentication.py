@@ -20,7 +20,11 @@ from sqlalchemy.orm import Session
 
 from app import create_app
 from app.auth.service import AuthService
-from app.auth.security import PasswordSecurity, APIKeySecurity, validate_password_strength
+from app.auth.security import (
+    PasswordSecurity,
+    APIKeySecurity,
+    validate_password_strength,
+)
 from app.db import DatabaseManager
 from app.models import User, Role, APIKey, RoleEnum, Base
 
@@ -280,7 +284,10 @@ class TestJWTTokens:
         """Create database with test user"""
         with app.app_context():
             from app.models import Base
-            from app.db import get_db_manager
+            from app.db import init_db_manager, get_db_manager
+
+            # Initialize database manager before use
+            init_db_manager("sqlite:///:memory:")
 
             db_manager = get_db_manager()
             Base.metadata.create_all(db_manager.engine)
@@ -376,9 +383,7 @@ class TestAPIKeyManagement:
         """Test API key verification"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
 
-        plaintext_key, _ = AuthService.create_api_key(
-            db_with_user, user, "Test Key"
-        )
+        plaintext_key, _ = AuthService.create_api_key(db_with_user, user, "Test Key")
 
         # Verify the key
         verified_user = AuthService.verify_api_key(db_with_user, plaintext_key)
@@ -441,13 +446,25 @@ class TestRoleBasedAccess:
 
         # Create users
         AuthService.register_user(
-            session, "admin_user", "admin@example.com", "AdminPass123", role_name=RoleEnum.ADMIN
+            session,
+            "admin_user",
+            "admin@example.com",
+            "AdminPass123",
+            role_name=RoleEnum.ADMIN,
         )
         AuthService.register_user(
-            session, "regular_user", "user@example.com", "UserPass123", role_name=RoleEnum.USER
+            session,
+            "regular_user",
+            "user@example.com",
+            "UserPass123",
+            role_name=RoleEnum.USER,
         )
         AuthService.register_user(
-            session, "analyst_user", "analyst@example.com", "AnalystPass123", role_name=RoleEnum.ANALYST
+            session,
+            "analyst_user",
+            "analyst@example.com",
+            "AnalystPass123",
+            role_name=RoleEnum.ANALYST,
         )
 
         yield session
@@ -482,10 +499,21 @@ class TestAuthenticationAPI:
 
         with test_app.app_context():
             from app.models import Base
-            from app.db import get_db_manager
+            from app.db import init_db_manager, get_db_manager
+            from app.auth.init import ensure_roles_exist
+
+            # Initialize database manager before use
+            init_db_manager("sqlite:///:memory:")
 
             db_manager = get_db_manager()
             Base.metadata.create_all(db_manager.engine)
+
+            # Initialize default roles
+            session = db_manager.get_session()
+            try:
+                ensure_roles_exist(session)
+            finally:
+                session.close()
 
             yield test_app
 
@@ -592,10 +620,18 @@ class TestDataIsolation:
 
         # Create two users
         success1, user1, _ = AuthService.register_user(
-            session, "user1", "user1@example.com", "ValidPass123", role_name=RoleEnum.USER
+            session,
+            "user1",
+            "user1@example.com",
+            "ValidPass123",
+            role_name=RoleEnum.USER,
         )
         success2, user2, _ = AuthService.register_user(
-            session, "user2", "user2@example.com", "ValidPass123", role_name=RoleEnum.USER
+            session,
+            "user2",
+            "user2@example.com",
+            "ValidPass123",
+            role_name=RoleEnum.USER,
         )
 
         if not (success1 and user1 and success2 and user2):
@@ -618,9 +654,7 @@ class TestDataIsolation:
 
         user1 = db_with_positions.query(User).filter_by(username="user1").first()
         user1_positions = (
-            db_with_positions.query(PortfolioPosition)
-            .filter_by(user_id=user1.id)
-            .all()
+            db_with_positions.query(PortfolioPosition).filter_by(user_id=user1.id).all()
         )
 
         assert len(user1_positions) == 1
@@ -634,14 +668,10 @@ class TestDataIsolation:
         user2 = db_with_positions.query(User).filter_by(username="user2").first()
 
         user1_positions = (
-            db_with_positions.query(PortfolioPosition)
-            .filter_by(user_id=user1.id)
-            .all()
+            db_with_positions.query(PortfolioPosition).filter_by(user_id=user1.id).all()
         )
         user2_positions = (
-            db_with_positions.query(PortfolioPosition)
-            .filter_by(user_id=user2.id)
-            .all()
+            db_with_positions.query(PortfolioPosition).filter_by(user_id=user2.id).all()
         )
 
         assert len(user1_positions) == 1
