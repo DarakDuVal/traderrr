@@ -34,16 +34,60 @@ class BaseTestCase(unittest.TestCase):
         self.test_db_memory = sqlite3.connect(":memory:")
         self.test_db_path = self.test_db.name
 
-        # Initialize database schema in both memory and file
-        self._init_test_database(self.test_db_memory)
-        # Create and properly close file-based connection
-        file_db_conn = sqlite3.connect(self.test_db.name)
-        self._init_test_database(file_db_conn)
-        file_db_conn.close()
-
         # Set test environment
         os.environ["FLASK_ENV"] = "testing"
         os.environ["DATABASE_PATH"] = self.test_db.name
+
+        # Initialize database manager for SQLAlchemy ORM
+        # NOTE: We now use SQLAlchemy ORM to create ALL tables
+        # The old _init_test_database is kept for backwards compatibility but not used
+        from app.db import init_db_manager, get_db_manager
+        from app.models import Base, Role, User, APIKey, RoleEnum
+        from app.auth import AuthService
+
+        db_url = f"sqlite:///{self.test_db.name}"
+        init_db_manager(db_url)
+        db_manager = get_db_manager()
+        Base.metadata.create_all(db_manager.engine)
+
+        # Create default roles
+        session = db_manager.get_session()
+        try:
+            # Check if roles exist
+            existing_roles = session.query(Role).all()
+            if not existing_roles:
+                for role_name in [RoleEnum.ADMIN, RoleEnum.USER, RoleEnum.ANALYST]:
+                    role = Role(name=role_name, description=f"{role_name} role")
+                    session.add(role)
+                session.commit()
+
+            # Create test user
+            test_user = session.query(User).filter_by(username="testuser").first()
+            if not test_user:
+                AuthService.register_user(
+                    session, "testuser", "test@example.com", "TestPass123"
+                )
+                test_user = session.query(User).filter_by(username="testuser").first()
+
+            # Create test API key
+            if test_user:
+                # Hash the test API key the same way the system would
+                from app.auth.security import APIKeySecurity
+                hashed_key = APIKeySecurity.hash_api_key(self.TEST_API_KEY)
+
+                # Check if API key already exists
+                existing_key = session.query(APIKey).filter_by(user_id=test_user.id).first()
+                if not existing_key:
+                    api_key = APIKey(
+                        user_id=test_user.id,
+                        key_hash=hashed_key,
+                        name="test-key",
+                        is_revoked=False,
+                    )
+                    session.add(api_key)
+                    session.commit()
+        finally:
+            session.close()
 
     def get_auth_headers(self, api_key=None):
         """Get headers with Bearer token authentication
@@ -60,6 +104,13 @@ class BaseTestCase(unittest.TestCase):
 
     def tearDown(self):
         """Clean up test fixtures"""
+        # Reset database manager global state
+        try:
+            import app.db as db_module
+            db_module._db_manager_instance = None
+        except Exception:
+            pass
+
         # Close in-memory database connection
         if hasattr(self, "test_db_memory") and self.test_db_memory:
             try:
