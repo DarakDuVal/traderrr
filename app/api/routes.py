@@ -13,7 +13,7 @@ from app.core.data_manager import DataManager
 from app.core.signal_generator import SignalGenerator
 from app.core.portfolio_analyzer import PortfolioAnalyzer
 from app.core.portfolio_manager import PortfolioManager
-from app.api.auth import require_api_key
+from app.auth.decorators import require_authentication, require_api_key
 from config.settings import Config
 
 api_bp = Blueprint("api", __name__)
@@ -821,7 +821,7 @@ def get_portfolio() -> Tuple[Response, int]:
 
 
 @api_bp.route("/portfolio/positions", methods=["GET"])
-@require_api_key
+@require_authentication
 def get_portfolio_positions_api() -> Tuple[Response, int]:
     """
     Get all portfolio positions with current values
@@ -839,7 +839,43 @@ def get_portfolio_positions_api() -> Tuple[Response, int]:
         description: Server error
     """
     try:
-        positions = portfolio_manager.get_all_positions()
+        from app.db import get_db_manager
+        from app.models import PortfolioPosition
+
+        # Get current user from request context (set by @require_authentication)
+        current_user = request.user
+
+        # Get positions from database for current user
+        db_manager = get_db_manager()
+        session = db_manager.get_session()
+
+        try:
+            db_positions = (
+                session.query(PortfolioPosition)
+                .filter_by(user_id=current_user.id)
+                .all()
+            )
+
+            if not db_positions:
+                return (
+                    jsonify(
+                        {
+                            "positions": [],
+                            "total_value": 0,
+                            "updated_at": datetime.now().isoformat(),
+                        }
+                    ),
+                    200,
+                )
+
+            # Convert to dict format {ticker: shares}
+            positions = {pos.ticker: pos.shares for pos in db_positions}
+        finally:
+            session.close()
+
+        # Fall back to config if no positions in database
+        if not positions:
+            positions = portfolio_manager.get_all_positions()
 
         if not positions:
             return (
@@ -898,7 +934,7 @@ def get_portfolio_positions_api() -> Tuple[Response, int]:
 
 
 @api_bp.route("/portfolio/positions", methods=["POST"])
-@require_api_key
+@require_authentication
 def add_portfolio_position() -> Tuple[Response, int]:
     """
     Add or update a portfolio position
@@ -934,6 +970,9 @@ def add_portfolio_position() -> Tuple[Response, int]:
         description: Server error
     """
     try:
+        from app.db import get_db_manager
+        from app.models import PortfolioPosition
+
         data = request.get_json() or {}
         ticker = data.get("ticker")
         shares = data.get("shares")
@@ -941,6 +980,46 @@ def add_portfolio_position() -> Tuple[Response, int]:
         if not ticker or shares is None:
             return jsonify({"error": "Missing ticker or shares"}), 400
 
+        # Get current user from request context
+        current_user = request.user
+
+        # Add/update position in database for current user
+        db_manager = get_db_manager()
+        session = db_manager.get_session()
+
+        try:
+            # Check if position exists
+            existing_position = (
+                session.query(PortfolioPosition)
+                .filter_by(user_id=current_user.id, ticker=ticker)
+                .first()
+            )
+
+            if existing_position:
+                existing_position.shares = shares
+                session.commit()
+            else:
+                new_position = PortfolioPosition(
+                    user_id=current_user.id, ticker=ticker, shares=shares
+                )
+                session.add(new_position)
+                session.commit()
+
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": "Position added/updated",
+                        "position": {"ticker": ticker, "shares": shares},
+                    }
+                ),
+                201,
+            )
+
+        finally:
+            session.close()
+
+        # Original validation logic as fallback
         success, issues = portfolio_manager.add_or_update_position(ticker, shares)
 
         if not success:
@@ -982,7 +1061,7 @@ def add_portfolio_position() -> Tuple[Response, int]:
 
 
 @api_bp.route("/portfolio/positions/<ticker>", methods=["PUT"])
-@require_api_key
+@require_authentication
 def update_portfolio_position(ticker: str) -> Tuple[Response, int]:
     """
     Update shares for a specific position
@@ -1018,46 +1097,67 @@ def update_portfolio_position(ticker: str) -> Tuple[Response, int]:
         description: Server error
     """
     try:
+        from app.db import get_db_manager
+        from app.models import PortfolioPosition
+
         data = request.get_json() or {}
         shares = data.get("shares")
 
         if shares is None:
             return jsonify({"error": "Missing shares"}), 400
 
-        success, issues = portfolio_manager.add_or_update_position(ticker, shares)
+        # Get current user from request context
+        current_user = request.user
 
-        if not success:
-            return jsonify({"error": "Validation failed", "issues": issues}), 400
+        # Update position in database for current user
+        db_manager = get_db_manager()
+        session = db_manager.get_session()
 
         try:
-            portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
-            current_price = (
-                portfolio_data[ticker.upper()]["Close"].iloc[-1]
-                if ticker.upper() in portfolio_data
-                and not portfolio_data[ticker.upper()].empty
-                else 0
+            position = (
+                session.query(PortfolioPosition)
+                .filter_by(user_id=current_user.id, ticker=ticker)
+                .first()
             )
-        except Exception as e:
-            logger.warning(f"Could not fetch price for {ticker}: {e}")
-            current_price = 0
 
-        position_value = float(shares) * current_price
+            if not position:
+                return jsonify({"error": "Position not found"}), 404
 
-        return (
-            jsonify(
-                {
-                    "message": f"Position {ticker.upper()} updated successfully",
-                    "position": {
-                        "ticker": ticker.upper(),
-                        "shares": float(shares),
-                        "current_price": current_price,
-                        "position_value": position_value,
-                    },
-                    "updated_at": datetime.now().isoformat(),
-                }
-            ),
-            200,
-        )
+            position.shares = shares
+            session.commit()
+
+            try:
+                portfolio_data = dm.get_multiple_stocks([ticker.upper()], period="1d")
+                current_price = (
+                    portfolio_data[ticker.upper()]["Close"].iloc[-1]
+                    if ticker.upper() in portfolio_data
+                    and not portfolio_data[ticker.upper()].empty
+                    else 0
+                )
+            except Exception as e:
+                logger.warning(f"Could not fetch price for {ticker}: {e}")
+                current_price = 0
+
+            position_value = float(shares) * current_price
+
+            return (
+                jsonify(
+                    {
+                        "message": f"Position {ticker.upper()} updated successfully",
+                        "position": {
+                            "ticker": ticker.upper(),
+                            "shares": float(shares),
+                            "current_price": current_price,
+                            "position_value": position_value,
+                        },
+                        "updated_at": datetime.now().isoformat(),
+                    }
+                ),
+                200,
+            )
+
+        finally:
+            session.close()
 
     except Exception as e:
         logger.error(f"Update position API error: {e}")
@@ -1065,7 +1165,7 @@ def update_portfolio_position(ticker: str) -> Tuple[Response, int]:
 
 
 @api_bp.route("/portfolio/positions/<ticker>", methods=["DELETE"])
-@require_api_key
+@require_authentication
 def delete_portfolio_position(ticker: str) -> Tuple[Response, int]:
     """
     Remove a position from the portfolio
@@ -1090,23 +1190,41 @@ def delete_portfolio_position(ticker: str) -> Tuple[Response, int]:
         description: Server error
     """
     try:
-        success, issues = portfolio_manager.remove_position(ticker)
+        from app.db import get_db_manager
+        from app.models import PortfolioPosition
 
-        if not success:
-            return (
-                jsonify({"error": "Could not remove position", "issues": issues}),
-                400,
+        # Get current user from request context
+        current_user = request.user
+
+        # Delete position from database for current user
+        db_manager = get_db_manager()
+        session = db_manager.get_session()
+
+        try:
+            position = (
+                session.query(PortfolioPosition)
+                .filter_by(user_id=current_user.id, ticker=ticker)
+                .first()
             )
 
-        return (
-            jsonify(
-                {
-                    "message": f"Position {ticker.upper()} removed successfully",
-                    "updated_at": datetime.now().isoformat(),
-                }
-            ),
-            200,
-        )
+            if not position:
+                return jsonify({"error": "Position not found"}), 404
+
+            session.delete(position)
+            session.commit()
+
+            return (
+                jsonify(
+                    {
+                        "message": f"Position {ticker.upper()} removed successfully",
+                        "updated_at": datetime.now().isoformat(),
+                    }
+                ),
+                200,
+            )
+
+        finally:
+            session.close()
 
     except Exception as e:
         logger.error(f"Delete position API error: {e}")

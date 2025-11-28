@@ -16,6 +16,7 @@ class SystemEvent(Base, TimestampMixin):
 
     Logs application events including info, warnings, and errors.
     """
+
     __tablename__ = "system_events"
 
     id: Mapped[int] = mapped_column(primary_key=True)

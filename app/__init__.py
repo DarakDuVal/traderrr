@@ -92,10 +92,14 @@ def create_app(config_name: str = "production") -> Flask:
 
     flasgger = Flasgger(app, config=swagger_config)
 
-    # Register API blueprint with routes
+    # Register API blueprints
     from app.api.routes import api_bp
+    from app.api.auth_routes import auth_bp
+    from app.api.admin_routes import admin_bp
 
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(auth_bp)  # Already has /api/auth prefix
+    app.register_blueprint(admin_bp)  # Already has /api/admin prefix
 
     # Register web blueprints (non-API routes)
     try:

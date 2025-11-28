@@ -246,6 +246,16 @@ class Config(ConfigLegacy):
     # SQL debugging
     SQL_ECHO: bool = os.getenv("SQL_ECHO", "False").lower() == "true"
 
+    # Authentication configuration (Phase 1)
+    JWT_SECRET_KEY: str = os.getenv(
+        "JWT_SECRET_KEY",
+        "your-secret-key-change-in-production-12345",
+    )
+    JWT_ACCESS_TOKEN_EXPIRES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400))  # 24 hours
+    ALLOW_REGISTRATION: bool = os.getenv("ALLOW_REGISTRATION", "true").lower() == "true"
+    ADMIN_USERNAME: str | None = os.getenv("ADMIN_USERNAME")
+    ADMIN_PASSWORD: str | None = os.getenv("ADMIN_PASSWORD")
+
 
 # Environment-specific configurations
 class DevelopmentConfig(Config):

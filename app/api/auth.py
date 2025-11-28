@@ -39,12 +39,14 @@ def init_jwt(app: Flask) -> JWTManager:
     Returns:
         JWTManager: Configured JWT manager instance
     """
-    # Get secret key from environment or use default (change in production!)
-    secret_key = os.getenv(
-        "JWT_SECRET_KEY", "your-secret-key-change-in-production-12345"
-    )
+    from config.settings import Config
+
+    # Get secret key and token expiry from config
+    secret_key = Config.JWT_SECRET_KEY
+    token_expires = Config.JWT_ACCESS_TOKEN_EXPIRES
+
     app.config["JWT_SECRET_KEY"] = secret_key
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=token_expires)
 
     jwt = JWTManager(app)
 

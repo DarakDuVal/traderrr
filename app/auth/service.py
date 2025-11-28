@@ -56,9 +56,11 @@ class AuthService:
             return False, None, error
 
         # Check if user already exists
-        existing_user = session.query(User).filter(
-            (User.username == username) | (User.email == email)
-        ).first()
+        existing_user = (
+            session.query(User)
+            .filter((User.username == username) | (User.email == email))
+            .first()
+        )
         if existing_user:
             return False, None, "Username or email already exists"
 
@@ -219,10 +221,14 @@ class AuthService:
             key_hash = APIKeySecurity.hash_api_key(api_key)
 
             # Find the key record
-            api_key_record = session.query(APIKey).filter_by(
-                key_hash=key_hash,
-                is_revoked=False,
-            ).first()
+            api_key_record = (
+                session.query(APIKey)
+                .filter_by(
+                    key_hash=key_hash,
+                    is_revoked=False,
+                )
+                .first()
+            )
 
             if not api_key_record:
                 return None
@@ -268,10 +274,14 @@ class AuthService:
             True if revoked successfully, False otherwise
         """
         try:
-            api_key = session.query(APIKey).filter_by(
-                id=api_key_id,
-                user_id=user.id,
-            ).first()
+            api_key = (
+                session.query(APIKey)
+                .filter_by(
+                    id=api_key_id,
+                    user_id=user.id,
+                )
+                .first()
+            )
 
             if not api_key:
                 return False

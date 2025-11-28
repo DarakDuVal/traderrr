@@ -20,10 +20,9 @@ class SignalHistory(Base, TimestampMixin):
     Stores all generated trading signals with analysis details.
     Signal types: BUY, SELL, HOLD
     """
+
     __tablename__ = "signal_history"
-    __table_args__ = (
-        Index("idx_signal_history_ticker_date", "ticker", "date"),
-    )
+    __table_args__ = (Index("idx_signal_history_ticker_date", "ticker", "date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -45,10 +44,9 @@ class PortfolioPerformance(Base, TimestampMixin):
     Tracks daily portfolio performance including value, returns,
     volatility, Sharpe ratio, and maximum drawdown.
     """
+
     __tablename__ = "portfolio_performance"
-    __table_args__ = (
-        Index("idx_portfolio_performance_date", "date"),
-    )
+    __table_args__ = (Index("idx_portfolio_performance_date", "date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))

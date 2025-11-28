@@ -26,7 +26,7 @@ class PasswordSecurity:
             Hashed password (safe to store in database)
         """
         salt = bcrypt.gensalt(rounds=PasswordSecurity.WORKFACTOR)
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
     @staticmethod
     def verify_password(password: str, password_hash: str) -> bool:
@@ -40,7 +40,9 @@ class PasswordSecurity:
             True if password matches hash, False otherwise
         """
         try:
-            return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+            return bcrypt.checkpw(
+                password.encode("utf-8"), password_hash.encode("utf-8")
+            )
         except Exception:
             # Bcrypt errors (e.g., invalid hash format)
             return False

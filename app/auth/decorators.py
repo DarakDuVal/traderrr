@@ -96,9 +96,14 @@ def require_role(*allowed_roles: str) -> Callable:
                     f"Access denied for user {user.username}: "
                     f"requires {allowed_roles}, has {user.role.name}"
                 )
-                return jsonify(
-                    {"error": f"Access denied. Required role: {', '.join(allowed_roles)}"}
-                ), 403
+                return (
+                    jsonify(
+                        {
+                            "error": f"Access denied. Required role: {', '.join(allowed_roles)}"
+                        }
+                    ),
+                    403,
+                )
 
             return f(*args, **kwargs)
 

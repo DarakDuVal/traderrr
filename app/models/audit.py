@@ -18,6 +18,7 @@ class SystemAuditLog(Base, TimestampMixin):
     Tracks application events including data changes, API calls,
     and system operations. Can be tied to users or generic system events.
     """
+
     __tablename__ = "system_audit_logs"
     __table_args__ = (
         Index("idx_system_audit_logs_action", "action"),
@@ -26,9 +27,17 @@ class SystemAuditLog(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     action: Mapped[str] = mapped_column(String(50))  # create, update, delete, etc.
-    resource_type: Mapped[str] = mapped_column(String(50))  # user, portfolio, signal, etc.
+    resource_type: Mapped[str] = mapped_column(
+        String(50)
+    )  # user, portfolio, signal, etc.
     resource_id: Mapped[str | None] = mapped_column(String(50), default=None)
-    user_id: Mapped[int | None] = mapped_column(default=None)  # Can be null for system events
-    changes: Mapped[str | None] = mapped_column(Text, default=None)  # JSON with before/after
+    user_id: Mapped[int | None] = mapped_column(
+        default=None
+    )  # Can be null for system events
+    changes: Mapped[str | None] = mapped_column(
+        Text, default=None
+    )  # JSON with before/after
     details: Mapped[str | None] = mapped_column(Text, default=None)
-    status: Mapped[str] = mapped_column(String(20), default="success")  # success, failed, warning
+    status: Mapped[str] = mapped_column(
+        String(20), default="success"
+    )  # success, failed, warning

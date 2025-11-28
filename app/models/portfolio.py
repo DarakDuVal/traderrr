@@ -18,6 +18,7 @@ class PortfolioPosition(Base, TimestampMixin):
     Tracks current held positions in the portfolio including
     ticker symbol and number of shares.
     """
+
     __tablename__ = "portfolio_positions"
 
     id: Mapped[int] = mapped_column(primary_key=True)

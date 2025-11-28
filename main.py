@@ -77,6 +77,40 @@ def initialize_database():
         return False
 
 
+def initialize_authentication():
+    """Initialize authentication system (admin users, roles)"""
+    logger = logging.getLogger(__name__)
+
+    try:
+        from app.db import init_db_manager, get_db_manager
+        from app.auth.init import initialize_admin_on_startup, ensure_roles_exist
+        from config.settings import Config
+
+        # Initialize database manager if not already done
+        db_url = Config.DATABASE_URL or f"sqlite:///{Config.DATABASE_PATH()}"
+        init_db_manager(db_url)
+
+        db_manager = get_db_manager()
+        session = db_manager.get_session()
+
+        try:
+            # Ensure default roles exist
+            ensure_roles_exist(session)
+
+            # Initialize admin user if needed
+            initialize_admin_on_startup(session)
+
+            logger.info("Authentication system initialized successfully")
+            return True
+
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Authentication initialization error: {e}")
+        return False
+
+
 def initialize_data():
     """Initialize system with portfolio data"""
     logger = logging.getLogger(__name__)
@@ -283,6 +317,11 @@ def main():
             logger.error("Database initialization failed, aborting startup")
             return 1
 
+        # Initialize authentication system (admin users, roles)
+        if not initialize_authentication():
+            logger.error("Authentication initialization failed, aborting startup")
+            return 1
+
         # Initialize data (non-blocking)
         threading.Thread(target=initialize_data, daemon=True).start()
 
@@ -373,6 +412,10 @@ def create_wsgi_app():
         # Initialize database
         if not initialize_database():
             raise RuntimeError("Database initialization failed")
+
+        # Initialize authentication system
+        if not initialize_authentication():
+            raise RuntimeError("Authentication initialization failed")
 
         # Get configuration
         config_class = get_config()

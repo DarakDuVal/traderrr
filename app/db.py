@@ -127,20 +127,24 @@ class DatabaseManager:
         if is_sqlite:
             # SQLite configuration
             # Use static pool since SQLite is file-based and single-threaded
-            kwargs.update({
-                "connect_args": {"check_same_thread": False},
-                "poolclass": pool.StaticPool,
-            })
+            kwargs.update(
+                {
+                    "connect_args": {"check_same_thread": False},
+                    "poolclass": pool.StaticPool,
+                }
+            )
             logger.info("SQLite engine configured with StaticPool")
         else:
             # PostgreSQL/MySQL configuration
             # Use QueuePool for better multi-threaded performance
-            kwargs.update({
-                "pool_size": int(os.getenv("DB_POOL_SIZE", "20")),
-                "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "40")),
-                "pool_pre_ping": True,  # Test connection before use
-                "pool_recycle": 3600,   # Recycle connections after 1 hour
-            })
+            kwargs.update(
+                {
+                    "pool_size": int(os.getenv("DB_POOL_SIZE", "20")),
+                    "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "40")),
+                    "pool_pre_ping": True,  # Test connection before use
+                    "pool_recycle": 3600,  # Recycle connections after 1 hour
+                }
+            )
             logger.info(
                 f"Database engine configured with QueuePool "
                 f"(size={kwargs['pool_size']}, overflow={kwargs['max_overflow']})"
@@ -150,6 +154,7 @@ class DatabaseManager:
 
         # Enable foreign key constraints for SQLite
         if is_sqlite:
+
             @event.listens_for(Engine, "connect")
             def set_sqlite_pragma(dbapi_conn, connection_record):
                 """Enable foreign keys in SQLite"""
@@ -167,7 +172,9 @@ class DatabaseManager:
         Creates tables for all models that inherit from Base.
         Safe to call multiple times - only creates missing tables.
         """
-        logger.info(f"Initializing database: {self.database_url.split('@')[0] if '@' in self.database_url else self.database_url.split(':')[0]}")
+        logger.info(
+            f"Initializing database: {self.database_url.split('@')[0] if '@' in self.database_url else self.database_url.split(':')[0]}"
+        )
         Base.metadata.create_all(self.engine)
         logger.info("Database initialization complete")
 
@@ -314,7 +321,9 @@ def get_db_manager() -> DatabaseManager:
         RuntimeError: If database manager not initialized
     """
     if _db_manager is None:
-        raise RuntimeError("Database manager not initialized. Call init_db_manager() first.")
+        raise RuntimeError(
+            "Database manager not initialized. Call init_db_manager() first."
+        )
     return _db_manager
 
 

@@ -21,10 +21,9 @@ class DailyData(Base, TimestampMixin):
     Stores daily open, high, low, close, volume data along with
     dividend and stock split adjustments.
     """
+
     __tablename__ = "daily_data"
-    __table_args__ = (
-        Index("idx_daily_data_ticker_date", "ticker", "date"),
-    )
+    __table_args__ = (Index("idx_daily_data_ticker_date", "ticker", "date"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -44,10 +43,9 @@ class IntradayData(Base, TimestampMixin):
 
     Stores intraday OHLCV data at minute or hour granularity.
     """
+
     __tablename__ = "intraday_data"
-    __table_args__ = (
-        Index("idx_intraday_data_ticker_datetime", "ticker", "datetime"),
-    )
+    __table_args__ = (Index("idx_intraday_data_ticker_datetime", "ticker", "datetime"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -66,6 +64,7 @@ class Metadata(Base, TimestampMixin):
     Stores company information like name, sector, industry,
     market cap, and last update timestamp.
     """
+
     __tablename__ = "metadata"
 
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -38,6 +38,7 @@ schedule>=1.1.0
 # Configuration & Environment
 python-dotenv>=0.21.0
 PyYAML>=6.0
+click>=8.0.0
 
 # System Monitoring
 psutil>=5.9.0

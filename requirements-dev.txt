@@ -27,3 +27,6 @@ black>=23.0.0
 mypy>=1.0.0
 types-requests>=2.28.0
 flake8>=5.0.0
+
+# CLI & Development Tools (from requirements.txt)
+click>=8.0.0
