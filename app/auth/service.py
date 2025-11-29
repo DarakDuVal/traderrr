@@ -148,11 +148,12 @@ class AuthService:
             "role": user.role.name if user.role else RoleEnum.USER,
         }
         expires_delta = timedelta(hours=expires_in_hours)
-        return jwt_create_access_token(
+        token: str = jwt_create_access_token(
             identity=identity,
             additional_claims=additional_claims,
             expires_delta=expires_delta,
         )
+        return token
 
     @staticmethod
     def create_api_key(

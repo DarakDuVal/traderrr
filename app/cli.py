@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 @click.group()
-def cli():
+def cli() -> None:
     """Trading System CLI - Administrative commands"""
     pass
 
 
 @cli.command()
-def setup_admin():
+def setup_admin() -> None:
     """
     Interactive setup for admin user creation
 
@@ -127,7 +127,7 @@ def setup_admin():
 
 
 @cli.command()
-def init_db():
+def init_db() -> None:
     """
     Initialize the database with schema and default data
 
@@ -172,7 +172,7 @@ def init_db():
 @click.confirmation_option(
     prompt="Are you sure you want to delete this user? This cannot be undone."
 )
-def delete_user(username: str):
+def delete_user(username: str) -> None:
     """
     Delete a user from the system
 
@@ -211,7 +211,7 @@ def delete_user(username: str):
 
 
 @cli.command()
-def list_users():
+def list_users() -> None:
     """
     List all users in the system
     """

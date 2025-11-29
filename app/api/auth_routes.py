@@ -5,7 +5,8 @@ Provides user registration, login, and token management endpoints.
 """
 
 import logging
-from flask import Blueprint, request, jsonify
+from typing import Tuple, Any
+from flask import Blueprint, request, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.auth import AuthService, validate_password_strength
@@ -19,7 +20,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 @auth_bp.route("/register", methods=["POST"])
-def register():
+def register() -> Tuple[Response, int]:
     """Register a new user
 
     Request JSON:
@@ -71,6 +72,9 @@ def register():
                 return jsonify({"error": error}), 400
 
             logger.info(f"User registered: {username}")
+            if not user:
+                return jsonify({"error": "User creation failed"}), 500
+
             return (
                 jsonify(
                     {
@@ -95,7 +99,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
-def login():
+def login() -> Tuple[Response, int]:
     """Login with username and password
 
     Request JSON:
@@ -133,7 +137,7 @@ def login():
         try:
             success, user, error = AuthService.login_user(session, username, password)
 
-            if not success:
+            if not success or not user:
                 logger.warning(f"Login failed for user: {username}")
                 return jsonify({"error": error}), 401
 
@@ -167,7 +171,7 @@ def login():
 
 @auth_bp.route("/refresh", methods=["POST"])
 @require_login
-def refresh_token():
+def refresh_token() -> Tuple[Response, int]:
     """Refresh JWT access token
 
     Requires: Valid JWT token in Authorization header
@@ -179,7 +183,7 @@ def refresh_token():
     }
     """
     try:
-        user: User = request.user
+        user: User = request.user  # type: ignore[attr-defined]
 
         # Create new access token
         access_token = AuthService.create_access_token(user)
@@ -193,7 +197,7 @@ def refresh_token():
 
 @auth_bp.route("/api-keys", methods=["GET"])
 @require_login
-def list_api_keys():
+def list_api_keys() -> Tuple[Response, int]:
     """List user's API keys
 
     Requires: Valid JWT token in Authorization header
@@ -213,7 +217,7 @@ def list_api_keys():
     }
     """
     try:
-        user: User = request.user
+        user: User = request.user  # type: ignore[attr-defined]
 
         # Get database session
         db_manager = get_db_manager()
@@ -257,7 +261,7 @@ def list_api_keys():
 
 @auth_bp.route("/api-keys", methods=["POST"])
 @require_login
-def create_api_key():
+def create_api_key() -> Tuple[Response, int]:
     """Create new API key for user
 
     Requires: Valid JWT token in Authorization header
@@ -282,7 +286,7 @@ def create_api_key():
     }
     """
     try:
-        user: User = request.user
+        user: User = request.user  # type: ignore[attr-defined]
 
         data = request.get_json()
         if not data:
@@ -308,7 +312,7 @@ def create_api_key():
                 session, user, name, expires_in_days
             )
 
-            if not plaintext_key:
+            if not plaintext_key or not api_key_record:
                 return jsonify({"error": "Failed to create API key"}), 500
 
             logger.info(f"API key created for user {user.username}: {name}")
@@ -343,7 +347,7 @@ def create_api_key():
 
 @auth_bp.route("/api-keys/<int:key_id>", methods=["DELETE"])
 @require_login
-def revoke_api_key(key_id):
+def revoke_api_key(key_id: int) -> Tuple[Response, int]:
     """Revoke an API key
 
     Requires: Valid JWT token in Authorization header
@@ -355,7 +359,7 @@ def revoke_api_key(key_id):
     }
     """
     try:
-        user: User = request.user
+        user: User = request.user  # type: ignore[attr-defined]
 
         # Get database session
         db_manager = get_db_manager()

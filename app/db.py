@@ -11,6 +11,7 @@ Provides:
 import os
 import logging
 from contextlib import contextmanager
+from typing import Dict, Any, Generator
 from sqlalchemy import create_engine, event, inspect, pool, text
 from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from sqlalchemy.engine import Engine
@@ -120,31 +121,24 @@ class DatabaseManager:
         # Determine if SQLite
         is_sqlite = self.database_url.startswith("sqlite://")
 
-        kwargs = {
+        kwargs: Dict[str, Any] = {
             "echo": os.getenv("SQL_ECHO", "False").lower() == "true",
         }
 
         if is_sqlite:
             # SQLite configuration
             # Use static pool since SQLite is file-based and single-threaded
-            kwargs.update(
-                {
-                    "connect_args": {"check_same_thread": False},
-                    "poolclass": pool.StaticPool,
-                }
-            )
+            connect_args: Dict[str, bool] = {"check_same_thread": False}
+            kwargs["connect_args"] = connect_args
+            kwargs["poolclass"] = pool.StaticPool
             logger.info("SQLite engine configured with StaticPool")
         else:
             # PostgreSQL/MySQL configuration
             # Use QueuePool for better multi-threaded performance
-            kwargs.update(
-                {
-                    "pool_size": int(os.getenv("DB_POOL_SIZE", "20")),
-                    "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "40")),
-                    "pool_pre_ping": True,  # Test connection before use
-                    "pool_recycle": 3600,  # Recycle connections after 1 hour
-                }
-            )
+            kwargs["pool_size"] = int(os.getenv("DB_POOL_SIZE", "20"))
+            kwargs["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW", "40"))
+            kwargs["pool_pre_ping"] = True  # Test connection before use
+            kwargs["pool_recycle"] = 3600  # Recycle connections after 1 hour
             logger.info(
                 f"Database engine configured with QueuePool "
                 f"(size={kwargs['pool_size']}, overflow={kwargs['max_overflow']})"
@@ -156,7 +150,7 @@ class DatabaseManager:
         if is_sqlite:
 
             @event.listens_for(Engine, "connect")
-            def set_sqlite_pragma(dbapi_conn, connection_record):
+            def set_sqlite_pragma(dbapi_conn: Any, connection_record: Any) -> None:
                 """Enable foreign keys in SQLite"""
                 cursor = dbapi_conn.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
@@ -205,7 +199,7 @@ class DatabaseManager:
         return self.SessionLocal()
 
     @contextmanager
-    def session_context(self):
+    def session_context(self) -> Generator[Session, None, None]:
         """Context manager for database sessions
 
         Automatically commits on success, rolls back on error,
@@ -230,7 +224,7 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def get_database_info(self) -> dict:
+    def get_database_info(self) -> Dict[str, Any]:
         """Get database information for diagnostics
 
         Returns:

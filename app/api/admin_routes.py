@@ -6,7 +6,8 @@ Requires admin role for access.
 """
 
 import logging
-from flask import Blueprint, request, jsonify
+from typing import Tuple, Any
+from flask import Blueprint, request, jsonify, Response
 
 from app.auth import AuthService
 from app.auth.decorators import require_login, require_role
@@ -21,7 +22,7 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 @admin_bp.route("/users", methods=["GET"])
 @require_login
 @require_role(RoleEnum.ADMIN)
-def list_users():
+def list_users() -> Tuple[Response, int]:
     """List all users (admin only)
 
     Returns:
@@ -81,7 +82,7 @@ def list_users():
 @admin_bp.route("/users/<int:user_id>", methods=["GET"])
 @require_login
 @require_role(RoleEnum.ADMIN)
-def get_user(user_id):
+def get_user(user_id: int) -> Tuple[Response, int]:
     """Get user details (admin only)
 
     Returns:
@@ -137,7 +138,7 @@ def get_user(user_id):
 @admin_bp.route("/users/<int:user_id>", methods=["PATCH"])
 @require_login
 @require_role(RoleEnum.ADMIN)
-def update_user(user_id):
+def update_user(user_id: int) -> Tuple[Response, int]:
     """Update user (admin only)
 
     Request JSON:
@@ -221,7 +222,7 @@ def update_user(user_id):
 @admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
 @require_login
 @require_role(RoleEnum.ADMIN)
-def delete_user(user_id):
+def delete_user(user_id: int) -> Tuple[Response, int]:
     """Delete user (admin only, cannot delete self)
 
     Returns:
@@ -231,7 +232,7 @@ def delete_user(user_id):
     }
     """
     try:
-        admin_user: User = request.user
+        admin_user: User = request.user  # type: ignore[attr-defined]
 
         # Prevent self-deletion
         if admin_user.id == user_id:
@@ -263,7 +264,7 @@ def delete_user(user_id):
 @admin_bp.route("/users/<int:user_id>/reset-password", methods=["POST"])
 @require_login
 @require_role(RoleEnum.ADMIN)
-def reset_user_password(user_id):
+def reset_user_password(user_id: int) -> Tuple[Response, int]:
     """Reset user password (admin only)
 
     Request JSON:

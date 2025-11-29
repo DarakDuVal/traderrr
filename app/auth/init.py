@@ -11,11 +11,12 @@ import logging
 import os
 from typing import Optional
 from datetime import datetime
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 
-def check_admin_exists(session) -> bool:
+def check_admin_exists(session: Session) -> bool:
     """
     Check if any admin user exists in database
 
@@ -35,7 +36,7 @@ def check_admin_exists(session) -> bool:
         return False
 
 
-def create_admin_from_env(session) -> Optional[str]:
+def create_admin_from_env(session: Session) -> Optional[str]:
     """
     Create admin user from environment variables
 
@@ -82,7 +83,7 @@ def create_admin_from_env(session) -> Optional[str]:
         return None
 
 
-def initialize_admin_on_startup(session) -> None:
+def initialize_admin_on_startup(session: Session) -> None:
     """
     Initialize admin user on application startup
 
@@ -118,7 +119,7 @@ def initialize_admin_on_startup(session) -> None:
         logger.error(f"Error during admin initialization: {e}")
 
 
-def ensure_roles_exist(session) -> None:
+def ensure_roles_exist(session: Session) -> None:
     """
     Ensure default roles exist in database
 

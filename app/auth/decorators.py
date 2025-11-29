@@ -6,7 +6,7 @@ Provides decorators for requiring authentication and role-based access control.
 
 import logging
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any
 from flask import request, jsonify, current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
 from sqlalchemy.orm import Session
@@ -32,7 +32,7 @@ def require_login(f: Callable) -> Callable:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         try:
             verify_jwt_in_request()
             user_id = get_jwt_identity()
@@ -48,7 +48,7 @@ def require_login(f: Callable) -> Callable:
                     return jsonify({"error": "User not found or inactive"}), 401
 
                 # Store user in request context
-                request.user = user
+                request.user = user  # type: ignore[attr-defined]
                 return f(*args, **kwargs)
 
             finally:
@@ -83,12 +83,12 @@ def require_role(*allowed_roles: str) -> Callable:
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args: Any, **kwargs: Any) -> Any:
             # Ensure require_login has already been called
             if not hasattr(request, "user"):
                 return jsonify({"error": "Authentication required"}), 401
 
-            user: User = request.user
+            user: User = request.user  # type: ignore[attr-defined]
 
             # Check if user's role is in allowed roles
             if user.role.name not in allowed_roles:
@@ -127,7 +127,7 @@ def require_api_key(f: Callable) -> Callable:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         from app.auth.service import AuthService
 
         try:
@@ -148,7 +148,7 @@ def require_api_key(f: Callable) -> Callable:
                     return jsonify({"error": "Invalid API key"}), 401
 
                 # Store user in request context
-                request.user = user
+                request.user = user  # type: ignore[attr-defined]
                 return f(*args, **kwargs)
 
             finally:
@@ -176,7 +176,7 @@ def require_authentication(f: Callable) -> Callable:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         from app.auth.service import AuthService
 
         # Try JWT first
@@ -189,7 +189,7 @@ def require_authentication(f: Callable) -> Callable:
             try:
                 user = session.query(User).filter_by(id=user_id).first()
                 if user and user.status == "active":
-                    request.user = user
+                    request.user = user  # type: ignore[attr-defined]
                     return f(*args, **kwargs)
             finally:
                 session.close()
@@ -208,7 +208,7 @@ def require_authentication(f: Callable) -> Callable:
                 try:
                     user = AuthService.verify_api_key(session, api_key)
                     if user:
-                        request.user = user
+                        request.user = user  # type: ignore[attr-defined]
                         return f(*args, **kwargs)
                 finally:
                     session.close()
