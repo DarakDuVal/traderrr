@@ -180,12 +180,20 @@ def check_tools_installed() -> bool:
 
     for tool in tools:
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [sys.executable, "-m", tool, "--version"],
                 capture_output=True,
-                check=True,
+                text=True,
+                timeout=5,
             )
-        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Check for any output (success or version info)
+            if not result.stdout and not result.stderr:
+                missing.append(tool)
+        except (
+            subprocess.CalledProcessError,
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+        ):
             missing.append(tool)
 
     if missing:

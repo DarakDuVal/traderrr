@@ -194,14 +194,15 @@ class TestDataManager(BaseTestCase):
 
         # Verify metadata was stored
         conn = sqlite3.connect(self.test_db.name)
+        conn.row_factory = sqlite3.Row  # Enable column name access
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM metadata WHERE ticker = ?", ("TEST",))
         result = cursor.fetchone()
         conn.close()
 
         self.assertIsNotNone(result)
-        self.assertEqual(result[1], "Test Company Inc.")  # company_name
-        self.assertEqual(result[2], "Technology")  # sector
+        self.assertEqual(result["company_name"], "Test Company Inc.")
+        self.assertEqual(result["sector"], "Technology")
 
     def test_rate_limiting(self):
         """Test rate limiting functionality"""
@@ -367,11 +368,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO signal_history
-                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
                  target_price, stop_loss, regime, reasons)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,
                     signal["ticker"],
                     signal["date"],
                     signal["signal_type"],
@@ -406,11 +408,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO signal_history
-                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
                  target_price, stop_loss, regime, reasons)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,
                     signal["ticker"],
                     signal["date"],
                     signal["signal_type"],
@@ -445,11 +448,12 @@ class TestDataManager(BaseTestCase):
                 cursor.execute(
                     """
                     INSERT INTO signal_history
-                    (ticker, date, signal_type, signal_value, confidence,
+                    (user_id, ticker, date, signal_type, signal_value, confidence,
                      entry_price, target_price, stop_loss, regime, reasons)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        1,  # user_id
                         signal["ticker"],
                         signal["date"],
                         signal["signal_type"],
@@ -488,11 +492,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO portfolio_performance
-                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                (user_id, date, portfolio_value, daily_return, volatility, sharpe_ratio,
                  max_drawdown)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,  # user_id
                     perf["date"],
                     perf["portfolio_value"],
                     perf["daily_return"],
@@ -522,11 +527,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO portfolio_performance
-                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                (user_id, date, portfolio_value, daily_return, volatility, sharpe_ratio,
                  max_drawdown)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,  # user_id
                     perf["date"],
                     perf["portfolio_value"],
                     perf["daily_return"],
@@ -556,11 +562,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO portfolio_performance
-                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                (user_id, date, portfolio_value, daily_return, volatility, sharpe_ratio,
                  max_drawdown)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,  # user_id
                     perf["date"],
                     perf["portfolio_value"],
                     perf["daily_return"],
@@ -591,11 +598,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO portfolio_performance
-                (date, portfolio_value, daily_return, volatility, sharpe_ratio,
+                (user_id, date, portfolio_value, daily_return, volatility, sharpe_ratio,
                  max_drawdown)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,  # user_id
                     perf["date"],
                     perf["portfolio_value"],
                     perf["daily_return"],
@@ -636,14 +644,27 @@ class TestDataManager(BaseTestCase):
         conn = sqlite3.connect(self.test_db.name)
         cursor = conn.cursor()
 
-        # Insert incomplete signal record
+        # Insert incomplete signal record with all required columns
         cursor.execute(
             """
             INSERT INTO signal_history
-            (ticker, date, signal_type, confidence)
-            VALUES (?, ?, ?, ?)
+            (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
+             target_price, stop_loss, regime, reasons)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            ("MALFORMED", datetime.now().date(), "BUY", 0.5),
+            (
+                1,
+                "MALFORMED",
+                datetime.now().date(),
+                "BUY",
+                0.0,
+                0.5,
+                0.0,
+                0.0,
+                0.0,
+                "NORMAL",
+                "test",
+            ),
         )
 
         conn.commit()
@@ -669,11 +690,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO signal_history
-                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
                  target_price, stop_loss, regime, reasons)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,
                     signal["ticker"],
                     signal_date,
                     signal["signal_type"],

@@ -216,7 +216,9 @@ class DataManager:
 
         return data
 
-    def _store_data(self, ticker: str, data: pd.DataFrame, interval: str, user_id: int = 1) -> None:
+    def _store_data(
+        self, ticker: str, data: pd.DataFrame, interval: str, user_id: int = 1
+    ) -> None:
         """Store data in database
 
         Args:
@@ -528,6 +530,7 @@ class DataManager:
 
             columns = [
                 "id",
+                "user_id",
                 "ticker",
                 "date",
                 "signal_type",
