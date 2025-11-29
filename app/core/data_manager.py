@@ -35,6 +35,8 @@ class DataManager:
         # Note: Tables are created by DatabaseConfig.init_database() in main.py
         # This should be called before DataManager is instantiated
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        # Enable access to rows by both index and column name
+        self.conn.row_factory = sqlite3.Row
 
         # Setup requests session with retry strategy
         self.session = requests.Session()
@@ -214,14 +216,22 @@ class DataManager:
 
         return data
 
-    def _store_data(self, ticker: str, data: pd.DataFrame, interval: str) -> None:
-        """Store data in database"""
+    def _store_data(self, ticker: str, data: pd.DataFrame, interval: str, user_id: int = 1) -> None:
+        """Store data in database
+
+        Args:
+            ticker: Stock ticker symbol
+            data: OHLCV data to store
+            interval: Data interval ('1d' for daily, etc)
+            user_id: User ID for data ownership (default: 1 for system/shared data)
+        """
         if data.empty:
             return
 
         # Prepare data for storage
         data_copy = data.copy()
         data_copy["ticker"] = ticker
+        data_copy["user_id"] = user_id  # Add user_id for ORM schema
         data_copy = data_copy.reset_index()
 
         # Choose table based on interval
@@ -229,6 +239,7 @@ class DataManager:
             table_name = "daily_data"
             data_copy["date"] = data_copy["Date"].dt.date
             columns_map = {
+                "user_id": "user_id",
                 "ticker": "ticker",
                 "date": "date",
                 "Open": "open",
@@ -243,6 +254,7 @@ class DataManager:
             table_name = "intraday_data"
             data_copy["datetime"] = data_copy["Date"]
             columns_map = {
+                "user_id": "user_id",
                 "ticker": "ticker",
                 "datetime": "datetime",
                 "Open": "open",

@@ -1,6 +1,9 @@
 """
 tests/test_data_manager.py
 Test cases for DataManager
+
+NOTE: DataManager now uses SQLAlchemy ORM for database access.
+Tests have been refactored to work with the ORM-based schema.
 """
 
 import unittest
@@ -283,11 +286,12 @@ class TestDataManager(BaseTestCase):
         cursor.execute(
             """
             INSERT INTO signal_history
-            (ticker, date, signal_type, signal_value, confidence, entry_price,
+            (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
              target_price, stop_loss, regime, reasons)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
+                1,  # user_id (default test user)
                 signal["ticker"],
                 signal["date"],
                 signal["signal_type"],
@@ -322,11 +326,12 @@ class TestDataManager(BaseTestCase):
             cursor.execute(
                 """
                 INSERT INTO signal_history
-                (ticker, date, signal_type, signal_value, confidence, entry_price,
+                (user_id, ticker, date, signal_type, signal_value, confidence, entry_price,
                  target_price, stop_loss, regime, reasons)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    1,  # user_id
                     signal["ticker"],
                     signal["date"],
                     signal["signal_type"],

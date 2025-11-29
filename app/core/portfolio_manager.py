@@ -9,8 +9,9 @@ from typing import Dict, List, Tuple
 class PortfolioManager:
     """Manages portfolio positions in the database"""
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, user_id: int = 1):
         self.db_path = db_path
+        self.user_id = user_id  # User ID for positions (default: 1 for system/shared)
 
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection"""
@@ -37,14 +38,32 @@ class PortfolioManager:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            # Use INSERT OR REPLACE for upsert behavior (ticker is PRIMARY KEY)
+            # Check if position exists
             cursor.execute(
-                """
-                INSERT OR REPLACE INTO portfolio_positions (ticker, shares, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                """,
-                (ticker, float(shares)),
+                "SELECT id FROM portfolio_positions WHERE ticker = ? AND user_id = ?",
+                (ticker, self.user_id),
             )
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing position
+                cursor.execute(
+                    """
+                    UPDATE portfolio_positions
+                    SET shares = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE ticker = ? AND user_id = ?
+                    """,
+                    (float(shares), ticker, self.user_id),
+                )
+            else:
+                # Insert new position
+                cursor.execute(
+                    """
+                    INSERT INTO portfolio_positions (user_id, ticker, shares, updated_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    """,
+                    (self.user_id, ticker, float(shares)),
+                )
 
             conn.commit()
             conn.close()
@@ -62,7 +81,8 @@ class PortfolioManager:
             cursor = conn.cursor()
 
             cursor.execute(
-                "DELETE FROM portfolio_positions WHERE ticker = ?", (ticker,)
+                "DELETE FROM portfolio_positions WHERE ticker = ? AND user_id = ?",
+                (ticker, self.user_id),
             )
             if cursor.rowcount == 0:
                 conn.close()
@@ -82,7 +102,8 @@ class PortfolioManager:
             cursor = conn.cursor()
 
             cursor.execute(
-                "SELECT ticker, shares FROM portfolio_positions ORDER BY ticker"
+                "SELECT ticker, shares FROM portfolio_positions WHERE user_id = ? ORDER BY ticker",
+                (self.user_id,),
             )
             positions = {row[0]: row[1] for row in cursor.fetchall()}
 
@@ -102,7 +123,8 @@ class PortfolioManager:
             cursor = conn.cursor()
 
             cursor.execute(
-                "SELECT shares FROM portfolio_positions WHERE ticker = ?", (ticker,)
+                "SELECT shares FROM portfolio_positions WHERE ticker = ? AND user_id = ?",
+                (ticker, self.user_id),
             )
             result = cursor.fetchone()
             conn.close()

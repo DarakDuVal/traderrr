@@ -73,10 +73,13 @@ class BaseTestCase(unittest.TestCase):
             if test_user:
                 # Hash the test API key the same way the system would
                 from app.auth.security import APIKeySecurity
+
                 hashed_key = APIKeySecurity.hash_api_key(self.TEST_API_KEY)
 
                 # Check if API key already exists
-                existing_key = session.query(APIKey).filter_by(user_id=test_user.id).first()
+                existing_key = (
+                    session.query(APIKey).filter_by(user_id=test_user.id).first()
+                )
                 if not existing_key:
                     api_key = APIKey(
                         user_id=test_user.id,
@@ -107,6 +110,7 @@ class BaseTestCase(unittest.TestCase):
         # Reset database manager global state
         try:
             import app.db as db_module
+
             db_module._db_manager_instance = None
         except Exception:
             pass
