@@ -677,3 +677,236 @@ class TestDataIsolation:
         assert len(user1_positions) == 1
         assert len(user2_positions) == 1
         assert user1_positions[0].ticker != user2_positions[0].ticker
+
+
+class TestAuthInitialization:
+    """Test auth module initialization functions"""
+
+    def test_ensure_roles_exist(self) -> None:
+        """Test that default roles are created"""
+        from app.auth.init import ensure_roles_exist
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Ensure roles exist
+            ensure_roles_exist(session)
+
+            # Verify roles were created
+            admin_role = session.query(Role).filter_by(name="admin").first()
+            user_role = session.query(Role).filter_by(name="user").first()
+            analyst_role = session.query(Role).filter_by(name="analyst").first()
+
+            assert admin_role is not None
+            assert user_role is not None
+            assert analyst_role is not None
+            assert admin_role.description is not None
+            assert user_role.description is not None
+            assert analyst_role.description is not None
+        finally:
+            session.close()
+
+    def test_ensure_roles_exist_idempotent(self) -> None:
+        """Test that ensure_roles_exist is idempotent"""
+        from app.auth.init import ensure_roles_exist
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Call ensure_roles_exist twice
+            ensure_roles_exist(session)
+            initial_count = session.query(Role).count()
+
+            ensure_roles_exist(session)
+            second_count = session.query(Role).count()
+
+            # Should not create duplicates
+            assert initial_count == second_count
+            assert initial_count >= 3  # At least admin, user, analyst
+        finally:
+            session.close()
+
+    def test_check_admin_exists_true(self) -> None:
+        """Test check_admin_exists returns True when admin exists"""
+        from app.auth.init import check_admin_exists
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Ensure admin role exists
+            admin_role = session.query(Role).filter_by(name="admin").first()
+            if not admin_role:
+                admin_role = Role(name="admin", description="Admin role")
+                session.add(admin_role)
+                session.commit()
+
+            # Create an admin user (delete if exists first to avoid uniqueness constraint)
+            existing = (
+                session.query(User).filter_by(username="auth_init_testadmin").first()
+            )
+            if existing:
+                session.delete(existing)
+                session.commit()
+
+            admin_user = User(
+                username="auth_init_testadmin",
+                email="auth_init_admin@test.com",
+                password_hash=PasswordSecurity.hash_password("TestPass123"),
+                role_id=admin_role.id,
+                status="active",
+            )
+            session.add(admin_user)
+            session.commit()
+
+            # Check admin exists
+            assert check_admin_exists(session) is True
+        finally:
+            session.close()
+
+    def test_check_admin_exists_false(self) -> None:
+        """Test check_admin_exists returns False when no admin exists"""
+        from app.auth.init import check_admin_exists
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Delete all users
+            session.query(User).delete()
+            session.commit()
+
+            # Check admin exists
+            assert check_admin_exists(session) is False
+        finally:
+            session.close()
+
+    def test_create_admin_from_env_missing_vars(self) -> None:
+        """Test create_admin_from_env returns None when env vars not set"""
+        from app.auth.init import create_admin_from_env
+        from app.db import DatabaseManager
+        from config.settings import Config
+        import os
+
+        # Ensure env vars are not set
+        os.environ.pop("ADMIN_USERNAME", None)
+        os.environ.pop("ADMIN_PASSWORD", None)
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            result = create_admin_from_env(session)
+            assert result is None
+        finally:
+            session.close()
+
+    def test_create_admin_from_env_success(self) -> None:
+        """Test successful admin creation from environment variables"""
+        from app.auth.init import create_admin_from_env
+        from app.db import DatabaseManager
+        from config.settings import Config
+        import os
+
+        # Set environment variables
+        os.environ["ADMIN_USERNAME"] = "envadmin"
+        os.environ["ADMIN_PASSWORD"] = "EnvAdminPass123"
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Delete existing user
+            session.query(User).filter_by(username="envadmin").delete()
+            session.commit()
+
+            result = create_admin_from_env(session)
+            assert result is not None
+            assert "created" in result.lower()
+
+            # Verify user was created
+            user = session.query(User).filter_by(username="envadmin").first()
+            assert user is not None
+        finally:
+            session.close()
+            # Clean up env vars
+            os.environ.pop("ADMIN_USERNAME", None)
+            os.environ.pop("ADMIN_PASSWORD", None)
+
+    def test_initialize_admin_on_startup_existing_admin(self) -> None:
+        """Test initialize_admin_on_startup does nothing when admin exists"""
+        from app.auth.init import initialize_admin_on_startup
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Ensure admin exists
+            admin_role = session.query(Role).filter_by(name="admin").first()
+            if not admin_role:
+                admin_role = Role(name="admin", description="Admin")
+                session.add(admin_role)
+                session.commit()
+
+            existing_admin = (
+                session.query(User).filter_by(username="startup_admin").first()
+            )
+            if not existing_admin:
+                existing_admin = User(
+                    username="startup_admin",
+                    email="startup@test.com",
+                    password_hash=PasswordSecurity.hash_password("Pass123"),
+                    role_id=admin_role.id,
+                    status="active",
+                )
+                session.add(existing_admin)
+                session.commit()
+
+            # Should not raise an exception
+            initialize_admin_on_startup(session)
+        finally:
+            session.close()
+
+    def test_initialize_admin_on_startup_no_admin(self) -> None:
+        """Test initialize_admin_on_startup with no admin user"""
+        from app.auth.init import initialize_admin_on_startup
+        from app.db import DatabaseManager
+        from config.settings import Config
+        import os
+
+        # Ensure env vars not set
+        os.environ.pop("ADMIN_USERNAME", None)
+        os.environ.pop("ADMIN_PASSWORD", None)
+
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Delete all users
+            session.query(User).delete()
+            session.commit()
+
+            # Should not raise an exception
+            initialize_admin_on_startup(session)
+        finally:
+            session.close()
