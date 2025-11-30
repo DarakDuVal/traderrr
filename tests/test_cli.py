@@ -484,3 +484,191 @@ class TestCLICommands(BaseTestCase):
             input="workflow_admin\nworkflow@test.com\nWorkflowPass123\nWorkflowPass123\n",
         )
         assert result.exit_code == 0
+
+    def test_setup_admin_database_connection_error(self) -> None:
+        """Test setup_admin when database connection fails"""
+        from unittest.mock import patch
+
+        runner = CliRunner()
+
+        with patch(
+            "app.db.DatabaseManager",
+            side_effect=Exception("Database connection failed"),
+        ):
+            result = runner.invoke(
+                setup_admin, input="admin\nadmin@test.com\nPass123\nPass123\n"
+            )
+            assert result.exit_code == 1
+            assert "Could not connect to database" in result.output
+
+    def test_init_db_database_error(self) -> None:
+        """Test init_db when database error occurs"""
+        from unittest.mock import patch
+
+        runner = CliRunner()
+
+        with patch(
+            "app.db.DatabaseManager",
+            side_effect=Exception("Database engine creation failed"),
+        ):
+            result = runner.invoke(init_db)
+            assert result.exit_code == 1
+            assert "Error" in result.output
+
+    def test_list_users_database_error(self) -> None:
+        """Test list_users when database error occurs"""
+        from unittest.mock import patch
+
+        runner = CliRunner()
+
+        with patch(
+            "app.db.DatabaseManager",
+            side_effect=Exception("Database query failed"),
+        ):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 1
+            assert "Error" in result.output
+
+    def test_delete_user_database_error(self) -> None:
+        """Test delete_user when database error occurs during deletion"""
+        from unittest.mock import patch, MagicMock
+
+        runner = CliRunner()
+
+        # Create a mock that succeeds in getting session but fails on delete
+        mock_manager = MagicMock()
+        mock_session = MagicMock()
+        mock_manager.get_session.return_value = mock_session
+        mock_session.query.return_value.filter_by.return_value.first.return_value = (
+            MagicMock()
+        )
+        mock_session.delete.side_effect = Exception("Database error")
+
+        with patch("app.db.DatabaseManager", return_value=mock_manager):
+            result = runner.invoke(
+                delete_user,
+                input="testuser\ny\n",
+            )
+            assert result.exit_code == 1
+            assert "Error" in result.output
+
+    def test_setup_admin_registration_fails(self) -> None:
+        """Test setup_admin when user registration fails"""
+        import time
+        from unittest.mock import patch
+
+        username = f"regfail_{int(time.time() * 1000)}"
+        runner = CliRunner()
+
+        with patch(
+            "app.auth.service.AuthService.register_user",
+            return_value=(False, None, "Email already registered"),
+        ):
+            with patch(
+                "app.auth.init.check_admin_exists",
+                return_value=False,
+            ):
+                result = runner.invoke(
+                    setup_admin,
+                    input=f"{username}\n{username}@test.com\nTestPass123\nTestPass123\n",
+                )
+                assert result.exit_code == 1
+                assert "Error" in result.output
+
+    def test_setup_admin_username_validation_multiple_attempts(self) -> None:
+        """Test setup_admin username validation with multiple attempts"""
+        import time
+
+        username = f"validuser_{int(time.time() * 1000)}"
+        runner = CliRunner()
+
+        # Try empty username, then short username, then valid username
+        # Use patch to prevent check_admin_exists from blocking the test
+        from unittest.mock import patch
+
+        with patch(
+            "app.auth.init.check_admin_exists",
+            return_value=False,
+        ):
+            result = runner.invoke(
+                setup_admin,
+                input=f"\nab\n{username}\n{username}@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert result.exit_code == 0
+            assert "Username must be at least 3 characters long" in result.output
+
+    def test_setup_admin_email_validation_multiple_attempts(self) -> None:
+        """Test setup_admin email validation with multiple attempts"""
+        import time
+        from unittest.mock import patch
+
+        username = f"emailvalid_{int(time.time() * 1000)}"
+        runner = CliRunner()
+
+        with patch(
+            "app.auth.init.check_admin_exists",
+            return_value=False,
+        ):
+            # Try invalid email, then valid email
+            result = runner.invoke(
+                setup_admin,
+                input=f"{username}\ninvalidemail\n{username}@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert result.exit_code == 0
+            assert "Please enter a valid email address" in result.output
+
+    def test_setup_admin_password_validation_multiple_attempts(self) -> None:
+        """Test setup_admin password validation with multiple attempts"""
+        import time
+        from unittest.mock import patch
+
+        username = f"pwdvalid_{int(time.time() * 1000)}"
+        runner = CliRunner()
+
+        with patch(
+            "app.auth.init.check_admin_exists",
+            return_value=False,
+        ):
+            # Try weak password, then strong password
+            result = runner.invoke(
+                setup_admin,
+                input=f"{username}\n{username}@test.com\nweak\nweak\nTestPass123\nTestPass123\n",
+            )
+            assert result.exit_code == 0
+            assert "Password invalid" in result.output
+
+    def test_delete_user_cascade_delete_with_data(self) -> None:
+        """Test delete_user with user having associated data"""
+        import time
+        from app.db import DatabaseManager
+        from app.models import Role
+        from config.settings import Config
+
+        username = f"delcascade_{int(time.time() * 1000)}"
+        db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        session = db_manager.get_session()
+        try:
+            # Create test user
+            user_role = session.query(Role).filter_by(name="user").first()
+            if user_role:
+                user = User(
+                    username=username,
+                    email=f"{username}@test.com",
+                    password_hash="hashed_password",
+                    role_id=user_role.id,
+                    status="active",
+                )
+                session.add(user)
+                session.commit()
+        finally:
+            session.close()
+
+        runner = CliRunner()
+        result = runner.invoke(
+            delete_user,
+            input=f"{username}\ny\n",
+        )
+        assert result.exit_code == 0
+        assert "deleted successfully" in result.output
