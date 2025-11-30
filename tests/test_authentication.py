@@ -967,3 +967,444 @@ class TestAuthInitialization:
             assert analyst_role is not None
         finally:
             session.close()
+
+
+class TestAuthService:
+    """Test AuthService class methods"""
+
+    def setup_method(self) -> None:
+        """Set up test database and service"""
+        from app.db import DatabaseManager
+        from config.settings import Config
+
+        self.db_manager = DatabaseManager(
+            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+        )
+        self.session = self.db_manager.get_session()
+
+        # Ensure roles exist
+        from app.auth.init import ensure_roles_exist
+
+        ensure_roles_exist(self.session)
+
+    def teardown_method(self) -> None:
+        """Clean up test database"""
+        self.session.close()
+
+    def test_register_user_success(self) -> None:
+        """Test successful user registration"""
+        from app.auth.service import AuthService
+        import time
+
+        username = f"reguser_success_{int(time.time() * 1000)}"
+        success, user, error = AuthService.register_user(
+            self.session,
+            username,
+            f"{username}@example.com",
+            "TestPass123",
+        )
+
+        assert success is True
+        assert user is not None
+        assert user.username == username
+        assert user.email == f"{username}@example.com"
+        assert error is None
+
+    def test_register_user_invalid_username(self) -> None:
+        """Test registration with invalid username"""
+        from app.auth.service import AuthService
+
+        # Too short
+        success, user, error = AuthService.register_user(
+            self.session,
+            "ab",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        assert success is False
+        assert user is None
+        assert "Username must be 3-50 characters" in error
+
+    def test_register_user_invalid_email(self) -> None:
+        """Test registration with invalid email"""
+        from app.auth.service import AuthService
+
+        success, user, error = AuthService.register_user(
+            self.session,
+            "testuser",
+            "invalid",
+            "TestPass123",
+        )
+
+        assert success is False
+        assert user is None
+        assert "Invalid email format" in error
+
+    def test_register_user_weak_password(self) -> None:
+        """Test registration with weak password"""
+        from app.auth.service import AuthService
+
+        success, user, error = AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "weak",
+        )
+
+        assert success is False
+        assert user is None
+        assert error is not None
+
+    def test_register_user_duplicate_username(self) -> None:
+        """Test registration with duplicate username"""
+        from app.auth.service import AuthService
+        import time
+
+        username = f"dupuser_{int(time.time() * 1000)}"
+
+        # First registration
+        AuthService.register_user(
+            self.session,
+            username,
+            "test1@example.com",
+            "TestPass123",
+        )
+
+        # Second registration with same username
+        success, user, error = AuthService.register_user(
+            self.session,
+            username,
+            "test2@example.com",
+            "TestPass123",
+        )
+
+        assert success is False
+        assert user is None
+        assert "already exists" in error
+
+    def test_login_user_success(self) -> None:
+        """Test successful login"""
+        from app.auth.service import AuthService
+        import time
+
+        username = f"loginuser_success_{int(time.time() * 1000)}"
+
+        # Register first
+        AuthService.register_user(
+            self.session,
+            username,
+            f"{username}@example.com",
+            "TestPass123",
+        )
+
+        # Login
+        success, user, error = AuthService.login_user(
+            self.session,
+            username,
+            "TestPass123",
+        )
+
+        assert success is True
+        assert user is not None
+        assert user.username == username
+        assert error is None
+
+    def test_login_user_invalid_password(self) -> None:
+        """Test login with wrong password"""
+        from app.auth.service import AuthService
+
+        # Register first
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        # Login with wrong password
+        success, user, error = AuthService.login_user(
+            self.session,
+            "testuser",
+            "WrongPass123",
+        )
+
+        assert success is False
+        assert user is None
+        assert "Invalid username or password" in error
+
+    def test_login_user_not_found(self) -> None:
+        """Test login with non-existent user"""
+        from app.auth.service import AuthService
+
+        success, user, error = AuthService.login_user(
+            self.session,
+            "nonexistent",
+            "AnyPass123",
+        )
+
+        assert success is False
+        assert user is None
+        assert "Invalid username or password" in error
+
+    def test_create_access_token(self) -> None:
+        """Test JWT token creation"""
+        from app import create_app
+        from app.auth.service import AuthService
+
+        # Register user first
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Create token
+        with create_app().app_context():
+            token = AuthService.create_access_token(user)
+
+            assert isinstance(token, str)
+            assert token.count(".") == 2  # JWT format: header.payload.signature
+
+    def test_create_access_token_custom_expiration(self) -> None:
+        """Test token creation with custom expiration"""
+        from app import create_app
+        from app.auth.service import AuthService
+
+        # Register user first
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Create token with custom expiration
+        with create_app().app_context():
+            token = AuthService.create_access_token(user, expires_in_hours=48)
+
+            assert isinstance(token, str)
+            assert token.count(".") == 2
+
+    def test_create_api_key_success(self) -> None:
+        """Test successful API key creation"""
+        from app.auth.service import AuthService
+
+        # Register user first
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Create API key
+        plaintext_key, api_key = AuthService.create_api_key(
+            self.session,
+            user,
+            "test-key",
+        )
+
+        assert plaintext_key is not None
+        assert api_key is not None
+        assert api_key.name == "test-key"
+        assert api_key.is_revoked is False
+
+    def test_create_api_key_with_expiration(self) -> None:
+        """Test API key creation with expiration"""
+        from app.auth.service import AuthService
+
+        # Register user first
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Create API key with expiration
+        plaintext_key, api_key = AuthService.create_api_key(
+            self.session,
+            user,
+            "test-key",
+            expires_in_days=30,
+        )
+
+        assert plaintext_key is not None
+        assert api_key is not None
+        assert api_key.expires_at is not None
+
+    def test_verify_api_key_valid(self) -> None:
+        """Test API key verification with valid key"""
+        from app.auth.service import AuthService
+
+        # Register user and create API key
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+        plaintext_key, _ = AuthService.create_api_key(
+            self.session,
+            user,
+            "test-key",
+        )
+
+        # Verify the key
+        verified_user = AuthService.verify_api_key(self.session, plaintext_key)
+
+        assert verified_user is not None
+        assert verified_user.id == user.id
+
+    def test_verify_api_key_invalid(self) -> None:
+        """Test API key verification with invalid key"""
+        from app.auth.service import AuthService
+
+        verified_user = AuthService.verify_api_key(self.session, "invalid-key-xyz")
+
+        assert verified_user is None
+
+    def test_revoke_api_key_success(self) -> None:
+        """Test successful API key revocation"""
+        from app.auth.service import AuthService
+
+        # Register user and create API key
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+        _, api_key = AuthService.create_api_key(
+            self.session,
+            user,
+            "test-key",
+        )
+
+        # Revoke the key
+        success = AuthService.revoke_api_key(self.session, api_key.id, user)
+
+        assert success is True
+        # Verify it's revoked
+        revoked_key = self.session.query(APIKey).filter_by(id=api_key.id).first()
+        assert revoked_key.is_revoked is True
+
+    def test_revoke_api_key_not_found(self) -> None:
+        """Test revocation of non-existent API key"""
+        from app.auth.service import AuthService
+
+        # Register user
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Try to revoke non-existent key
+        success = AuthService.revoke_api_key(self.session, 999999, user)
+
+        assert success is False
+
+    def test_get_user_api_keys(self) -> None:
+        """Test listing user API keys"""
+        from app.auth.service import AuthService
+        import time
+
+        # Use unique username to avoid state contamination
+        username = f"keylist_user_{int(time.time() * 1000)}"
+
+        # Register user and create multiple API keys
+        AuthService.register_user(
+            self.session,
+            username,
+            f"{username}@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username=username).first()
+
+        # Create multiple keys for this specific user
+        AuthService.create_api_key(self.session, user, "key1")
+        AuthService.create_api_key(self.session, user, "key2")
+
+        # Get keys for this user only
+        keys = AuthService.get_user_api_keys(self.session, user)
+
+        # Should have at least 2 keys (might have more if other tests contaminated)
+        assert len(keys) >= 2
+        key_names = [k.name for k in keys]
+        assert "key1" in key_names
+        assert "key2" in key_names
+
+    def test_reset_password_success(self) -> None:
+        """Test successful password reset"""
+        from app.auth.service import AuthService
+
+        # Register user
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Reset password
+        success, error = AuthService.reset_password(
+            self.session,
+            user,
+            "NewPass456",
+        )
+
+        assert success is True
+        assert error is None
+
+        # Verify new password works
+        success, _, _ = AuthService.login_user(
+            self.session,
+            "testuser",
+            "NewPass456",
+        )
+        assert success is True
+
+    def test_reset_password_weak(self) -> None:
+        """Test password reset with weak password"""
+        from app.auth.service import AuthService
+
+        # Register user
+        AuthService.register_user(
+            self.session,
+            "testuser",
+            "test@example.com",
+            "TestPass123",
+        )
+
+        user = self.session.query(User).filter_by(username="testuser").first()
+
+        # Try to reset with weak password
+        success, error = AuthService.reset_password(
+            self.session,
+            user,
+            "weak",
+        )
+
+        assert success is False
+        assert error is not None
