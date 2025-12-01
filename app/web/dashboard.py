@@ -23,12 +23,92 @@ DASHBOARD_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #333;
+        }
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 400px;
+        }
+        .login-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+        .login-subtitle {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .login-form input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .login-btn:hover {
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .login-error {
+            display: none;
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #fecaca;
+        }
+        .login-error.show {
+            display: block;
+        }
+        .dashboard-content {
+            display: none !important;
+        }
+        .dashboard-content.show {
+            display: block !important;
         }
         .header {
             background: rgba(255, 255, 255, 0.95);
@@ -580,14 +660,33 @@ DASHBOARD_HTML = """
     </script>
 </head>
 <body>
-    <div class="header">
-        <h1>🚀 Trading Signals Dashboard</h1>
-        <div style="margin-top: 0.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
-            <a href="/" style="color: #3b82f6; text-decoration: none; font-weight: 600;">📊 Signals</a>
-            <a href="/portfolio" style="color: #3b82f6; text-decoration: none; font-weight: 600;">💼 Portfolio</a>
-            <a href="/performance" style="color: #3b82f6; text-decoration: none; font-weight: 600;">📈 Performance</a>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-title">🚀 Trading Dashboard</div>
+            <div class="login-subtitle">Sign in to your account</div>
+            <div id="loginError" class="login-error"></div>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <input type="text" id="username" placeholder="Username" required autocomplete="username">
+                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            </form>
         </div>
     </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboardContent" class="dashboard-content">
+        <div class="header">
+            <h1>🚀 Trading Signals Dashboard</h1>
+            <div style="margin-top: 0.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: space-between;">
+                <div style="display: flex; gap: 1.5rem;">
+                    <a href="/" style="color: #3b82f6; text-decoration: none; font-weight: 600;">📊 Signals</a>
+                    <a href="/portfolio" style="color: #3b82f6; text-decoration: none; font-weight: 600;">💼 Portfolio</a>
+                    <a href="/performance" style="color: #3b82f6; text-decoration: none; font-weight: 600;">📈 Performance</a>
+                </div>
+                <button id="logoutBtn" class="btn btn-primary" onclick="handleLogout()" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Logout</button>
+            </div>
+        </div>
 
     <div class="container">
         <div class="card">
@@ -805,6 +904,199 @@ DASHBOARD_HTML = """
             </div>
         </div>
     </div>
+    </div>
+    <!-- End dashboard-content -->
+
+    <script>
+        // ============================================================
+        // AUTHENTICATION & TOKEN MANAGEMENT
+        // ============================================================
+
+        let jwtToken = localStorage.getItem('jwtToken');
+        const API_KEY = 'test-api-key-67890';
+
+        // Get authorization headers - uses JWT token if available
+        function getAuthHeaders() {
+            return {
+                'Authorization': `Bearer ${jwtToken || API_KEY}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // Show/hide screens
+        function showLoginScreen() {
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardContent = document.getElementById('dashboardContent');
+            if (loginScreen) loginScreen.style.display = 'flex';
+            if (dashboardContent) dashboardContent.classList.remove('show');
+        }
+
+        function showDashboard() {
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardContent = document.getElementById('dashboardContent');
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (dashboardContent) dashboardContent.classList.add('show');
+            // Load dashboard data after showing
+            setTimeout(() => {
+                if (typeof loadPortfolioPositions === 'function') {
+                    loadPortfolioPositions();
+                }
+            }, 100);
+        }
+
+        // Login handler
+        function handleLogin(event) {
+            event.preventDefault();
+
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+
+            if (!usernameInput || !passwordInput) {
+                console.error('Login form elements not found');
+                return;
+            }
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                loginError.textContent = 'Please enter both username and password';
+                loginError.classList.add('show');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in...';
+            loginError.classList.remove('show');
+
+            console.log('Attempting login with username:', username);
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                console.log('Login response status:', response.status);
+                return response.json().then(data => ({
+                    status: response.status,
+                    data: data
+                }));
+            })
+            .then(({ status, data }) => {
+                console.log('Login response:', status, data);
+
+                if (status === 200 && data.access_token) {
+                    console.log('Login successful, token received');
+                    jwtToken = data.access_token;
+                    localStorage.setItem('jwtToken', jwtToken);
+                    console.log('Token saved to localStorage');
+                    // Reload page to reset state and show dashboard
+                    window.location.href = '/';
+                } else {
+                    const errorMsg = data.error || 'Login failed. Please check your credentials.';
+                    console.log('Login failed:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                loginError.textContent = error.message || 'An error occurred during login';
+                loginError.classList.add('show');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            });
+        }
+
+        // Logout handler
+        function handleLogout() {
+            localStorage.removeItem('jwtToken');
+            jwtToken = null;
+            location.reload();
+        }
+
+        // Initialize on page load
+        function initializeAuth() {
+            console.log('=== Initializing Auth ===');
+
+            // Re-check localStorage in case it was updated from login
+            jwtToken = localStorage.getItem('jwtToken');
+            console.log('Token from localStorage:', !!jwtToken);
+
+            // Get DOM elements
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardContent = document.getElementById('dashboardContent');
+            console.log('loginScreen element:', !!loginScreen);
+            console.log('dashboardContent element:', !!dashboardContent);
+
+            if (jwtToken) {
+                console.log('User has token, showing dashboard...');
+
+                // Hide login screen explicitly
+                if (loginScreen) {
+                    loginScreen.style.display = 'none';
+                    console.log('Login screen hidden');
+                }
+
+                // Show dashboard explicitly
+                if (dashboardContent) {
+                    dashboardContent.classList.add('show');
+                    dashboardContent.style.display = 'block';
+                    console.log('Dashboard shown with display:block and .show class');
+                }
+
+                // Load portfolio data after brief delay to ensure DOM is ready
+                setTimeout(() => {
+                    if (typeof loadPortfolioPositions === 'function') {
+                        console.log('Loading portfolio positions...');
+                        loadPortfolioPositions();
+                    } else {
+                        console.warn('loadPortfolioPositions function not found');
+                    }
+                }, 100);
+            } else {
+                console.log('No token, showing login screen...');
+
+                // Hide dashboard explicitly
+                if (dashboardContent) {
+                    dashboardContent.classList.remove('show');
+                    dashboardContent.style.display = 'none';
+                    console.log('Dashboard hidden');
+                }
+
+                // Show login screen explicitly
+                if (loginScreen) {
+                    loginScreen.style.display = 'flex';
+                    console.log('Login screen shown');
+                }
+            }
+
+            // Attach form submit handler if form exists
+            const loginForm = document.querySelector('.login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+                console.log('Login form handler attached');
+            } else {
+                console.warn('Login form not found');
+            }
+
+            console.log('=== Auth Initialization Complete ===');
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeAuth);
+            console.log('Waiting for DOMContentLoaded...');
+        } else {
+            // DOM is already loaded
+            initializeAuth();
+            console.log('DOM already loaded, initializing now');
+        }
+    </script>
 </body>
 </html>
 """
@@ -829,70 +1121,10 @@ def dashboard() -> Union[str, Tuple[str, int]]:
         except Exception as e:
             logger.warning(f"Could not get signals: {e}")
 
-        # Try to get portfolio overview from database
+        # Portfolio data is now loaded client-side with JWT authentication
+        # This ensures each user only sees their own portfolio data
         portfolio_value = 0.0
-        try:
-            from config.settings import Config
-            from app.core.data_manager import DataManager
-            from app.core.portfolio_manager import PortfolioManager
-            from app.core.indicators import TechnicalIndicators
-
-            dm = DataManager(db_path=Config.DATABASE_PATH())
-            pm = PortfolioManager(db_path=Config.DATABASE_PATH())
-            ti = TechnicalIndicators()
-
-            # Get positions from database
-            positions = pm.get_all_positions()
-            tickers = list(positions.keys())[:10]  # Limit for performance
-
-            # Get current prices for all positions
-            current_prices = {}
-            for ticker in tickers:
-                try:
-                    data = dm.get_stock_data(ticker, period="5d")
-                    if not data.empty:
-                        current_price = data["Close"].iloc[-1]
-                        current_prices[ticker] = current_price
-                        daily_change = data["Close"].pct_change().iloc[-1]
-                        volume_ratio = (
-                            data["Volume"].iloc[-1]
-                            / data["Volume"].rolling(5).mean().iloc[-1]
-                        )
-
-                        # Calculate weight from shares and prices
-                        position_value = positions[ticker] * current_price
-                        portfolio_overview[ticker] = {
-                            "price": current_price,
-                            "daily_change": (
-                                daily_change if not pd.isna(daily_change) else 0
-                            ),
-                            "volume_ratio": (
-                                volume_ratio if not pd.isna(volume_ratio) else 1
-                            ),
-                            "weight": 0,  # Will be calculated below
-                        }
-                except Exception as e:
-                    logger.warning(f"Error getting data for {ticker}: {e}")
-                    portfolio_overview[ticker] = {
-                        "price": 0,
-                        "daily_change": 0,
-                        "volume_ratio": 1,
-                        "weight": 0,
-                    }
-
-            # Calculate weights and total value from database
-            weights = pm.get_weights(current_prices)
-            portfolio_value = pm.get_total_value(current_prices)
-
-            # Update weights in overview
-            for ticker in portfolio_overview:
-                portfolio_overview[ticker]["weight"] = weights.get(ticker, 0)
-
-            dm.close()
-
-        except Exception as e:
-            logger.warning(f"Could not get portfolio overview: {e}")
-            portfolio_value = 0.0
+        # Empty values - will be populated by client-side API calls after authentication
 
         # Calculate summary stats
         total_signals = len(signals_data)
