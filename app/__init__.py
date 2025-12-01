@@ -18,6 +18,7 @@ def create_app(config_name: str = "production") -> Flask:
     - Flasgger for OpenAPI 3.0/Swagger
     - JWT authentication
     - API blueprints for routes
+    - Database initialization
     """
     app = Flask(__name__)
 
@@ -33,10 +34,25 @@ def create_app(config_name: str = "production") -> Flask:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
+    # Initialize database manager
+    try:
+        from app.db import init_db_manager
+        from config.settings import Config
+
+        db_url = Config.DATABASE_URL or f"sqlite:///{Config.DATABASE_PATH()}"
+        init_db_manager(db_url)
+    except Exception as e:
+        logging.error(f"Failed to initialize database manager: {e}")
+
     # Initialize JWT authentication
     from app.api.auth import init_jwt
 
     init_jwt(app)
+
+    # Initialize authentication middleware
+    from app.auth.middleware import setup_auth_middleware
+
+    setup_auth_middleware(app)
 
     # Initialize Flasgger for OpenAPI documentation and Swagger UI
     flasgger_config = {

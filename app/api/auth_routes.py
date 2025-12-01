@@ -380,3 +380,27 @@ def revoke_api_key(key_id: int) -> Tuple[Response, int]:
     except Exception as e:
         logger.error(f"Revoke API key error: {e}")
         return jsonify({"error": "Failed to revoke API key"}), 500
+
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout() -> Tuple[Response, int]:
+    """Logout the current user
+
+    Requires: Valid JWT token in Authorization header
+
+    Returns:
+    {
+        "success": true,
+        "message": "Logged out successfully"
+    }
+    """
+    try:
+        # On client side, token should be cleared from localStorage
+        # This endpoint mainly validates that user was authenticated
+        # and provides a clean logout response
+        logger.info("User logged out")
+        return jsonify({"success": True, "message": "Logged out successfully"}), 200
+
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        return jsonify({"error": "Logout failed"}), 500

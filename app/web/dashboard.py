@@ -1030,8 +1030,16 @@ DASHBOARD_HTML = """
             // Get DOM elements
             const loginScreen = document.getElementById('loginScreen');
             const dashboardContent = document.getElementById('dashboardContent');
+            const loginForm = document.getElementById('loginForm');
             console.log('loginScreen element:', !!loginScreen);
             console.log('dashboardContent element:', !!dashboardContent);
+            console.log('loginForm element:', !!loginForm);
+
+            // Attach login form event listener
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+                console.log('Login form event listener attached');
+            }
 
             if (jwtToken) {
                 console.log('User has token, showing dashboard...');
