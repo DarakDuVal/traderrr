@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload Pylint Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pylint-report-py3.13
           path: pylint-report.json
