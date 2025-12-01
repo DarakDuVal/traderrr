@@ -756,8 +756,8 @@ DASHBOARD_HTML = """
 
             <!-- Auth Tabs -->
             <div class="auth-tabs">
-                <button type="button" class="auth-tab active" onclick="switchAuthTab('login'); return false;">Sign In</button>
-                <button type="button" class="auth-tab" onclick="switchAuthTab('register'); return false;">Register</button>
+                <button type="button" class="auth-tab active" id="loginTab">Sign In</button>
+                <button type="button" class="auth-tab" id="registerTab">Register</button>
             </div>
 
             <!-- Login Form -->
@@ -1377,6 +1377,28 @@ DASHBOARD_HTML = """
                     checkPasswordStrength(this.value);
                 });
                 console.log('Password strength checker attached');
+            }
+
+            // Attach tab button event listeners
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+
+            if (loginTab) {
+                loginTab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchAuthTab('login');
+                    console.log('Switched to login tab');
+                });
+                console.log('Login tab listener attached');
+            }
+
+            if (registerTab) {
+                registerTab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    switchAuthTab('register');
+                    console.log('Switched to register tab');
+                });
+                console.log('Register tab listener attached');
             }
 
             console.log('=== Auth Initialization Complete ===');
