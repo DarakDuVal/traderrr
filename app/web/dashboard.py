@@ -1093,18 +1093,49 @@ DASHBOARD_HTML = """
 
         // Tab switching
         function switchAuthTab(tab) {
-            const tabs = document.querySelectorAll('.auth-tab');
-            const forms = document.querySelectorAll('.auth-form-container');
+            console.log('🔄 switchAuthTab called with:', tab);
+            try {
+                const tabs = document.querySelectorAll('.auth-tab');
+                const forms = document.querySelectorAll('.auth-form-container');
 
-            tabs.forEach(t => t.classList.remove('active'));
-            forms.forEach(f => f.classList.remove('show'));
+                console.log(`Found ${tabs.length} tabs and ${forms.length} forms`);
 
-            if (tab === 'login') {
-                tabs[0].classList.add('active');
-                document.getElementById('loginForm').classList.add('show');
-            } else {
-                tabs[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('show');
+                // Remove active class from all tabs and hide all forms
+                tabs.forEach((t, idx) => {
+                    t.classList.remove('active');
+                    console.log(`Removed active from tab ${idx}`);
+                });
+                forms.forEach((f, idx) => {
+                    f.classList.remove('show');
+                    console.log(`Hid form ${idx}`);
+                });
+
+                if (tab === 'login') {
+                    const loginTab = document.getElementById('loginTab');
+                    const loginForm = document.getElementById('loginForm');
+                    if (loginTab) {
+                        loginTab.classList.add('active');
+                        console.log('✓ Added active class to login tab');
+                    }
+                    if (loginForm) {
+                        loginForm.classList.add('show');
+                        console.log('✓ Showed login form');
+                    }
+                } else if (tab === 'register') {
+                    const registerTab = document.getElementById('registerTab');
+                    const registerForm = document.getElementById('registerForm');
+                    if (registerTab) {
+                        registerTab.classList.add('active');
+                        console.log('✓ Added active class to register tab');
+                    }
+                    if (registerForm) {
+                        registerForm.classList.add('show');
+                        console.log('✓ Showed register form');
+                    }
+                }
+                console.log('✓ Tab switch complete');
+            } catch (e) {
+                console.error('❌ Error in switchAuthTab:', e);
             }
         }
 
@@ -1404,14 +1435,50 @@ DASHBOARD_HTML = """
             console.log('=== Auth Initialization Complete ===');
         }
 
-        // Initialize when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeAuth);
-            console.log('Waiting for DOMContentLoaded...');
-        } else {
-            // DOM is already loaded
-            initializeAuth();
-            console.log('DOM already loaded, initializing now');
+        // Initialize when DOM is ready - make it more robust
+        function ensureInitialization() {
+            try {
+                // Try to initialize immediately
+                const loginTab = document.getElementById('loginTab');
+                const registerTab = document.getElementById('registerTab');
+
+                if (loginTab && registerTab) {
+                    // DOM elements exist, initialize now
+                    initializeAuth();
+                    console.log('✓ Auth initialized successfully');
+                    return true;
+                } else {
+                    console.log('⏳ Waiting for DOM elements...');
+                    return false;
+                }
+            } catch (e) {
+                console.error('Error during initialization:', e);
+                return false;
+            }
+        }
+
+        // Try multiple strategies to ensure initialization
+        if (!ensureInitialization()) {
+            // Strategy 1: Wait for DOMContentLoaded
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('DOMContentLoaded event fired');
+                    ensureInitialization();
+                }, { once: true });
+            }
+
+            // Strategy 2: Keep trying every 100ms up to 5 seconds
+            let attempts = 0;
+            const maxAttempts = 50;
+            const retryInterval = setInterval(function() {
+                attempts++;
+                if (ensureInitialization() || attempts >= maxAttempts) {
+                    clearInterval(retryInterval);
+                    if (attempts >= maxAttempts) {
+                        console.error('Failed to initialize auth after 5 seconds');
+                    }
+                }
+            }, 100);
         }
     </script>
 </body>
