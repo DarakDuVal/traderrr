@@ -756,8 +756,8 @@ DASHBOARD_HTML = """
 
             <!-- Auth Tabs -->
             <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
-                <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                <button type="button" class="auth-tab active" onclick="switchAuthTab('login'); return false;">Sign In</button>
+                <button type="button" class="auth-tab" onclick="switchAuthTab('register'); return false;">Register</button>
             </div>
 
             <!-- Login Form -->
