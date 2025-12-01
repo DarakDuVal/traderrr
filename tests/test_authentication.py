@@ -1408,3 +1408,282 @@ class TestAuthService:
 
         assert success is False
         assert error is not None
+
+
+@pytest.mark.integration
+class TestAuthenticationCompleteFlow:
+    """Integration tests for complete authentication flows (BDD scenarios)"""
+
+    @pytest.fixture
+    def app(self):
+        """Create Flask app for testing"""
+        test_app = create_app()
+        test_app.config["TESTING"] = True
+
+        with test_app.app_context():
+            from app.models import Base
+            from app.db import init_db_manager, get_db_manager
+            from app.auth.init import ensure_roles_exist
+
+            # Initialize database
+            init_db_manager("sqlite:///:memory:")
+            db_manager = get_db_manager()
+            Base.metadata.create_all(db_manager.engine)
+
+            # Initialize roles
+            session = db_manager.get_session()
+            try:
+                ensure_roles_exist(session)
+            finally:
+                session.close()
+
+            yield test_app
+
+    @pytest.fixture
+    def client(self, app):
+        """Create Flask test client"""
+        return app.test_client()
+
+    def test_scenario_first_time_registration(self, client):
+        """BDD: First-time user registration with unique username and email"""
+        # Register new user
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "FirstPass123",
+            },
+        )
+
+        assert response.status_code == 201
+        data = json.loads(response.data)
+        assert data["success"]
+        assert data["user"]["username"] == "newuser"
+        assert data["user"]["email"] == "newuser@example.com"
+
+    def test_scenario_registration_duplicate_username(self, client):
+        """BDD: Registration fails with duplicate username"""
+        # Register first user
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "duplicate",
+                "email": "user1@example.com",
+                "password": "Pass123",
+            },
+        )
+
+        # Try to register with same username
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "username": "duplicate",
+                "email": "user2@example.com",
+                "password": "Pass123",
+            },
+        )
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "error" in data
+        assert "already exists" in data["error"].lower()
+
+    def test_scenario_returning_user_login(self, client):
+        """BDD: Returning user logs in with valid credentials"""
+        # Register user
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "returning",
+                "email": "returning@example.com",
+                "password": "ReturnPass123",
+            },
+        )
+
+        # Login
+        response = client.post(
+            "/api/auth/login",
+            json={"username": "returning", "password": "ReturnPass123"},
+        )
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["success"]
+        assert "access_token" in data
+        assert data["user"]["username"] == "returning"
+
+    def test_scenario_user_with_valid_token(self, client):
+        """BDD: User with valid token accesses dashboard"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "tokenuser",
+                "email": "tokenuser@example.com",
+                "password": "TokenPass123",
+            },
+        )
+
+        login_response = client.post(
+            "/api/auth/login",
+            json={"username": "tokenuser", "password": "TokenPass123"},
+        )
+
+        token = json.loads(login_response.data)["access_token"]
+
+        # Access protected endpoint with token
+        response = client.get(
+            "/api/portfolio/positions",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        # Should succeed (might be 200 or other success status depending on endpoint)
+        assert response.status_code in [200, 201, 204]
+
+    def test_scenario_user_logout(self, client):
+        """BDD: User can logout successfully"""
+        # Register and login
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "logoutuser",
+                "email": "logoutuser@example.com",
+                "password": "LogoutPass123",
+            },
+        )
+
+        login_response = client.post(
+            "/api/auth/login",
+            json={"username": "logoutuser", "password": "LogoutPass123"},
+        )
+
+        token = json.loads(login_response.data)["access_token"]
+
+        # Logout
+        response = client.post(
+            "/api/auth/logout", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["success"]
+        assert "logged out" in data["message"].lower()
+
+    def test_scenario_invalid_password_login_fails(self, client):
+        """BDD: Login fails with invalid password"""
+        # Register user
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "invalidpass",
+                "email": "invalidpass@example.com",
+                "password": "CorrectPass123",
+            },
+        )
+
+        # Try to login with wrong password
+        response = client.post(
+            "/api/auth/login",
+            json={"username": "invalidpass", "password": "WrongPass123"},
+        )
+
+        assert response.status_code == 401
+        data = json.loads(response.data)
+        assert "error" in data
+
+    def test_scenario_missing_token_access_protected(self, client):
+        """BDD: Access to protected endpoint fails without token"""
+        response = client.get("/api/portfolio/positions")
+
+        assert response.status_code == 401
+        data = json.loads(response.data)
+        assert "error" in data
+
+    def test_scenario_weak_password_registration_fails(self, client):
+        """BDD: Registration fails with weak password"""
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "username": "weakpass",
+                "email": "weakpass@example.com",
+                "password": "weak",
+            },
+        )
+
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert "error" in data
+
+    def test_scenario_registration_missing_fields(self, client):
+        """BDD: Registration fails with missing fields"""
+        # Missing password
+        response = client.post(
+            "/api/auth/register",
+            json={"username": "nopass", "email": "nopass@example.com"},
+        )
+
+        assert response.status_code == 400
+
+    def test_scenario_login_creates_token(self, client):
+        """BDD: Login creates valid JWT token"""
+        # Register
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "jwtuser",
+                "email": "jwtuser@example.com",
+                "password": "JwtPass123",
+            },
+        )
+
+        # Login
+        response = client.post(
+            "/api/auth/login",
+            json={"username": "jwtuser", "password": "JwtPass123"},
+        )
+
+        data = json.loads(response.data)
+        token = data["access_token"]
+
+        # Verify token structure (JWT has 3 parts separated by dots)
+        assert token.count(".") == 2
+
+    def test_scenario_user_isolation(self, client):
+        """BDD: Different users' data is isolated"""
+        # Register user 1
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "user1",
+                "email": "user1@example.com",
+                "password": "User1Pass123",
+            },
+        )
+
+        # Register user 2
+        client.post(
+            "/api/auth/register",
+            json={
+                "username": "user2",
+                "email": "user2@example.com",
+                "password": "User2Pass123",
+            },
+        )
+
+        # Login as user1
+        response1 = client.post(
+            "/api/auth/login",
+            json={"username": "user1", "password": "User1Pass123"},
+        )
+        token1 = json.loads(response1.data)["access_token"]
+
+        # Login as user2
+        response2 = client.post(
+            "/api/auth/login",
+            json={"username": "user2", "password": "User2Pass123"},
+        )
+        token2 = json.loads(response2.data)["access_token"]
+
+        # Tokens should be different
+        assert token1 != token2

@@ -104,6 +104,94 @@ DASHBOARD_HTML = """
         .login-error.show {
             display: block;
         }
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .auth-tab.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .auth-form-container {
+            display: none;
+        }
+        .auth-form-container.show {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .password-requirements {
+            background: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+            border-left: 3px solid #3b82f6;
+        }
+        .requirement {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+        .requirement.met {
+            color: #059669;
+        }
+        .requirement.unmet {
+            color: #d97706;
+        }
+        .requirement-icon {
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+        .register-success {
+            display: none;
+            background: #f0fdf4;
+            color: #059669;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid #bbf7d0;
+        }
+        .register-success.show {
+            display: block;
+        }
         .dashboard-content {
             display: none !important;
         }
@@ -664,13 +752,72 @@ DASHBOARD_HTML = """
     <div id="loginScreen" class="login-screen">
         <div class="login-container">
             <div class="login-title">🚀 Trading Dashboard</div>
-            <div class="login-subtitle">Sign in to your account</div>
-            <div id="loginError" class="login-error"></div>
-            <form class="login-form" onsubmit="handleLogin(event)">
-                <input type="text" id="username" placeholder="Username" required autocomplete="username">
-                <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
-                <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
-            </form>
+            <div class="login-subtitle">Professional algorithmic trading system</div>
+
+            <!-- Auth Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form-container show">
+                <div id="loginError" class="login-error"></div>
+                <form class="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Registration Form -->
+            <div id="registerForm" class="auth-form-container">
+                <div id="registerSuccess" class="register-success"></div>
+                <div id="registerError" class="login-error"></div>
+                <form class="login-form" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="registerUsername">Username</label>
+                        <input type="text" id="registerUsername" placeholder="Choose a username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="Create a strong password" required>
+                        <div class="password-requirements">
+                            <div class="requirement unmet" id="req-length">
+                                <span class="requirement-icon">○</span>
+                                <span>At least 8 characters</span>
+                            </div>
+                            <div class="requirement unmet" id="req-uppercase">
+                                <span class="requirement-icon">○</span>
+                                <span>At least one uppercase letter</span>
+                            </div>
+                            <div class="requirement unmet" id="req-lowercase">
+                                <span class="requirement-icon">○</span>
+                                <span>At least one lowercase letter</span>
+                            </div>
+                            <div class="requirement unmet" id="req-number">
+                                <span class="requirement-icon">○</span>
+                                <span>At least one number</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerConfirm">Confirm Password</label>
+                        <input type="password" id="registerConfirm" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="login-btn" id="registerBtn">Create Account</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -944,12 +1091,143 @@ DASHBOARD_HTML = """
             }, 100);
         }
 
+        // Tab switching
+        function switchAuthTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form-container');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('show'));
+
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('show');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('show');
+            }
+        }
+
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /\d/.test(password)
+            };
+
+            // Update UI indicators
+            document.getElementById('req-length').classList.toggle('met', requirements.length);
+            document.getElementById('req-length').classList.toggle('unmet', !requirements.length);
+            document.getElementById('req-uppercase').classList.toggle('met', requirements.uppercase);
+            document.getElementById('req-uppercase').classList.toggle('unmet', !requirements.uppercase);
+            document.getElementById('req-lowercase').classList.toggle('met', requirements.lowercase);
+            document.getElementById('req-lowercase').classList.toggle('unmet', !requirements.lowercase);
+            document.getElementById('req-number').classList.toggle('met', requirements.number);
+            document.getElementById('req-number').classList.toggle('unmet', !requirements.number);
+
+            return Object.values(requirements).every(req => req);
+        }
+
+        // Registration handler
+        function handleRegister(event) {
+            event.preventDefault();
+
+            const usernameInput = document.getElementById('registerUsername');
+            const emailInput = document.getElementById('registerEmail');
+            const passwordInput = document.getElementById('registerPassword');
+            const confirmInput = document.getElementById('registerConfirm');
+            const registerBtn = document.getElementById('registerBtn');
+            const registerError = document.getElementById('registerError');
+            const registerSuccess = document.getElementById('registerSuccess');
+
+            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+
+            // Validation
+            registerError.classList.remove('show');
+            registerSuccess.classList.remove('show');
+
+            if (!username || !email || !password || !confirm) {
+                registerError.textContent = 'Please fill in all fields';
+                registerError.classList.add('show');
+                return;
+            }
+
+            if (!checkPasswordStrength(password)) {
+                registerError.textContent = 'Password does not meet requirements';
+                registerError.classList.add('show');
+                return;
+            }
+
+            if (password !== confirm) {
+                registerError.textContent = 'Passwords do not match';
+                registerError.classList.add('show');
+                return;
+            }
+
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating Account...';
+
+            console.log('Attempting registration with username:', username, 'email:', email);
+
+            fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            })
+            .then(response => {
+                return response.json().then(data => ({
+                    status: response.status,
+                    data: data
+                }));
+            })
+            .then(({ status, data }) => {
+                console.log('Registration response:', status, data);
+
+                if (status === 201 && data.success) {
+                    console.log('Registration successful');
+                    registerSuccess.textContent = 'Account created successfully! Redirecting to login...';
+                    registerSuccess.classList.add('show');
+
+                    // Clear form
+                    usernameInput.value = '';
+                    emailInput.value = '';
+                    passwordInput.value = '';
+                    confirmInput.value = '';
+
+                    // Switch to login tab after 2 seconds
+                    setTimeout(() => {
+                        switchAuthTab('login');
+                        // Clear the success message
+                        registerSuccess.classList.remove('show');
+                    }, 2000);
+                } else {
+                    const errorMsg = data.error || 'Registration failed. Please try again.';
+                    console.log('Registration failed:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+            })
+            .catch(error => {
+                console.error('Registration error:', error);
+                registerError.textContent = error.message || 'An error occurred during registration';
+                registerError.classList.add('show');
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create Account';
+            });
+        }
+
         // Login handler
         function handleLogin(event) {
             event.preventDefault();
 
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
+            const usernameInput = document.getElementById('loginUsername');
+            const passwordInput = document.getElementById('loginPassword');
             const loginBtn = document.getElementById('loginBtn');
             const loginError = document.getElementById('loginError');
 
@@ -1090,6 +1368,15 @@ DASHBOARD_HTML = """
                 console.log('Login form handler attached');
             } else {
                 console.warn('Login form not found');
+            }
+
+            // Attach password strength checker for registration form
+            const registerPasswordInput = document.getElementById('registerPassword');
+            if (registerPasswordInput) {
+                registerPasswordInput.addEventListener('input', function() {
+                    checkPasswordStrength(this.value);
+                });
+                console.log('Password strength checker attached');
             }
 
             console.log('=== Auth Initialization Complete ===');
