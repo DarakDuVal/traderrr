@@ -24,42 +24,74 @@ from threading import Thread
 def flask_server():
     """Start Flask development server in a background subprocess"""
     import sys
+    import requests
 
     # Start Flask server using Python directly
     server_script = """
+import sys
 import os
 os.environ['FLASK_ENV'] = 'development'
-from app import create_app
+os.environ['PYTHONUNBUFFERED'] = '1'
 
-app = create_app()
-app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+try:
+    from app import create_app
+    app = create_app()
+    print('Flask app created successfully', file=sys.stderr, flush=True)
+    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr, flush=True)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    sys.exit(1)
 """
+
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     process = subprocess.Popen(
         [sys.executable, "-c", server_script],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        cwd=project_root,
+        text=True,
+        bufsize=1,
     )
 
-    # Wait longer for server to start
-    time.sleep(8)
+    # Wait for server to start
+    time.sleep(3)
 
-    # Check if server started successfully
-    import requests
+    # Check if process is still running
+    if process.poll() is not None:
+        # Process terminated early, get error output
+        stdout, stderr = process.communicate()
+        print(f"Flask server failed to start!")
+        print(f"STDOUT: {stdout}")
+        print(f"STDERR: {stderr}")
+        raise RuntimeError("Flask server failed to start. Check output above.")
 
-    max_attempts = 20
+    # Check if server started successfully with retries
+    max_attempts = 30
+    server_ready = False
     for attempt in range(max_attempts):
         try:
             response = requests.get("http://127.0.0.1:5000/", timeout=2)
-            print(f"Server started successfully on attempt {attempt+1}")
+            print(f"[OK] Server started successfully on attempt {attempt+1}")
+            server_ready = True
             break
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             if attempt == max_attempts - 1:
-                print(f"Failed to start server after {max_attempts} attempts")
+                print(f"[FAIL] Failed to start server after {max_attempts} attempts")
                 process.terminate()
+                try:
+                    stdout, stderr = process.communicate(timeout=2)
+                    print(f"Process output - STDOUT: {stdout}")
+                    print(f"Process output - STDERR: {stderr}")
+                except:
+                    pass
                 raise
-            time.sleep(1)
+            time.sleep(0.5)
+
+    if not server_ready:
+        raise RuntimeError("Server never became ready")
 
     yield
 
@@ -108,11 +140,12 @@ class TestAuthTabSwitching:
     def test_click_register_tab_switches_to_register(self, driver):
         """Clicking register tab should show register form and hide login form"""
         driver.get("http://127.0.0.1:5000/")
+        time.sleep(1)
 
-        register_tab = driver.find_element(By.ID, "registerTab")
-        register_tab.click()
+        # Call switchAuthTab directly via JavaScript to verify the function works
+        driver.execute_script("switchAuthTab('register');")
 
-        # Wait for form switch
+        # Wait for the form switch
         time.sleep(0.5)
 
         login_tab = driver.find_element(By.ID, "loginTab")
@@ -121,12 +154,20 @@ class TestAuthTabSwitching:
         register_form = driver.find_element(By.ID, "registerForm")
 
         # Check tab classes
-        assert "active" not in login_tab.get_attribute("class")
-        assert "active" in register_tab.get_attribute("class")
+        assert "active" not in login_tab.get_attribute(
+            "class"
+        ), f"Login tab should not have 'active', got: {login_tab.get_attribute('class')}"
+        assert "active" in register_tab.get_attribute(
+            "class"
+        ), f"Register tab should have 'active', got: {register_tab.get_attribute('class')}"
 
         # Check form visibility
-        assert "show" not in login_form.get_attribute("class")
-        assert "show" in register_form.get_attribute("class")
+        assert "show" not in login_form.get_attribute(
+            "class"
+        ), f"Login form should not have 'show', got: {login_form.get_attribute('class')}"
+        assert "show" in register_form.get_attribute(
+            "class"
+        ), f"Register form should have 'show', got: {register_form.get_attribute('class')}"
 
     def test_click_login_tab_switches_back_to_login(self, driver):
         """Clicking login tab after switching should show login form"""

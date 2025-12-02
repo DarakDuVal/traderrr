@@ -732,8 +732,41 @@ DASHBOARD_HTML = """
             });
         }
 
-        // Add loading states on page load
+        // Add loading states on page load and initialize auth tab handlers
+        function initializeAuthTabHandlers() {
+            console.log('[AUTH] Initializing auth tab handlers');
+
+            // Initialize auth tab click handlers using addEventListener for reliability
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+
+            console.log('[AUTH] Found loginTab:', loginTab !== null);
+            console.log('[AUTH] Found registerTab:', registerTab !== null);
+
+            if (loginTab) {
+                loginTab.addEventListener('click', function(e) {
+                    console.log('[AUTH] Login tab click event fired');
+                    e.preventDefault();
+                    switchAuthTab('login');
+                    return false;
+                });
+                console.log('[AUTH] Attached click listener to loginTab');
+            }
+
+            if (registerTab) {
+                registerTab.addEventListener('click', function(e) {
+                    console.log('[AUTH] Register tab click event fired');
+                    e.preventDefault();
+                    switchAuthTab('register');
+                    return false;
+                });
+                console.log('[AUTH] Attached click listener to registerTab');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('[AUTH] DOMContentLoaded fired');
+            initializeAuthTabHandlers();
             hideLoading();
             loadPortfolioPositions();
         });
@@ -756,8 +789,8 @@ DASHBOARD_HTML = """
 
             <!-- Auth Tabs -->
             <div class="auth-tabs">
-                <button type="button" class="auth-tab active" id="loginTab" onclick="switchAuthTab('login'); return false;">Sign In</button>
-                <button type="button" class="auth-tab" id="registerTab" onclick="switchAuthTab('register'); return false;">Register</button>
+                <button type="button" class="auth-tab active" id="loginTab">Sign In</button>
+                <button type="button" class="auth-tab" id="registerTab">Register</button>
             </div>
 
             <!-- Login Form -->
@@ -1056,43 +1089,12 @@ DASHBOARD_HTML = """
 
     <script>
         // ============================================================
-        // AUTHENTICATION & TOKEN MANAGEMENT
+        // GLOBAL FUNCTION DECLARATIONS - DEFINE EARLY FOR INLINE HANDLERS
         // ============================================================
 
-        let jwtToken = localStorage.getItem('jwtToken');
-        const API_KEY = 'test-api-key-67890';
-
-        // Get authorization headers - uses JWT token if available
-        function getAuthHeaders() {
-            return {
-                'Authorization': `Bearer ${jwtToken || API_KEY}`,
-                'Content-Type': 'application/json'
-            };
-        }
-
-        // Show/hide screens
-        function showLoginScreen() {
-            const loginScreen = document.getElementById('loginScreen');
-            const dashboardContent = document.getElementById('dashboardContent');
-            if (loginScreen) loginScreen.style.display = 'flex';
-            if (dashboardContent) dashboardContent.classList.remove('show');
-        }
-
-        function showDashboard() {
-            const loginScreen = document.getElementById('loginScreen');
-            const dashboardContent = document.getElementById('dashboardContent');
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (dashboardContent) dashboardContent.classList.add('show');
-            // Load dashboard data after showing
-            setTimeout(() => {
-                if (typeof loadPortfolioPositions === 'function') {
-                    loadPortfolioPositions();
-                }
-            }, 100);
-        }
-
-        // Tab switching
-        function switchAuthTab(tab) {
+        // Tab switching - defined early for inline onclick handlers
+        // Explicitly assign to window to ensure it's globally accessible
+        window.switchAuthTab = function(tab) {
             console.log('🔄 switchAuthTab called with:', tab);
             try {
                 const tabs = document.querySelectorAll('.auth-tab');
@@ -1137,6 +1139,42 @@ DASHBOARD_HTML = """
             } catch (e) {
                 console.error('❌ Error in switchAuthTab:', e);
             }
+        };
+
+        // ============================================================
+        // AUTHENTICATION & TOKEN MANAGEMENT
+        // ============================================================
+
+        let jwtToken = localStorage.getItem('jwtToken');
+        const API_KEY = 'test-api-key-67890';
+
+        // Get authorization headers - uses JWT token if available
+        function getAuthHeaders() {
+            return {
+                'Authorization': `Bearer ${jwtToken || API_KEY}`,
+                'Content-Type': 'application/json'
+            };
+        }
+
+        // Show/hide screens
+        function showLoginScreen() {
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardContent = document.getElementById('dashboardContent');
+            if (loginScreen) loginScreen.style.display = 'flex';
+            if (dashboardContent) dashboardContent.classList.remove('show');
+        }
+
+        function showDashboard() {
+            const loginScreen = document.getElementById('loginScreen');
+            const dashboardContent = document.getElementById('dashboardContent');
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (dashboardContent) dashboardContent.classList.add('show');
+            // Load dashboard data after showing
+            setTimeout(() => {
+                if (typeof loadPortfolioPositions === 'function') {
+                    loadPortfolioPositions();
+                }
+            }, 100);
         }
 
         // Password strength checker
