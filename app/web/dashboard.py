@@ -1114,24 +1114,24 @@ DASHBOARD_HTML = """
 
                 if (tab === 'login') {
                     const loginTab = document.getElementById('loginTab');
-                    const loginForm = document.getElementById('loginForm');
+                    const loginTabForm = document.getElementById('loginForm');
                     if (loginTab) {
                         loginTab.classList.add('active');
                         console.log('[AUTH] Added active class to login tab');
                     }
-                    if (loginForm) {
-                        loginForm.classList.add('show');
+                    if (loginTabForm) {
+                        loginTabForm.classList.add('show');
                         console.log('[AUTH] Showed login form');
                     }
                 } else if (tab === 'register') {
                     const registerTab = document.getElementById('registerTab');
-                    const registerForm = document.getElementById('registerForm');
+                    const registerTabForm = document.getElementById('registerForm');
                     if (registerTab) {
                         registerTab.classList.add('active');
                         console.log('[AUTH] Added active class to register tab');
                     }
-                    if (registerForm) {
-                        registerForm.classList.add('show');
+                    if (registerTabForm) {
+                        registerTabForm.classList.add('show');
                         console.log('[AUTH] Showed register form');
                     }
                 }
@@ -1432,9 +1432,9 @@ DASHBOARD_HTML = """
 
             // Attach form submit handler if form exists
             // Note: loginForm already declared above, so just query and attach listener
-            const loginFormElement = document.querySelector('.login-form');
-            if (loginFormElement) {
-                loginFormElement.addEventListener('submit', handleLogin);
+            const loginFormBySelector = document.querySelector('.login-form');
+            if (loginFormBySelector) {
+                loginFormBySelector.addEventListener('submit', handleLogin);
                 console.log('Login form handler attached');
             } else {
                 console.warn('Login form not found');
