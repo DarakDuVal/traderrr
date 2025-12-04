@@ -1095,21 +1095,21 @@ DASHBOARD_HTML = """
         // Tab switching - defined early for inline onclick handlers
         // Explicitly assign to window to ensure it's globally accessible
         window.switchAuthTab = function(tab) {
-            console.log('🔄 switchAuthTab called with:', tab);
+            console.log('[AUTH] switchAuthTab called with:', tab);
             try {
                 const tabs = document.querySelectorAll('.auth-tab');
                 const forms = document.querySelectorAll('.auth-form-container');
 
-                console.log(`Found ${tabs.length} tabs and ${forms.length} forms`);
+                console.log('[AUTH] Found ' + tabs.length + ' tabs and ' + forms.length + ' forms');
 
                 // Remove active class from all tabs and hide all forms
                 tabs.forEach((t, idx) => {
                     t.classList.remove('active');
-                    console.log(`Removed active from tab ${idx}`);
+                    console.log('[AUTH] Removed active from tab ' + idx);
                 });
                 forms.forEach((f, idx) => {
                     f.classList.remove('show');
-                    console.log(`Hid form ${idx}`);
+                    console.log('[AUTH] Hid form ' + idx);
                 });
 
                 if (tab === 'login') {
@@ -1117,27 +1117,27 @@ DASHBOARD_HTML = """
                     const loginForm = document.getElementById('loginForm');
                     if (loginTab) {
                         loginTab.classList.add('active');
-                        console.log('✓ Added active class to login tab');
+                        console.log('[AUTH] Added active class to login tab');
                     }
                     if (loginForm) {
                         loginForm.classList.add('show');
-                        console.log('✓ Showed login form');
+                        console.log('[AUTH] Showed login form');
                     }
                 } else if (tab === 'register') {
                     const registerTab = document.getElementById('registerTab');
                     const registerForm = document.getElementById('registerForm');
                     if (registerTab) {
                         registerTab.classList.add('active');
-                        console.log('✓ Added active class to register tab');
+                        console.log('[AUTH] Added active class to register tab');
                     }
                     if (registerForm) {
                         registerForm.classList.add('show');
-                        console.log('✓ Showed register form');
+                        console.log('[AUTH] Showed register form');
                     }
                 }
-                console.log('✓ Tab switch complete');
+                console.log('[AUTH] Tab switch complete');
             } catch (e) {
-                console.error('❌ Error in switchAuthTab:', e);
+                console.error('[AUTH] Error in switchAuthTab:', e);
             }
         };
 
@@ -1377,14 +1377,14 @@ DASHBOARD_HTML = """
             // Get DOM elements
             const loginScreen = document.getElementById('loginScreen');
             const dashboardContent = document.getElementById('dashboardContent');
-            const loginForm = document.getElementById('loginForm');
+            const loginFormElement = document.getElementById('loginForm');
             console.log('loginScreen element:', !!loginScreen);
             console.log('dashboardContent element:', !!dashboardContent);
-            console.log('loginForm element:', !!loginForm);
+            console.log('loginForm element:', !!loginFormElement);
 
             // Attach login form event listener
-            if (loginForm) {
-                loginForm.addEventListener('submit', handleLogin);
+            if (loginFormElement) {
+                loginFormElement.addEventListener('submit', handleLogin);
                 console.log('Login form event listener attached');
             }
 
@@ -1431,9 +1431,10 @@ DASHBOARD_HTML = """
             }
 
             // Attach form submit handler if form exists
-            const loginForm = document.querySelector('.login-form');
-            if (loginForm) {
-                loginForm.addEventListener('submit', handleLogin);
+            // Note: loginForm already declared above, so just query and attach listener
+            const loginFormElement = document.querySelector('.login-form');
+            if (loginFormElement) {
+                loginFormElement.addEventListener('submit', handleLogin);
                 console.log('Login form handler attached');
             } else {
                 console.warn('Login form not found');

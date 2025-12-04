@@ -26,26 +26,32 @@ def flask_server():
     import sys
     import requests
 
-    # Start Flask server using Python directly
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Start Flask server using Python subprocess with inline script
     server_script = """
 import sys
 import os
+
+# Ensure we're using development settings
 os.environ['FLASK_ENV'] = 'development'
 os.environ['PYTHONUNBUFFERED'] = '1'
 
 try:
+    # Import and create the Flask app
     from app import create_app
     app = create_app()
-    print('Flask app created successfully', file=sys.stderr, flush=True)
-    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+
+    # Run the Flask development server
+    print('FLASK_SERVER_READY', flush=True)
+    sys.stdout.flush()
+    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False, threaded=True)
 except Exception as e:
-    print(f'ERROR: {e}', file=sys.stderr, flush=True)
+    print(f'FLASK_SERVER_ERROR: {e}', flush=True, file=sys.stderr)
     import traceback
-    traceback.print_exc(file=sys.stderr)
+    traceback.print_exc()
     sys.exit(1)
 """
-
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     process = subprocess.Popen(
         [sys.executable, "-c", server_script],
@@ -56,42 +62,57 @@ except Exception as e:
         bufsize=1,
     )
 
-    # Wait for server to start
-    time.sleep(3)
-
-    # Check if process is still running
-    if process.poll() is not None:
-        # Process terminated early, get error output
-        stdout, stderr = process.communicate()
-        print(f"Flask server failed to start!")
-        print(f"STDOUT: {stdout}")
-        print(f"STDERR: {stderr}")
-        raise RuntimeError("Flask server failed to start. Check output above.")
-
-    # Check if server started successfully with retries
-    max_attempts = 30
+    # Wait for Flask to initialize and print readiness marker
     server_ready = False
-    for attempt in range(max_attempts):
+    max_wait = 30
+    for i in range(max_wait):
         try:
-            response = requests.get("http://127.0.0.1:5000/", timeout=2)
-            print(f"[OK] Server started successfully on attempt {attempt+1}")
-            server_ready = True
-            break
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-            if attempt == max_attempts - 1:
-                print(f"[FAIL] Failed to start server after {max_attempts} attempts")
-                process.terminate()
-                try:
-                    stdout, stderr = process.communicate(timeout=2)
-                    print(f"Process output - STDOUT: {stdout}")
-                    print(f"Process output - STDERR: {stderr}")
-                except:
-                    pass
-                raise
+            # Try to read from stdout to see if server has started
+            line = process.stdout.readline()
+            if line:
+                print(f"[Server {i}] {line.strip()}")
+                if "FLASK_SERVER_READY" in line:
+                    server_ready = True
+                    break
+                if "FLASK_SERVER_ERROR" in line:
+                    stderr_content = process.stderr.read()
+                    print(f"Flask error: {line}")
+                    print(f"Stderr: {stderr_content}")
+                    raise RuntimeError(f"Flask server failed: {line}")
+        except:
+            pass
+
+        time.sleep(0.5)
+
+    if not server_ready:
+        # Try with HTTP requests as fallback
+        for attempt in range(max_wait):
+            try:
+                response = requests.get("http://127.0.0.1:5000/", timeout=1)
+                print(f"[OK] Server started on attempt {attempt+1}")
+                server_ready = True
+                break
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                pass
             time.sleep(0.5)
 
     if not server_ready:
-        raise RuntimeError("Server never became ready")
+        # Process didn't print ready marker and server not reachable
+        process.terminate()
+        stdout, stderr = process.communicate(timeout=5)
+        print(f"Flask server failed to start!")
+        print(f"STDOUT: {stdout}")
+        print(f"STDERR: {stderr}")
+        raise RuntimeError("Flask server failed to start or respond")
+
+    # Final check: ensure the server is actually responding
+    time.sleep(1)
+    try:
+        response = requests.get("http://127.0.0.1:5000/", timeout=2)
+        print(f"[OK] Server is responding with status {response.status_code}")
+    except Exception as e:
+        process.terminate()
+        raise RuntimeError(f"Server not responding: {e}")
 
     yield
 
@@ -111,6 +132,7 @@ def driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
 
     # Uncomment for headless mode:
     # chrome_options.add_argument("--headless")
@@ -120,6 +142,16 @@ def driver():
     driver.implicitly_wait(2)
 
     yield driver
+
+    # Capture browser logs before closing
+    try:
+        logs = driver.get_log("browser")
+        if logs:
+            print("\n=== Browser Console Logs ===")
+            for log in logs:
+                print(f"[{log['level']}] {log['message']}")
+    except:
+        pass
 
     driver.quit()
 
