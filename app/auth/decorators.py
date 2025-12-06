@@ -7,12 +7,11 @@ Provides decorators for requiring authentication and role-based access control.
 import logging
 from functools import wraps
 from typing import Callable, Any
-from flask import request, jsonify, current_app
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
-from sqlalchemy.orm import Session
+from flask import request, jsonify
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from app.db import get_db_manager
-from app.models import User, RoleEnum
+from app.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +112,9 @@ def require_role(*allowed_roles: str) -> Callable:
 
 
 def require_api_key(f: Callable) -> Callable:
-    """Decorator requiring valid API key
+    """Decorator requiring valid API key or JWT token
 
-    Checks for valid API key in Authorization header (Bearer <key>).
+    Checks for valid API key or JWT token in Authorization header (Bearer <key>).
     Stores current user in request context.
 
     Usage:
@@ -136,26 +135,51 @@ def require_api_key(f: Callable) -> Callable:
             if not auth_header.startswith("Bearer "):
                 return jsonify({"error": "Invalid authorization header"}), 401
 
-            api_key = auth_header[7:]  # Remove "Bearer " prefix
+            token = auth_header[7:]  # Remove "Bearer " prefix
 
-            # Verify API key
+            # Get database session
             db_manager = get_db_manager()
             session = db_manager.get_session()
-            try:
-                user = AuthService.verify_api_key(session, api_key)
-                if not user:
-                    logger.warning("Invalid API key attempted")
-                    return jsonify({"error": "Invalid API key"}), 401
 
-                # Store user in request context
-                request.user = user  # type: ignore[attr-defined]
-                return f(*args, **kwargs)
+            try:
+                # First try to verify as API key
+                user = AuthService.verify_api_key(session, token)
+                if user:
+                    # Store user in request context
+                    request.user = user  # type: ignore[attr-defined]
+                    return f(*args, **kwargs)
+
+                # If not a valid API key, try as JWT token
+                try:
+                    verify_jwt_in_request()
+                    user_id_str = get_jwt_identity()
+
+                    # Convert user_id to integer for database query
+                    try:
+                        user_id = int(user_id_str)
+                    except (ValueError, TypeError):
+                        logger.warning(f"Invalid user_id in JWT token: {user_id_str}")
+                        return jsonify({"error": "Invalid token"}), 401
+
+                    user = session.query(User).filter_by(id=user_id).first()
+                    if user and user.status == "active":
+                        # Store user in request context
+                        request.user = user  # type: ignore[attr-defined]
+                        return f(*args, **kwargs)
+
+                    logger.warning("User not found or inactive")
+                    return jsonify({"error": "User not found or inactive"}), 401
+
+                except Exception as jwt_error:
+                    logger.warning(f"JWT validation failed: {jwt_error}")
+                    logger.warning("Invalid API key or token attempted")
+                    return jsonify({"error": "Invalid API key or token"}), 401
 
             finally:
                 session.close()
 
         except Exception as e:
-            logger.warning(f"API key authentication failed: {e}")
+            logger.warning(f"Authentication failed: {e}")
             return jsonify({"error": "Authentication failed"}), 401
 
     return decorated_function

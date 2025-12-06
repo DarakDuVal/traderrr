@@ -9,9 +9,9 @@ Handles:
 
 import logging
 from functools import wraps
-from flask import request, g, jsonify
+from typing import Optional, Callable, Any, Tuple
+from flask import request, g, jsonify, Flask, Response
 from flask_jwt_extended import decode_token
-from werkzeug.exceptions import Unauthorized
 
 from app.db import get_db_manager
 from app.models import User
@@ -19,11 +19,11 @@ from app.models import User
 logger = logging.getLogger(__name__)
 
 
-def setup_auth_middleware(app):
+def setup_auth_middleware(app: Flask) -> None:
     """Setup authentication middleware for Flask app"""
 
     @app.before_request
-    def check_jwt_token():
+    def check_jwt_token() -> Optional[Tuple[Response, int]]:
         """Check JWT token on each request and inject user context"""
         # Skip auth check for public endpoints
         public_endpoints = [
@@ -68,7 +68,16 @@ def setup_auth_middleware(app):
         try:
             # Decode and validate token
             decoded = decode_token(token)
-            user_id = decoded.get("sub")
+            user_id_str = decoded.get("sub")
+
+            # Convert user_id to integer for database query
+            try:
+                user_id = int(user_id_str) if user_id_str is not None else 0
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid user_id in token: {user_id_str}")
+                if request.path.startswith("/api/"):
+                    return jsonify({"error": "Invalid token"}), 401
+                return None
 
             # Get user from database
             db_manager = get_db_manager()
@@ -88,6 +97,7 @@ def setup_auth_middleware(app):
                 g.session = session
                 g.user_id = user_id
                 logger.debug(f"User {user.username} authenticated for {request.path}")
+                return None
 
             except Exception as e:
                 session.close()
@@ -103,7 +113,7 @@ def setup_auth_middleware(app):
             return None
 
     @app.teardown_request
-    def close_session(exception=None):
+    def close_session(exception: Optional[BaseException] = None) -> None:
         """Close database session at end of request"""
         session = g.pop("session", None)
         if session:
@@ -113,7 +123,7 @@ def setup_auth_middleware(app):
                 logger.warning(f"Error closing session: {e}")
 
 
-def require_authentication(f):
+def require_authentication(f: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to require valid authentication for a route
 
     Usage:
@@ -125,7 +135,7 @@ def require_authentication(f):
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         if not hasattr(g, "user") or g.user is None:
             return jsonify({"error": "Authentication required"}), 401
         return f(*args, **kwargs)
@@ -133,7 +143,7 @@ def require_authentication(f):
     return decorated_function
 
 
-def get_current_user():
+def get_current_user() -> Optional[User]:
     """Get currently authenticated user from request context
 
     Returns:
@@ -142,7 +152,7 @@ def get_current_user():
     return getattr(g, "user", None)
 
 
-def is_authenticated():
+def is_authenticated() -> bool:
     """Check if current request is authenticated
 
     Returns:

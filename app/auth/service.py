@@ -6,7 +6,6 @@ Handles user registration, login, token generation, and API key management.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional
 from sqlalchemy.orm import Session
 from flask_jwt_extended import create_access_token as jwt_create_access_token
 
@@ -142,7 +141,7 @@ class AuthService:
         Returns:
             JWT access token
         """
-        identity = user.id
+        identity = str(user.id)
         additional_claims = {
             "username": user.username,
             "role": user.role.name if user.role else RoleEnum.USER,
