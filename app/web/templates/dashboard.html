@@ -1237,6 +1237,101 @@
             console.log('=== Auth Initialization Complete ===');
         }
 
+        // ============================================================
+        // PORTFOLIO MANAGEMENT FUNCTIONS
+        // ============================================================
+
+        // Open add position modal
+        function openAddPositionModal() {
+            const modal = document.getElementById('addPositionModal');
+            if (modal) {
+                modal.style.display = 'block';
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Add position
+        function addPosition() {
+            const ticker = document.getElementById('newTicker').value.trim().toUpperCase();
+            const shares = parseFloat(document.getElementById('newShares').value);
+
+            if (!ticker || !shares || shares <= 0) {
+                alert('Please enter a valid ticker and number of shares');
+                return;
+            }
+
+            fetch('/api/portfolio/positions', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ticker, shares })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeModal('addPositionModal');
+                    document.getElementById('newTicker').value = '';
+                    document.getElementById('newShares').value = '';
+                    loadPortfolioPositions();
+                } else {
+                    alert('Failed to add position: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error adding position:', error);
+                alert('Error adding position: ' + error.message);
+            });
+        }
+
+        // ============================================================
+        // DASHBOARD FUNCTIONS
+        // ============================================================
+
+        // Refresh data
+        function refreshData() {
+            location.reload();
+        }
+
+        // Update signals
+        function updateSignals() {
+            const updateBtn = document.getElementById('updateBtn');
+            if (updateBtn) {
+                updateBtn.disabled = true;
+                updateBtn.textContent = 'Updating...';
+            }
+
+            fetch('/api/signals/update', {
+                method: 'POST',
+                headers: getAuthHeaders()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Failed to update signals: ' + (data.error || 'Unknown error'));
+                    if (updateBtn) {
+                        updateBtn.disabled = false;
+                        updateBtn.textContent = '📊 Update Signals';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating signals:', error);
+                alert('Error updating signals: ' + error.message);
+                if (updateBtn) {
+                    updateBtn.disabled = false;
+                    updateBtn.textContent = '📊 Update Signals';
+                }
+            });
+        }
+
         // Initialize when DOM is ready - make it more robust
         function ensureInitialization() {
             try {

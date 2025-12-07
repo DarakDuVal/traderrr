@@ -138,8 +138,8 @@ def driver():
     # chrome_options.add_argument("--headless")
 
     driver = webdriver.Chrome(options=chrome_options)
-    driver.set_page_load_timeout(10)
-    driver.implicitly_wait(2)
+    driver.set_page_load_timeout(15)
+    driver.implicitly_wait(10)
 
     yield driver
 
@@ -412,7 +412,11 @@ class TestAuthScreenLayout:
         """Login screen title should be visible"""
         driver.get("http://127.0.0.1:5000/")
 
-        title = driver.find_element(By.CLASS_NAME, "login-title")
+        # Wait for page to load and element to be present
+        wait = WebDriverWait(driver, 15)
+        title = wait.until(
+            EC.presence_of_element_located((By.CLASS_NAME, "login-title"))
+        )
         assert title.is_displayed()
         assert "Trading Dashboard" in title.text
 
@@ -420,7 +424,9 @@ class TestAuthScreenLayout:
         """Auth tabs should have correct labels"""
         driver.get("http://127.0.0.1:5000/")
 
-        login_tab = driver.find_element(By.ID, "loginTab")
+        # Wait for page to load and tabs to be present
+        wait = WebDriverWait(driver, 15)
+        login_tab = wait.until(EC.presence_of_element_located((By.ID, "loginTab")))
         register_tab = driver.find_element(By.ID, "registerTab")
 
         assert "Sign In" in login_tab.text or login_tab.text == "Sign In"

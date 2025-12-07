@@ -92,18 +92,37 @@ class BaseTestCase(unittest.TestCase):
         finally:
             session.close()
 
-    def get_auth_headers(self, api_key=None):
+        # Store the Flask app instance for use in get_auth_headers()
+        from app import create_app
+
+        self.app = create_app()
+        self.app.config["TESTING"] = True
+
+    def get_auth_headers(self):
         """Get headers with Bearer token authentication
 
-        Args:
-            api_key: API key to use (default: TEST_API_KEY)
-
         Returns:
-            dict: Headers dict with Authorization bearer token
+            dict: Headers dict with Authorization bearer JWT token
         """
-        if api_key is None:
-            api_key = self.TEST_API_KEY
-        return {"Authorization": f"Bearer {api_key}"}
+        from app.auth import AuthService
+        from app.db import get_db_manager
+        from app.models import User
+
+        # Create JWT token within app context
+        with self.app.app_context():
+            db_manager = get_db_manager()
+            session = db_manager.get_session()
+            try:
+                test_user = session.query(User).filter_by(username="testuser").first()
+                if test_user:
+                    # Create a valid JWT token for the test user
+                    jwt_token = AuthService.create_access_token(test_user)
+                    return {"Authorization": f"Bearer {jwt_token}"}
+                else:
+                    # Fallback to a dummy token if user doesn't exist
+                    return {"Authorization": "Bearer invalid"}
+            finally:
+                session.close()
 
     def tearDown(self):
         """Clean up test fixtures"""

@@ -1470,7 +1470,7 @@ class TestAuthenticationCompleteFlow:
             json={
                 "username": "duplicate",
                 "email": "user1@example.com",
-                "password": "Pass123",
+                "password": "Pass1234",
             },
         )
 
@@ -1480,7 +1480,7 @@ class TestAuthenticationCompleteFlow:
             json={
                 "username": "duplicate",
                 "email": "user2@example.com",
-                "password": "Pass123",
+                "password": "Pass1234",
             },
         )
 

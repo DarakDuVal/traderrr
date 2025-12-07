@@ -147,7 +147,23 @@ def init_db() -> None:
 
         try:
             # Create all tables
-            from app.models import Base
+            # Import all models to ensure they're registered with SQLAlchemy
+            from app.models import (
+                Base,
+                User,
+                Role,
+                Permission,
+                APIKey,
+                UserAuditLog,
+                SystemAuditLog,
+                PortfolioPosition,
+                SignalHistory,
+                PortfolioPerformance,
+                DailyData,
+                IntradayData,
+                Metadata,
+                SystemEvent,
+            )
 
             Base.metadata.create_all(db_manager.engine)
             click.echo("✓ Tables created")
