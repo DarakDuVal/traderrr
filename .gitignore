@@ -156,3 +156,12 @@ config_local.json
 .env.local
 local_config.py
 .claude/
+
+# Node.js / Monorepo
+node_modules/
+.turbo/
+dist/
+.next/
+.expo/
+*.tsbuildinfo
+pnpm-lock.yaml
