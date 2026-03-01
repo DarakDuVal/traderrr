@@ -12,7 +12,7 @@ from typing import AsyncIterator, Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from config.settings import Settings, get_settings
 from app.auth.service import decode_token
@@ -29,7 +29,7 @@ _engine = None
 _async_session_factory = None
 
 
-def _get_engine(settings: Settings) -> "AsyncEngine":
+def _get_engine(settings: Settings) -> AsyncEngine:
     global _engine
     if _engine is None:
         from sqlalchemy.ext.asyncio import create_async_engine
