@@ -999,6 +999,9 @@ dm.close()
 
 ### Documentation
 
+- [Architecture & Restructuring Plan](docs/ARCHITECTURE.md) — Tech stack decisions, repository organization, and roadmap
+- [API Documentation](docs/API.md) — Full REST API reference
+- [CI/CD Strategy](docs/CI_CD_STRATEGY.md) — Quality gate architecture
 - [Yahoo Finance API](https://pypi.org/project/yfinance/)
 - [TA-Lib Documentation](https://ta-lib.org/)
 - [IBM Cloud Code Engine](https://cloud.ibm.com/docs/codeengine)
