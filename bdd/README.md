@@ -1,6 +1,8 @@
-# BDD Tests - Behavior-Driven Development
+# BDD Tests
 
-This directory contains Behavior-Driven Development (BDD) tests using Behave framework. BDD tests focus on user-oriented functionality and experience from a business perspective.
+Behavior-Driven Development tests using the Behave framework. These scenarios describe user-facing functionality and serve as living documentation.
+
+> **Phase 1 note**: Step implementations will be updated for FastAPI `TestClient` and PostgreSQL fixtures as part of #66. Feature files (Gherkin scenarios) remain valid and will not change. The directory will move to `backend/bdd/` in the monorepo layout (#58).
 
 ## Directory Structure
 

@@ -1,0 +1,37 @@
+{
+  "project": {
+    "name": "traderrr",
+    "type": "python-flask",
+    "entry_point": "main.py"
+  },
+  "context": {
+    "include": [
+      "app/**/*.py",
+      "config/**/*.py",
+      "scripts/**/*.py",
+      "tests/**/*.py",
+      "utils/**/*.py",
+      "*.md",
+      "requirements.txt",
+      "config.json"
+    ],
+    "exclude": [
+      "*.pyc",
+      "__pycache__",
+      "node_modules",
+      ".git",
+      "cache",
+      "data/",
+      "logs/",
+      "*.db"
+    ]
+  },
+  "testing": {
+    "command": "pytest tests/ -v",
+    "pre_commit": true
+  },
+  "linting": {
+    "python": "mypy app/ --ignore-missing-imports && black --check app/ scripts/ config/ tests/ && flake8 app/ --select=F401 --show-source --statistics",
+    "javascript": "eslint static/js/"
+  }
+}

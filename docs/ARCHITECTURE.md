@@ -1,8 +1,8 @@
 # Architecture Analysis & Restructuring Plan
 
-> **Status**: Proposal  
-> **Date**: 2026-03-01  
-> **Branch**: develop  
+> **Status**: Decisions finalised — see summary table at the end of this document
+> **Date**: 2026-03-01
+> **Branch**: develop
 
 ---
 
@@ -697,17 +697,19 @@ Remove IBM Cloud–specific dependencies and target container-based deployment:
 
 ---
 
-## Summary of Key Decisions Needed
+## Summary of Key Decisions — FINALISED 2026-03-01
 
-| # | Decision | Recommended | Alternative | Must Decide By |
-|---|----------|-------------|-------------|----------------|
-| 1 | Frontend framework | React + Next.js | Vue + Nuxt | Phase 0 |
-| 2 | Repo structure | Monorepo | Polyrepo | Phase 0 |
-| 3 | Backend framework migration | Flask → FastAPI | Keep Flask | Phase 2 |
-| 4 | Production database | PostgreSQL | MySQL | Phase 2 |
-| 5 | Real-time transport | SSE (v1) → WebSocket (v2) | WebSocket from start | Phase 2 |
-| 6 | Task scheduling | APScheduler (v1) → Celery (v2) | Celery from start | Phase 2 |
-| 7 | Mobile strategy | PWA first → React Native | Flutter | Phase 4 |
+| # | Decision | **Final choice** |
+|---|----------|-----------------|
+| 1 | Frontend framework | **React + Next.js 14** (App Router) |
+| 2 | Repo structure | **Monorepo** — pnpm workspaces + Turborepo |
+| 3 | Backend framework | **FastAPI** — clean rebuild (no Flask migration) |
+| 4 | Production database | **PostgreSQL via Supabase** |
+| 5 | Real-time transport | **WebSocket from day one** |
+| 6 | Task scheduling | **Celery + Redis from day one** |
+| 7 | Mobile strategy | **React Native (Expo) from day one** |
+
+Implementation tracked in [PLAN.md](../PLAN.md) and GitHub issues #57–#75.
 
 ---
 
