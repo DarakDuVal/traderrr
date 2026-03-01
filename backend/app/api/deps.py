@@ -32,7 +32,6 @@ _async_session_factory = None
 def _get_engine(settings: Settings) -> AsyncEngine:
     global _engine
     if _engine is None:
-        from sqlalchemy.ext.asyncio import create_async_engine
         _engine = create_async_engine(
             settings.DATABASE_URL,
             echo=False,

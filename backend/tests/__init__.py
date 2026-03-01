@@ -2,12 +2,17 @@
 tests/__init__.py
 Test package — FastAPI + SQLite test infrastructure
 
-Legacy helpers (SampleDataGenerator, YFinanceMockHelper) are preserved
-for core logic tests that don't depend on the web framework.
+Provides:
+- BaseTestCase: Simplified base class for core-logic tests (no Flask)
+- SampleDataGenerator: Realistic market data generation
+- YFinanceMockHelper: yfinance API mocking
 """
 
 import os
 import sys
+import tempfile
+import unittest
+import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 
@@ -17,6 +22,121 @@ import pandas as pd
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+
+
+# ============================================================================
+# BASE TEST CASE (database-only, no Flask)
+# ============================================================================
+
+
+class BaseTestCase(unittest.TestCase):
+    """Base test case with in-memory SQLite and temporary file fallback.
+
+    Provides database setup for core logic tests that don't require a web
+    framework.  The old Flask-specific helpers (get_auth_headers, create_app)
+    have been removed — use the FastAPI fixtures in conftest.py instead.
+    """
+
+    def setUp(self):
+        self.test_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+        self.test_db.close()
+        self.test_db_memory = sqlite3.connect(":memory:")
+        self.test_db_path = self.test_db.name
+
+        os.environ.setdefault("FLASK_ENV", "testing")
+        os.environ["DATABASE_PATH"] = self.test_db.name
+
+    def tearDown(self):
+        if hasattr(self, "test_db_memory") and self.test_db_memory:
+            try:
+                self.test_db_memory.rollback()
+            except Exception:
+                pass
+            try:
+                self.test_db_memory.close()
+            except Exception:
+                pass
+            self.test_db_memory = None
+
+        if hasattr(self, "test_db") and self.test_db.name:
+            try:
+                if os.path.exists(self.test_db.name):
+                    os.unlink(self.test_db.name)
+            except Exception:
+                pass
+
+    def _init_test_database(self, connection=None):
+        """Initialize raw SQLite tables for testing."""
+        if connection is None:
+            connection = self.test_db_memory
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS daily_data (
+                ticker TEXT, date DATE, open REAL, high REAL, low REAL,
+                close REAL, volume INTEGER, dividends REAL, stock_splits REAL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ticker, date)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS intraday_data (
+                ticker TEXT, datetime TIMESTAMP, open REAL, high REAL,
+                low REAL, close REAL, volume INTEGER,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ticker, datetime)
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS metadata (
+                ticker TEXT PRIMARY KEY, company_name TEXT, sector TEXT,
+                industry TEXT, market_cap REAL, last_updated TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS signal_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT,
+                date DATE, signal_type TEXT, signal_value REAL,
+                confidence REAL, entry_price REAL, target_price REAL,
+                stop_loss REAL, regime TEXT, reasons TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS portfolio_performance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, date DATE,
+                portfolio_value REAL, daily_return REAL, volatility REAL,
+                sharpe_ratio REAL, max_drawdown REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS system_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT,
+                description TEXT, details TEXT, severity TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS portfolio_positions (
+                ticker TEXT PRIMARY KEY, shares REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_daily_data_ticker_date
+            ON daily_data(ticker, date DESC)
+        """)
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_signal_history_ticker_date
+            ON signal_history(ticker, date DESC)
+        """)
+
+        cursor.close()
+        connection.commit()
+        if connection != self.test_db_memory:
+            connection.close()
 
 
 # ============================================================================
