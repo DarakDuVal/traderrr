@@ -3,13 +3,13 @@ config/__init__.py
 Configuration package
 """
 
-from .settings import Config, DevelopmentConfig, ProductionConfig, TestingConfig
+from .settings import Settings, Config, get_settings, get_config
 from .database import DatabaseConfig
 
 __all__ = [
+    "Settings",
     "Config",
-    "DevelopmentConfig",
-    "ProductionConfig",
-    "TestingConfig",
+    "get_settings",
+    "get_config",
     "DatabaseConfig",
 ]
