@@ -2,18 +2,21 @@
 tests/conftest.py — FastAPI TestClient fixtures
 
 Provides:
-- db_session: isolated SQLite async session per test
-- client: FastAPI TestClient with overridden get_db
+- db_session: isolated SQLite session per test (sync, for seeding data)
+- client: FastAPI TestClient with async get_db override (aiosqlite)
 - auth_headers: logged-in test user Bearer headers
 """
 
+import os
+import tempfile
 import warnings
 import pytest
 import sys
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from fastapi.testclient import TestClient
 
@@ -55,44 +58,46 @@ sys.unraisablehook = custom_unraisable_hook
 
 _TEST_SECRET = "test-secret-key-for-jwt-testing-32chars"
 
-def get_test_settings() -> Settings:
-    """Return Settings configured for testing."""
-    return Settings(
-        DATABASE_URL="sqlite+aiosqlite:///:memory:",
-        SECRET_KEY=_TEST_SECRET,
-        ENVIRONMENT="testing",
-        REDIS_URL="redis://localhost:6379/0",
-    )
 
-
-# ── Sync engine & session (for seeding data) ─────────────────────────────
+# ── File-based SQLite for shared sync/async access ───────────────────────
 
 @pytest.fixture()
-def db_engine():
-    """Create a sync SQLite engine for test isolation."""
+def db_file():
+    """Create a temp SQLite file shared by sync and async engines."""
+    f = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
+    f.close()
+    yield f.name
+    try:
+        os.unlink(f.name)
+    except OSError:
+        pass
+
+
+@pytest.fixture()
+def db_engine(db_file):
+    """Sync SQLite engine for seeding test data."""
     engine = create_engine(
-        "sqlite:///:memory:",
+        f"sqlite:///{db_file}",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 
     @event.listens_for(engine, "connect")
-    def _set_sqlite_pragma(dbapi_conn, connection_record):
+    def _fk(dbapi_conn, connection_record):
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
     Base.metadata.create_all(engine)
     yield engine
-    Base.metadata.drop_all(engine)
     engine.dispose()
 
 
 @pytest.fixture()
 def db_session(db_engine):
-    """Provide a sync SQLAlchemy session for test setup/teardown."""
-    SessionLocal = sessionmaker(bind=db_engine, expire_on_commit=False)
-    session = SessionLocal()
+    """Sync SQLAlchemy session for test setup/teardown."""
+    factory = sessionmaker(bind=db_engine, expire_on_commit=False)
+    session = factory()
     try:
         yield session
     finally:
@@ -152,38 +157,50 @@ def admin_user(seed_roles):
     return user
 
 
+def _get_test_settings(db_file: str):
+    """Return a factory for test Settings pointing at the given db file."""
+    def _factory() -> Settings:
+        return Settings(
+            DATABASE_URL=f"sqlite+aiosqlite:///{db_file}",
+            SECRET_KEY=_TEST_SECRET,
+            ENVIRONMENT="testing",
+            REDIS_URL="redis://localhost:6379/0",
+        )
+    return _factory
+
+
 # ── FastAPI TestClient ────────────────────────────────────────────────────
 
 @pytest.fixture()
-def client(db_engine, seed_roles):
-    """FastAPI TestClient with overridden get_db dependency."""
+def client(db_file, db_engine, seed_roles):
+    """FastAPI TestClient with async get_db override (aiosqlite)."""
     from app.api.deps import get_db
     from config.settings import get_settings
 
     app = create_app()
-    settings = get_test_settings()
 
-    # We override get_db to use a sync session wrapped in an async generator
-    # because TestClient runs everything synchronously under the hood.
-    SessionLocal = sessionmaker(bind=db_engine, expire_on_commit=False)
+    # Async engine pointing at the same file-based SQLite
+    async_engine = create_async_engine(
+        f"sqlite+aiosqlite:///{db_file}",
+        connect_args={"check_same_thread": False},
+    )
+    _async_session = async_sessionmaker(
+        async_engine, class_=AsyncSession, expire_on_commit=False
+    )
 
-    # Declared async because FastAPI dependency injection expects an async generator,
-    # but uses sync SessionLocal since TestClient executes synchronously.
     async def override_get_db():
-        session = SessionLocal()
-        try:
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+        async with _async_session() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_settings] = get_test_settings
+    app.dependency_overrides[get_settings] = _get_test_settings(db_file)
 
-    with TestClient(app) as c:
+    with TestClient(app, raise_server_exceptions=True) as c:
         yield c
 
     app.dependency_overrides.clear()

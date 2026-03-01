@@ -94,7 +94,10 @@ async def get_current_user(
         )
 
     from sqlalchemy import select
-    result = await db.execute(select(User).where(User.id == int(user_id)))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).where(User.id == int(user_id))
+    )
     user = result.scalar_one_or_none()
 
     if user is None or user.status != "active":
