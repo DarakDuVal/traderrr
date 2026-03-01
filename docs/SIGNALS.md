@@ -1,4 +1,7 @@
-# 📊 Active Trading Signals: Complete Decision Flow
+# Signal Generation: Complete Decision Pipeline
+
+> This documents the preserved core domain logic in `backend/app/core/signal_generator.py`.
+> The algorithm is carried forward unchanged into the FastAPI rebuild.
 
 ## Quick answer
 
@@ -17,7 +20,7 @@ A ticker appears in the active signals list when:
 - If `len(data) < 50` → skip ticker (insufficient data)
 
 **Step 2 — Detect market regime**  
-*(code: `app/core/signal_generator.py:157-179`)*
+*(code: `backend/app/core/signal_generator.py:157-179`)*
 
 - Calculate Hurst exponent, trend strength, volatility  
 - Compare `SMA(20)` vs `SMA(50)`  
@@ -35,7 +38,7 @@ A ticker appears in the active signals list when:
 - If threshold not met → skip ticker
 
 **Step 5 — Calculate confidence score**  
-*(code: `app/core/signal_generator.py:425-471`)*
+*(code: `backend/app/core/signal_generator.py:425-471`)*
 
 - Base: `0.5` (50%)  
 - Add bonuses for regime alignment, trend strength, volume, extremes  
@@ -58,7 +61,7 @@ A ticker appears in the active signals list when:
 
 ## Section 1 — The data requirement filter
 
-**Code location:** `app/core/signal_generator.py:80-82`
+**Code location:** `backend/app/core/signal_generator.py:80-82`
 
 ```py
 if len(data) < 50:
@@ -81,7 +84,7 @@ Why 50 periods?
 
 ## Section 2 — Market regime detection
 
-**Code location:** `app/core/signal_generator.py:157-179`
+**Code location:** `backend/app/core/signal_generator.py:157-179`
 
 ```py
 def _detect_market_regime(self, data: pd.DataFrame) -> MarketRegime:
@@ -121,7 +124,7 @@ Key insight: the system adapts its strategy to the current market regime.
 ## Section 3A — Momentum strategy (trending markets)
 
 **Trigger:** `TRENDING_UP` or `TRENDING_DOWN`  
-**Code:** `app/core/signal_generator.py:271-346`
+**Code:** `backend/app/core/signal_generator.py:271-346`
 
 **Buy conditions (examples):**
 
@@ -149,7 +152,7 @@ if bullish_conditions >= 4:
 ## Section 3B — Mean reversion strategy (ranging/volatile markets)
 
 **Trigger:** `MEAN_REVERTING`, `SIDEWAYS`, `HIGH_VOLATILITY`  
-**Code:** `app/core/signal_generator.py:348-423`
+**Code:** `backend/app/core/signal_generator.py:348-423`
 
 **Buy conditions (examples):**
 
@@ -167,7 +170,7 @@ Signal returns `STRONG_BUY` for 4+ conditions, `BUY` for 3 conditions.
 
 ## SECTION 4: Confidence Score Calculation
 
-**Code Location:** `app/core/signal_generator.py:425–471`
+**Code Location:** `backend/app/core/signal_generator.py:425–471`
 
 The confidence score determines whether a signal is strong enough to be included in the final list.  
 The process starts with a base score and adds bonuses depending on indicator strength and alignment.
@@ -258,7 +261,7 @@ Any signal with confidence < **0.6** is **not included** in the active signals l
 
 ## SECTION 5: Position Sizing (Stop Loss & Target)
 
-**Code Location:** `app/core/signal_generator.py:106–115`
+**Code Location:** `backend/app/core/signal_generator.py:106–115`
 
 Position sizing in this system is based on **ATR (Average True Range)**, which adjusts stop loss and target levels based on volatility.  
 Higher volatility → wider stops.  
@@ -317,7 +320,7 @@ This means risking \$20 for a potential \$40 gain.
 
 ## SECTION 6: Portfolio Collection & Sorting
 
-**Code Location:** `app/core/signal_generator.py:134–155`
+**Code Location:** `backend/app/core/signal_generator.py:134–155`
 
 The system loops through every ticker in the portfolio, generates a signal for each, filters out invalid ones, and finally sorts them by confidence.
 
@@ -343,12 +346,12 @@ Only tickers where `generate_signal()` returns a **non-None** `TradingSignal` ob
 
 ## SECTION 7: API Response Format
 
-**Code Location:** `app/api/routes.py:67–94`
+**Code Location:** `backend/app/api/routes/signals.py`
 
 When you call the endpoint:
 
 ```
-/api/signals
+/api/v1/signals
 ```
 
 You receive a JSON response structured like this:
@@ -484,7 +487,7 @@ MSFT is included with:
 - **Reasons:** 6 conditions met
 
 ### **FINAL**
-Sorted with all other signals by confidence → If this is highest confidence, appears first in `/api/signals`.
+Sorted with all other signals by confidence → If this is highest confidence, appears first in `/api/v1/signals`.
 
 ---
 
