@@ -162,7 +162,8 @@ class AuthService:
         try:
             user.last_login = datetime.now(timezone.utc)
             session.commit()
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to update last_login for %s: %s", username, e)
             session.rollback()
         return True, user, None
 
