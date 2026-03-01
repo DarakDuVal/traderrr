@@ -1,0 +1,14 @@
+{
+  "name": "@traderrr/frontend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'frontend build placeholder'",
+    "lint": "echo 'frontend lint placeholder'",
+    "dev": "echo 'frontend dev placeholder'"
+  },
+  "dependencies": {
+    "@traderrr/types": "workspace:*",
+    "@traderrr/api-client": "workspace:*"
+  }
+}

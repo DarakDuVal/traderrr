@@ -1,0 +1,14 @@
+{
+  "name": "@traderrr/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'mobile build placeholder'",
+    "lint": "echo 'mobile lint placeholder'",
+    "dev": "echo 'mobile dev placeholder'"
+  },
+  "dependencies": {
+    "@traderrr/types": "workspace:*",
+    "@traderrr/api-client": "workspace:*"
+  }
+}
