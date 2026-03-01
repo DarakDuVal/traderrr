@@ -18,19 +18,18 @@ build:
 	pnpm turbo build
 
 # ── Backend (Python) ──────────────────────────────────────────────────────────
-# Note: paths update to backend/tests/ once #58 (monorepo restructure) lands
 test:
-	pytest tests/ -v
+	cd backend && pytest tests/ -v
 
 test-cov:
-	pytest tests/ --cov=app --cov-report=term-missing --cov-fail-under=80
+	cd backend && pytest tests/ --cov=app --cov-report=term-missing --cov-fail-under=80
 
 format:
-	black app/ tests/
+	cd backend && black app/ tests/ scripts/ config/
 
 lint:
-	pylint app/
-	mypy app/
+	cd backend && pylint app/
+	cd backend && mypy app/
 
 # ── API client generation ─────────────────────────────────────────────────────
 # Requires backend running at localhost:8000 (make dev)
@@ -44,4 +43,4 @@ gen-client:
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	rm -rf .pytest_cache htmlcov .mypy_cache
+	rm -rf .pytest_cache htmlcov .mypy_cache backend/.pytest_cache backend/htmlcov backend/.mypy_cache

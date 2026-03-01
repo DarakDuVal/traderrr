@@ -117,12 +117,6 @@ def create_app(config_name: str = "production") -> Flask:
     app.register_blueprint(auth_bp)  # Already has /api/auth prefix
     app.register_blueprint(admin_bp)  # Already has /api/admin prefix
 
-    # Register web blueprints (non-API routes)
-    try:
-        from app.web.dashboard import web_bp
-
-        app.register_blueprint(web_bp)
-    except ImportError:
-        app.logger.warning("Web dashboard not available")
+    # Flask/Jinja web dashboard removed in Phase 0 (replaced by Next.js frontend)
 
     return app
