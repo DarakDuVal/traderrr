@@ -33,7 +33,7 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "fetch-all-tickers-15min": {
         "task": "app.workers.market_data.fetch_all_tickers",
-        "schedule": crontab(minute="*/15"),  # every 15 min during market hours
+        "schedule": crontab(minute="*/15"),  # every 15 min
     },
     "generate-all-signals-15min": {
         "task": "app.workers.signals.generate_all_signals",

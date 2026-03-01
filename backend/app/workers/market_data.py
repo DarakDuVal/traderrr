@@ -18,7 +18,7 @@ def fetch_market_data(self, ticker: str) -> dict:
         from config.settings import get_settings
 
         settings = get_settings()
-        # DataManager uses sync SQLite internally; for Celery workers this is fine
+        # DataManager uses synchronous DB operations; fine for Celery workers
         dm = DataManager()
         data = dm.get_stock_data(ticker, period="1mo")
         dm.close()
