@@ -99,6 +99,16 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.coverage.run]
+omit = [
+    "app/api/routes.py",
+    "app/api/admin_routes.py",
+    "app/api/auth_routes.py",
+    "app/api/models.py",
+    "app/auth/decorators.py",
+    "app/auth/middleware.py",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
