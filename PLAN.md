@@ -176,17 +176,17 @@ traderrr/
 - [ ] Update GitHub Actions workflows for monorepo
 - [ ] Create root `Makefile` (dev, test, build, lint targets)
 
-### Phase 1 — FastAPI Backend
+### Phase 1 — FastAPI Backend ✅
 > Goal: Full backend rebuilt on FastAPI with WebSocket, Celery, Supabase.
 
-- [ ] Scaffold FastAPI app structure with Pydantic BaseSettings
-- [ ] Configure Supabase PostgreSQL (prod) + local Postgres (dev)
-- [ ] Rebuild auth layer (JWT with python-jose / passlib)
-- [ ] Port all API route handlers (signals, portfolio, risk, admin)
-- [ ] Implement WebSocket endpoint (`/ws`) for real-time signal/price feed
-- [ ] Set up Celery app + Redis; define tasks (market data fetch, signal generation)
-- [ ] Migrate scheduled jobs from `schedule` thread → Celery Beat
-- [ ] Update pytest suite for FastAPI `TestClient` + PostgreSQL fixture
+- [x] Scaffold FastAPI app structure with Pydantic BaseSettings (#61)
+- [x] Configure Supabase PostgreSQL (prod) + local Postgres (dev) (#61)
+- [x] Rebuild auth layer (JWT with python-jose / passlib) (#62)
+- [x] Port all API route handlers (signals, portfolio, risk, admin) (#63)
+- [x] Implement WebSocket endpoint (`/ws`) for real-time signal/price feed (#64)
+- [x] Set up Celery app + Redis; define tasks (market data fetch, signal generation) (#65)
+- [x] Migrate scheduled jobs from `schedule` thread → Celery Beat (#65)
+- [x] Update pytest suite for FastAPI `TestClient` + PostgreSQL fixture (#66)
 
 ### Phase 2 — Next.js Frontend
 > Goal: Full web dashboard with real-time WebSocket updates.
