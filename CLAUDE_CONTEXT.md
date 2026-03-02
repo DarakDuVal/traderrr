@@ -9,7 +9,7 @@ Algorithmic trading platform with regime-adaptive signal generation, portfolio m
 - **Backend**: FastAPI, SQLAlchemy 2.0, Alembic, Celery + Redis, python-jose, passlib
 - **Database**: PostgreSQL via Supabase (production); local Postgres (dev); SQLite (CI only)
 - **Real-time**: WebSocket (FastAPI native)
-- **Frontend**: Next.js 14 App Router, TypeScript strict, Tailwind CSS v4, shadcn/ui-style components, TanStack Query, Zustand, Recharts
+- **Frontend**: Next.js 16 App Router, TypeScript strict, Tailwind CSS v4, shadcn/ui-style components, TanStack Query, Zustand, Recharts
 - **Mobile**: React Native (Expo), Expo Router
 - **Shared packages**: `packages/types` (TS interfaces), `packages/api-client` (typed fetch client)
 - **Monorepo tooling**: pnpm workspaces + Turborepo
@@ -39,9 +39,11 @@ Phase 0 (monorepo), Phase 1 (FastAPI backend), and Phase 2 (Next.js frontend) ar
 - **Real-time**: WebSocket hook (`lib/hooks/useWebSocket.ts`) with signal/price stream hooks
 - **Auth**: JWT flow — login page, Zustand store, silent refresh, Next.js middleware route protection
 - **Components**: shadcn/ui-style in `components/ui/`, domain components in `components/{signals,portfolio,risk,dashboard,charts,shared}/`
+  - Shared: `EmptyState`, `ErrorBoundary`, `LoadingSpinner` in `components/shared/`
 
 ## Active GitHub Issues
 
+- Legacy issues: #1–#9 ✅ (unit tests, pre-commit hooks, CI, portfolio management, deployment, docs, auth, database)
 - Phase 0 (monorepo foundation): #57–#60 ✅
 - Phase 1 (FastAPI backend): #61–#66 ✅
 - Phase 2 (Next.js frontend): #67–#72 ✅
@@ -50,7 +52,7 @@ Phase 0 (monorepo), Phase 1 (FastAPI backend), and Phase 2 (Next.js frontend) ar
 
 ## Key Conventions
 
-- Python: Black (line length 100), Mypy strict, Pylint ≥ 8.0, pytest
+- Python: Black (line length 88), Mypy strict, Pylint ≥ 8.0, pytest
 - TypeScript: ESLint strict, `tsc --strict`, Tailwind CSS v4 with `@custom-variant dark`
 - Commits: `<type>: <description> (closes #<issue>)`
 - PRs target `develop`; hotfixes target `main`

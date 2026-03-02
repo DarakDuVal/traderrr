@@ -3,8 +3,8 @@
 An algorithmic trading platform with regime-adaptive signal generation, portfolio management, and risk analysis.
 
 [![CodeQL](https://github.com/DarakDuVal/traderrr/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/github-code-scanning/codeql)
-[![Tests & Coverage](https://github.com/DarakDuVal/traderrr/actions/workflows/tests.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/tests.yml)
-[![Code Quality](https://github.com/DarakDuVal/traderrr/actions/workflows/code-quality.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/code-quality.yml)
+[![Backend CI](https://github.com/DarakDuVal/traderrr/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/DarakDuVal/traderrr/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/DarakDuVal/traderrr/actions/workflows/frontend-ci.yml)
 
 ---
 
@@ -15,7 +15,7 @@ The backend (FastAPI) and frontend (Next.js) are implemented. The backend tradin
 **Completed**: Phase 0 (monorepo) · Phase 1 (FastAPI backend) · Phase 2 (Next.js frontend)
 **In progress**: Phase 3 (React Native) · Phase 4 (production polish)
 
-**Stack**: FastAPI · Next.js 14 · React Native (Expo) · PostgreSQL (Supabase) · WebSocket · Celery + Redis · Docker · pnpm monorepo
+**Stack**: FastAPI · Next.js 16 · React Native (Expo) · PostgreSQL (Supabase) · WebSocket · Celery + Redis · Docker · pnpm monorepo
 
 ---
 
@@ -42,7 +42,7 @@ See [docs/SIGNALS.md](docs/SIGNALS.md) for the complete signal decision pipeline
 
 ```
 backend/          FastAPI + SQLAlchemy 2.0 + Alembic + Celery + Redis
-frontend/         Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
+frontend/         Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui
 mobile/           React Native (Expo) + Expo Router
 packages/
   types/          Shared TypeScript type definitions

@@ -16,59 +16,57 @@
 * @DarakDuVal
 
 # Core trading logic and data management
-app/core/ @DarakDuVal
-app/core/data_manager.py @DarakDuVal
-app/core/signal_generator.py @DarakDuVal
-app/core/indicators.py @DarakDuVal
-app/core/portfolio_analyzer.py @DarakDuVal
+backend/app/core/ @DarakDuVal
 
 # API routes and endpoints
-app/api/ @DarakDuVal
-app/api/routes.py @DarakDuVal
-app/api/models.py @DarakDuVal
+backend/app/api/ @DarakDuVal
 
-# Web dashboard and UI
-app/web/ @DarakDuVal
-app/web/dashboard.py @DarakDuVal
+# Authentication
+backend/app/auth/ @DarakDuVal
 
-# Configuration management
-config/ @DarakDuVal
-config/settings.py @DarakDuVal
-config/database.py @DarakDuVal
+# Database models and schemas
+backend/app/models/ @DarakDuVal
+backend/app/schemas/ @DarakDuVal
 
-# Utility and deployment scripts
-scripts/ @DarakDuVal
-scripts/backtest.py @DarakDuVal
-scripts/deploy.py @DarakDuVal
-scripts/daily_update.py @DarakDuVal
-scripts/data_validator.py @DarakDuVal
-scripts/health_check.py @DarakDuVal
+# Workers (Celery tasks)
+backend/app/workers/ @DarakDuVal
 
-# Development utilities
-utils/ @DarakDuVal
-utils/dev_tools.py @DarakDuVal
+# WebSocket
+backend/app/ws/ @DarakDuVal
 
-# Testing infrastructure and test files
-tests/ @DarakDuVal
+# Configuration
+backend/config/ @DarakDuVal
+
+# Backend scripts and utilities
+backend/scripts/ @DarakDuVal
+backend/utils/ @DarakDuVal
+
+# Backend tests
+backend/tests/ @DarakDuVal
+backend/bdd/ @DarakDuVal
+
+# Frontend (Next.js)
+frontend/ @DarakDuVal
+
+# Mobile (React Native / Expo)
+mobile/ @DarakDuVal
+
+# Shared packages
+packages/ @DarakDuVal
 
 # Documentation
 *.md @DarakDuVal
-README.md @DarakDuVal
-CONTRIBUTING.md @DarakDuVal
 
 # GitHub configuration
 .github/ @DarakDuVal
-.github/workflows/ @DarakDuVal
-.github/CODEOWNERS @DarakDuVal
 
 # Project configuration files
-.pylintrc @DarakDuVal
-pyproject.toml @DarakDuVal
-Dockerfile @DarakDuVal
+backend/.pylintrc @DarakDuVal
+backend/pyproject.toml @DarakDuVal
+backend/Dockerfile @DarakDuVal
 Makefile @DarakDuVal
-requirements.txt @DarakDuVal
-requirements-dev.txt @DarakDuVal
-setup.py @DarakDuVal
-
-# Entry point
-main.py @DarakDuVal
+docker-compose.yml @DarakDuVal
+docker-compose.prod.yml @DarakDuVal
+pnpm-workspace.yaml @DarakDuVal
+turbo.json @DarakDuVal
+package.json @DarakDuVal

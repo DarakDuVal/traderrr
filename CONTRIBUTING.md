@@ -9,7 +9,7 @@ Thank you for contributing. This document covers the development workflow for ou
 ```
 traderrr/
 ├── backend/      Python (FastAPI, Celery, SQLAlchemy)
-├── frontend/     TypeScript (Next.js 14 App Router)
+├── frontend/     TypeScript (Next.js 16 App Router)
 ├── mobile/       TypeScript (React Native / Expo)
 ├── packages/
 │   ├── types/    Shared TypeScript interfaces
