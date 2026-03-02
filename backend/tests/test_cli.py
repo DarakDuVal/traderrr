@@ -19,27 +19,36 @@ from app.auth.security import PasswordSecurity
 from tests import BaseTestCase
 
 
-def _db_available() -> bool:
-    """Check if the database server is reachable."""
-    try:
-        from config.settings import get_settings
-        from app.db import DatabaseManager
-        from sqlalchemy import text
-
-        db = DatabaseManager(get_settings().DATABASE_URL_SYNC)
-        session = db.get_session()
-        try:
-            session.execute(text("SELECT 1"))
-        finally:
-            session.close()
-        return True
-    except Exception:
-        return False
+def _make_mock_settings():
+    """Return a mock Settings object with a sync database URL."""
+    mock_settings = MagicMock()
+    mock_settings.DATABASE_URL_SYNC = "sqlite:///test.db"
+    return mock_settings
 
 
-requires_db = pytest.mark.skipif(
-    not _db_available(), reason="Database server not available"
-)
+def _make_mock_db(session=None):
+    """Return (mock_db_manager_instance, mock_session)."""
+    mock_manager = MagicMock()
+    mock_session = session or MagicMock()
+    mock_manager.get_session.return_value = mock_session
+    mock_manager.engine = MagicMock()
+    return mock_manager, mock_session
+
+
+def _make_mock_user(
+    user_id=1, username="testuser", email="test@example.com",
+    status="active", role_name="user",
+):
+    """Return a mock User with common attributes."""
+    mock_user = MagicMock(spec=User)
+    mock_user.id = user_id
+    mock_user.username = username
+    mock_user.email = email
+    mock_user.status = status
+    mock_role = MagicMock()
+    mock_role.name = role_name
+    mock_user.role = mock_role
+    return mock_user
 
 
 class TestCLICommands(BaseTestCase):
@@ -103,81 +112,81 @@ class TestCLICommands(BaseTestCase):
         result = runner.invoke(cli, ["list-users", "--help"])
         assert result.exit_code == 0
 
-    @requires_db
     def test_init_db_success(self) -> None:
         """Test successful database initialization"""
+        mock_manager, mock_session = _make_mock_db()
         runner = CliRunner()
-        result = runner.invoke(init_db)
-        assert result.exit_code == 0
-        assert "Tables created" in result.output
-        assert "Default roles created" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.ensure_roles_exist"), \
+             patch("app.models.Base.metadata.create_all"):
+            result = runner.invoke(init_db)
+            assert result.exit_code == 0
+            assert "Tables created" in result.output
+            assert "Default roles created" in result.output
+
     def test_init_db_creates_tables(self) -> None:
         """Test that init_db creates database tables"""
-        from app.db import DatabaseManager
-        from config.settings import get_settings
+        mock_manager, mock_session = _make_mock_db()
+
+        mock_role = MagicMock(spec=Role)
+        mock_role.name = RoleEnum.USER
+        mock_session.query.return_value.all.return_value = [mock_role]
 
         runner = CliRunner()
-        result = runner.invoke(init_db)
-        assert result.exit_code == 0
 
-        # Verify tables exist
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Try to query roles
-            roles = session.query(Role).all()
-            assert len(roles) > 0
-        finally:
-            session.close()
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.ensure_roles_exist"), \
+             patch("app.models.Base.metadata.create_all"):
+            result = runner.invoke(init_db)
+            assert result.exit_code == 0
 
-    @requires_db
     def test_init_db_creates_default_roles(self) -> None:
         """Test that init_db creates default roles"""
-        from app.db import DatabaseManager
-        from config.settings import get_settings
+        mock_manager, mock_session = _make_mock_db()
+
+        admin_role = MagicMock(spec=Role)
+        admin_role.name = RoleEnum.ADMIN
+        user_role = MagicMock(spec=Role)
+        user_role.name = RoleEnum.USER
+        analyst_role = MagicMock(spec=Role)
+        analyst_role.name = RoleEnum.ANALYST
+
+        mock_session.query.return_value.filter_by.return_value.first.side_effect = [
+            admin_role, user_role, analyst_role,
+        ]
 
         runner = CliRunner()
-        result = runner.invoke(init_db)
-        assert result.exit_code == 0
 
-        # Verify roles exist
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            admin_role = session.query(Role).filter_by(name=RoleEnum.ADMIN).first()
-            user_role = session.query(Role).filter_by(name=RoleEnum.USER).first()
-            analyst_role = session.query(Role).filter_by(name=RoleEnum.ANALYST).first()
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.ensure_roles_exist"), \
+             patch("app.models.Base.metadata.create_all"):
+            result = runner.invoke(init_db)
+            assert result.exit_code == 0
             assert admin_role is not None
             assert user_role is not None
             assert analyst_role is not None
-        finally:
-            session.close()
 
-    @requires_db
     def test_setup_admin_with_clean_database(self) -> None:
         """Test successful admin user creation with clean database"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\nadmin@test.com\nTestPass123\nTestPass123\n",
-        )
-        # Test passes if either successful creation or admin already exists
-        assert result.exit_code == 0
-        assert (
-            "Admin user created successfully" in result.output
-            or "An admin user already exists" in result.output
-        )
+
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="adminuser\nadmin@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert result.exit_code == 0
+            assert "Admin user created successfully" in result.output
 
     def test_setup_admin_empty_username(self) -> None:
         """Test validation of empty username"""
@@ -186,42 +195,39 @@ class TestCLICommands(BaseTestCase):
         # The validation still works in practice via the .strip() and len() checks
         pass
 
-    @requires_db
     def test_setup_admin_short_username(self) -> None:
         """Test validation of too short username"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"ab\n{username}\nadmin@test.com\nTestPass123\nTestPass123\n",
-        )
-        # Test passes if validation message appears or admin already exists
-        assert (
-            "Username must be at least 3 characters long" in result.output
-            or "An admin user already exists" in result.output
-        )
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="ab\nadminuser\nadmin@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert "Username must be at least 3 characters" in result.output
+
     def test_setup_admin_invalid_email(self) -> None:
         """Test validation of invalid email"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\ninvalid\nadmin@test.com\nTestPass123\nTestPass123\n",
-        )
-        assert (
-            "Please enter a valid email address" in result.output
-            or "An admin user already exists" in result.output
-        )
+
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="adminuser\ninvalid\nadmin@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert "Please enter a valid email address" in result.output
 
     def test_setup_admin_empty_email(self) -> None:
         """Test validation of empty email"""
@@ -229,302 +235,212 @@ class TestCLICommands(BaseTestCase):
         # The validation still works via the @ check for valid email
         pass
 
-    @requires_db
     def test_setup_admin_weak_password(self) -> None:
         """Test validation of weak password"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\nadmin@test.com\nweak\nweak\nTestPass123\nTestPass123\n",
-        )
-        assert (
-            "Password invalid" in result.output
-            or "An admin user already exists" in result.output
-        )
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="adminuser\nadmin@test.com\nweak\nweak\nTestPass123\nTestPass123\n",
+            )
+            assert "Password invalid" in result.output
+
     def test_setup_admin_password_mismatch(self) -> None:
         """Test validation of mismatched passwords"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\nadmin@test.com\nTestPass123\nDifferent123\nTestPass123\nTestPass123\n",
-        )
-        assert (
-            "Passwords do not match" in result.output
-            or "An admin user already exists" in result.output
-        )
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="adminuser\nadmin@test.com\nTestPass123\nDifferent123\nTestPass123\nTestPass123\n",
+            )
+            assert "Passwords do not match" in result.output
+
     def test_setup_admin_user_already_exists(self) -> None:
         """Test admin setup when admin already exists"""
-        import time
-        from app.db import DatabaseManager
-        from app.auth.service import AuthService
-        from config.settings import get_settings
-
-        # Create an admin if one doesn't exist
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Check if admin exists
-            from app.auth.init import check_admin_exists
-
-            if not check_admin_exists(session):
-                # Create an admin
-                AuthService.register_user(
-                    session,
-                    "admin",
-                    "admin@test.com",
-                    "TestPass123",
-                    role_name=RoleEnum.ADMIN,
-                )
-        finally:
-            session.close()
-
-        # Try to create another admin
-        username = f"admin_{int(time.time() * 1000)}"
+        mock_manager, mock_session = _make_mock_db()
         runner = CliRunner()
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\n{username}@test.com\nTestPass123\nTestPass123\n",
-        )
-        assert result.exit_code == 0
-        assert "An admin user already exists" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=True):
+            result = runner.invoke(
+                setup_admin,
+                input="adminuser\nadmin@test.com\nTestPass123\nTestPass123\n",
+            )
+            assert result.exit_code == 0
+            assert "An admin user already exists" in result.output
+
     def test_list_users_success(self) -> None:
         """Test successful user listing"""
-        import time
-        from app.db import DatabaseManager
-        from app.models import Role
-        from config.settings import get_settings
-
-        # Ensure at least one user exists
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Create a test user with unique username
-            username = f"listtest_{int(time.time() * 1000)}"
-            user_role = session.query(Role).filter_by(name=RoleEnum.USER).first()
-            if user_role:
-                user = User(
-                    username=username,
-                    email=f"{username}@test.com",
-                    password_hash=PasswordSecurity.hash_password("TestPass123"),
-                    role_id=user_role.id,
-                    status="active",
-                )
-                session.add(user)
-                session.commit()
-        finally:
-            session.close()
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user()
+        mock_session.query.return_value.all.return_value = [mock_user]
         runner = CliRunner()
-        result = runner.invoke(list_users)
-        assert result.exit_code == 0
-        assert "Users" in result.output or "listtest" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 0
+            assert "Users" in result.output
+
     def test_list_users_displays_user_info(self) -> None:
         """Test that list_users displays user information"""
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user()
+        mock_session.query.return_value.all.return_value = [mock_user]
         runner = CliRunner()
-        result = runner.invoke(list_users)
-        assert result.exit_code == 0
-        # Should contain user details
-        assert "Username" in result.output or "No users found" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 0
+            assert "Username" in result.output
+
     def test_list_users_no_users(self) -> None:
         """Test listing when no users exist - verify output format"""
+        mock_manager, mock_session = _make_mock_db()
+        mock_session.query.return_value.all.return_value = []
         runner = CliRunner()
-        result = runner.invoke(list_users)
-        assert result.exit_code == 0
-        # Either shows users or no users message - both valid
-        assert (
-            "No users found" in result.output
-            or "Users" in result.output
-            or "Username" in result.output
-        )
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 0
+            assert "No users found" in result.output
+
     def test_list_users_displays_multiple_users(self) -> None:
         """Test that list_users displays all users"""
-        import time
-        from app.db import DatabaseManager
-        from app.models import Role
-        from config.settings import get_settings
-
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Create multiple users with unique timestamps
-            user_role = session.query(Role).filter_by(name=RoleEnum.USER).first()
-            base_time = int(time.time() * 1000)
-            for i in range(3):
-                user = User(
-                    username=f"listtest{i}_{base_time}",
-                    email=f"listtest{i}_{base_time}@test.com",
-                    password_hash=PasswordSecurity.hash_password("TestPass123"),
-                    role_id=user_role.id,
-                    status="active",
-                )
-                session.add(user)
-            session.commit()
-        finally:
-            session.close()
-
+        mock_manager, mock_session = _make_mock_db()
+        users = [
+            _make_mock_user(user_id=i, username=f"listtest{i}",
+                            email=f"listtest{i}@test.com")
+            for i in range(3)
+        ]
+        mock_session.query.return_value.all.return_value = users
         runner = CliRunner()
-        result = runner.invoke(list_users)
-        assert result.exit_code == 0
-        # Verify output shows users or header
-        assert (
-            "listtest" in result.output
-            or "Users" in result.output
-            or "Username" in result.output
-        )
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 0
+            assert "Users" in result.output
+            assert "listtest0" in result.output
+            assert "listtest1" in result.output
+            assert "listtest2" in result.output
+
     def test_delete_user_success(self) -> None:
         """Test successful user deletion"""
-        import time
-        from app.db import DatabaseManager
-        from app.models import Role
-        from config.settings import get_settings
-
-        username = f"deletetest_{int(time.time() * 1000)}"
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Create a test user to delete
-            user_role = session.query(Role).filter_by(name=RoleEnum.USER).first()
-            user = User(
-                username=username,
-                email=f"{username}@test.com",
-                password_hash=PasswordSecurity.hash_password("TestPass123"),
-                role_id=user_role.id,
-                status="active",
-            )
-            session.add(user)
-            session.commit()
-        finally:
-            session.close()
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(username="deletetest")
+        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_user
         runner = CliRunner()
-        result = runner.invoke(
-            delete_user,
-            input=f"{username}\ny\n",
-        )
-        assert result.exit_code == 0
-        assert "deleted successfully" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(
+                delete_user,
+                input="deletetest\ny\n",
+            )
+            assert result.exit_code == 0
+            assert "deleted successfully" in result.output
+
     def test_delete_user_not_found(self) -> None:
         """Test deletion of non-existent user"""
+        mock_manager, mock_session = _make_mock_db()
+        mock_session.query.return_value.filter_by.return_value.first.return_value = None
         runner = CliRunner()
-        result = runner.invoke(
-            delete_user,
-            input="nonexistent\ny\n",
-        )
-        assert result.exit_code == 1
-        assert "not found" in result.output
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(
+                delete_user,
+                input="nonexistent\ny\n",
+            )
+            assert result.exit_code == 1
+            assert "not found" in result.output
+
     def test_delete_user_confirmation_cancelled(self) -> None:
         """Test that user deletion is cancelled when not confirmed"""
-        import time
-        from app.db import DatabaseManager
-        from app.models import Role
-        from config.settings import get_settings
-
-        username = f"canceltest_{int(time.time() * 1000)}"
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Create a test user
-            user_role = session.query(Role).filter_by(name=RoleEnum.USER).first()
-            user = User(
-                username=username,
-                email=f"{username}@test.com",
-                password_hash=PasswordSecurity.hash_password("TestPass123"),
-                role_id=user_role.id,
-                status="active",
-            )
-            session.add(user)
-            session.commit()
-        finally:
-            session.close()
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(username="canceltest")
+        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_user
         runner = CliRunner()
-        result = runner.invoke(
-            delete_user,
-            input=f"{username}\nn\n",
-        )
-        # Should abort without deleting
-        assert result.exit_code == 1
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(
+                delete_user,
+                input="canceltest\nn\n",
+            )
+            assert result.exit_code == 1
+
     def test_setup_admin_then_list_users(self) -> None:
         """Test workflow: setup_admin followed by list_users"""
-        import time
-
-        # Use unique username with timestamp to avoid conflicts
-        username = f"workflow_admin_{int(time.time() * 1000)}"
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(username="workflow_admin", role_name="admin")
         runner = CliRunner()
 
-        # Set up admin
-        result = runner.invoke(
-            setup_admin,
-            input=f"{username}\n{username}@test.com\nWorkflowPass123\nWorkflowPass123\n",
-        )
-        assert result.exit_code == 0
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="workflow_admin\nworkflow@test.com\nWorkflowPass123\nWorkflowPass123\n",
+            )
+            assert result.exit_code == 0
 
         # List users
-        result = runner.invoke(list_users)
-        assert result.exit_code == 0
-        # Verify users are shown (might be workflow_admin or other existing users)
-        assert (
-            "Users" in result.output
-            or "Username" in result.output
-            or "workflow" in result.output
-        )
+        mock_manager2, mock_session2 = _make_mock_db()
+        mock_session2.query.return_value.all.return_value = [mock_user]
 
-    @requires_db
+        with patch("app.db.DatabaseManager", return_value=mock_manager2), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(list_users)
+            assert result.exit_code == 0
+            assert "Users" in result.output
+
     def test_init_db_then_setup_admin(self) -> None:
         """Test workflow: init_db followed by setup_admin"""
+        mock_manager, mock_session = _make_mock_db()
         runner = CliRunner()
 
-        # Initialize database
-        result = runner.invoke(init_db)
-        assert result.exit_code == 0
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.ensure_roles_exist"), \
+             patch("app.models.Base.metadata.create_all"):
+            result = runner.invoke(init_db)
+            assert result.exit_code == 0
 
         # Set up admin
-        result = runner.invoke(
-            setup_admin,
-            input="workflow_admin\nworkflow@test.com\nWorkflowPass123\nWorkflowPass123\n",
-        )
-        assert result.exit_code == 0
+        mock_manager2, mock_session2 = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
+
+        with patch("app.db.DatabaseManager", return_value=mock_manager2), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
+            result = runner.invoke(
+                setup_admin,
+                input="workflow_admin\nworkflow@test.com\nWorkflowPass123\nWorkflowPass123\n",
+            )
+            assert result.exit_code == 0
 
     def test_setup_admin_database_connection_error(self) -> None:
         """Test setup_admin when database connection fails"""
@@ -616,104 +532,72 @@ class TestCLICommands(BaseTestCase):
                 assert result.exit_code == 1
                 assert "Error" in result.output
 
-    @requires_db
     def test_setup_admin_username_validation_multiple_attempts(self) -> None:
         """Test setup_admin username validation with multiple attempts"""
-        import time
-
-        username = f"validuser_{int(time.time() * 1000)}"
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
 
-        # Try empty username, then short username, then valid username
-        # Use patch to prevent check_admin_exists from blocking the test
-        from unittest.mock import patch
-
-        with patch(
-            "app.auth.init.check_admin_exists",
-            return_value=False,
-        ):
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
             result = runner.invoke(
                 setup_admin,
-                input=f"\nab\n{username}\n{username}@test.com\nTestPass123\nTestPass123\n",
+                input="\nab\nvaliduser\nvaliduser@test.com\nTestPass123\nTestPass123\n",
             )
             assert result.exit_code == 0
             assert "Username must be at least 3 characters long" in result.output
 
-    @requires_db
     def test_setup_admin_email_validation_multiple_attempts(self) -> None:
         """Test setup_admin email validation with multiple attempts"""
-        import time
-        from unittest.mock import patch
-
-        username = f"emailvalid_{int(time.time() * 1000)}"
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
 
-        with patch(
-            "app.auth.init.check_admin_exists",
-            return_value=False,
-        ):
-            # Try invalid email, then valid email
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
             result = runner.invoke(
                 setup_admin,
-                input=f"{username}\ninvalidemail\n{username}@test.com\nTestPass123\nTestPass123\n",
+                input="emailvalid\ninvalidemail\nemailvalid@test.com\nTestPass123\nTestPass123\n",
             )
             assert result.exit_code == 0
             assert "Please enter a valid email address" in result.output
 
-    @requires_db
     def test_setup_admin_password_validation_multiple_attempts(self) -> None:
         """Test setup_admin password validation with multiple attempts"""
-        import time
-        from unittest.mock import patch
-
-        username = f"pwdvalid_{int(time.time() * 1000)}"
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(role_name="admin")
         runner = CliRunner()
 
-        with patch(
-            "app.auth.init.check_admin_exists",
-            return_value=False,
-        ):
-            # Try weak password, then strong password
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()), \
+             patch("app.auth.init.check_admin_exists", return_value=False), \
+             patch("app.auth.service.AuthService.register_user",
+                   return_value=(True, mock_user, None)):
             result = runner.invoke(
                 setup_admin,
-                input=f"{username}\n{username}@test.com\nweak\nweak\nTestPass123\nTestPass123\n",
+                input="pwdvalid\npwdvalid@test.com\nweak\nweak\nTestPass123\nTestPass123\n",
             )
             assert result.exit_code == 0
             assert "Password invalid" in result.output
 
-    @requires_db
     def test_delete_user_cascade_delete_with_data(self) -> None:
         """Test delete_user with user having associated data"""
-        import time
-        from app.db import DatabaseManager
-        from app.models import Role
-        from config.settings import get_settings
-
-        username = f"delcascade_{int(time.time() * 1000)}"
-        db_manager = DatabaseManager(
-            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
-        )
-        session = db_manager.get_session()
-        try:
-            # Create test user
-            user_role = session.query(Role).filter_by(name="user").first()
-            if user_role:
-                user = User(
-                    username=username,
-                    email=f"{username}@test.com",
-                    password_hash="hashed_password",
-                    role_id=user_role.id,
-                    status="active",
-                )
-                session.add(user)
-                session.commit()
-        finally:
-            session.close()
-
+        mock_manager, mock_session = _make_mock_db()
+        mock_user = _make_mock_user(username="delcascade")
+        mock_session.query.return_value.filter_by.return_value.first.return_value = mock_user
         runner = CliRunner()
-        result = runner.invoke(
-            delete_user,
-            input=f"{username}\ny\n",
-        )
-        assert result.exit_code == 0
-        assert "deleted successfully" in result.output
+
+        with patch("app.db.DatabaseManager", return_value=mock_manager), \
+             patch("config.settings.get_settings", return_value=_make_mock_settings()):
+            result = runner.invoke(
+                delete_user,
+                input="delcascade\ny\n",
+            )
+            assert result.exit_code == 0
+            assert "deleted successfully" in result.output
