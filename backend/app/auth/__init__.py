@@ -1,5 +1,5 @@
 """
-Authentication module (FastAPI / python-jose / passlib)
+Authentication module (FastAPI / python-jose / bcrypt)
 """
 
 from app.auth.service import (

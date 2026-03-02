@@ -10,7 +10,6 @@ Supports two modes:
 import logging
 import os
 from typing import Optional
-from datetime import datetime
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ def check_admin_exists(session: Session) -> bool:
         bool: True if admin exists, False otherwise
     """
     try:
-        from app.models import User, RoleEnum
+        from app.models import User
 
         admin_user = session.query(User).join(User.role).filter_by(name="admin").first()
         return admin_user is not None

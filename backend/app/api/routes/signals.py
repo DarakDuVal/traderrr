@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, require_role
 from app.models.trading import SignalHistory
 from app.models.user import User
-from app.schemas.signals import SignalFilter, SignalListResponse, SignalResponse
+from app.schemas.signals import SignalListResponse, SignalResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
