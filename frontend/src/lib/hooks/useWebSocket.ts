@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useRef, useCallback, useSyncExternalStore } from "react";
 import { useAuthStore } from "@/lib/store/auth";
+import { pushSignal } from "./useSignalStream";
+import { updatePrice } from "./usePriceStream";
 
 export type ConnectionStatus = "connected" | "connecting" | "disconnected";
 
 interface UseWebSocketReturn {
-  lastMessage: MessageEvent | null;
   connectionStatus: ConnectionStatus;
   send: (message: string) => void;
 }
-
-type MessageListener = (event: MessageEvent) => void;
 
 let ws: WebSocket | null = null;
 let currentStatus: ConnectionStatus = "disconnected";
@@ -19,7 +18,6 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 const statusListeners = new Set<() => void>();
-const messageListeners = new Set<MessageListener>();
 
 function notifyStatusListeners() {
   statusListeners.forEach((l) => l());
@@ -49,10 +47,15 @@ function connectWs(token: string, onAuthFailure: () => void) {
         socket.send(JSON.stringify({ type: "pong" }));
         return;
       }
+      if (data.type === "signal" && data.payload) {
+        pushSignal(data.payload);
+      }
+      if (data.type === "price" && data.payload) {
+        updatePrice(data.payload);
+      }
     } catch {
-      // continue dispatching
+      // Ignore parse errors
     }
-    messageListeners.forEach((l) => l(event));
   };
 
   socket.onclose = (event) => {
@@ -95,7 +98,6 @@ function disconnectWs() {
 
 export function useWebSocket(): UseWebSocketReturn {
   const { accessToken, isAuthenticated, logout } = useAuthStore();
-  const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
   const logoutRef = useRef(logout);
 
   useEffect(() => {
@@ -117,16 +119,10 @@ export function useWebSocket(): UseWebSocketReturn {
       return;
     }
 
-    const listener: MessageListener = (event) => setLastMessage(event);
-    messageListeners.add(listener);
-
     connectWs(accessToken, () => logoutRef.current());
 
     return () => {
-      messageListeners.delete(listener);
-      if (messageListeners.size === 0) {
-        disconnectWs();
-      }
+      disconnectWs();
     };
   }, [accessToken, isAuthenticated]);
 
@@ -136,5 +132,5 @@ export function useWebSocket(): UseWebSocketReturn {
     }
   }, []);
 
-  return { lastMessage, connectionStatus, send };
+  return { connectionStatus, send };
 }

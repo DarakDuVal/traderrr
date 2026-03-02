@@ -1,40 +1,31 @@
 "use client";
 
-import { useRef, useCallback, useSyncExternalStore } from "react";
-import { useWebSocket } from "./useWebSocket";
+import { useSyncExternalStore } from "react";
 import type { SignalResponse } from "@traderrr/types";
 
 const MAX_SIGNALS = 100;
 
+let signals: SignalResponse[] = [];
+const listeners = new Set<() => void>();
+
+function notify() {
+  listeners.forEach((l) => l());
+}
+
+export function pushSignal(signal: SignalResponse) {
+  signals = [signal, ...signals].slice(0, MAX_SIGNALS);
+  notify();
+}
+
 export function useSignalStream() {
-  const { lastMessage, connectionStatus } = useWebSocket();
-  const signalsRef = useRef<SignalResponse[]>([]);
-  const lastProcessedRef = useRef<MessageEvent | null>(null);
-
-  const getSnapshot = useCallback(() => {
-    if (lastMessage && lastMessage !== lastProcessedRef.current) {
-      lastProcessedRef.current = lastMessage;
-      try {
-        const data = JSON.parse(lastMessage.data);
-        if (data.type === "signal" && data.payload) {
-          signalsRef.current = [data.payload as SignalResponse, ...signalsRef.current].slice(0, MAX_SIGNALS);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    }
-    return signalsRef.current;
-  }, [lastMessage]);
-
-  const signals = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     (cb) => {
-      // Re-subscribe whenever lastMessage changes
-      cb();
-      return () => {};
+      listeners.add(cb);
+      return () => listeners.delete(cb);
     },
-    getSnapshot,
+    () => signals,
     () => [] as SignalResponse[]
   );
 
-  return { signals, connectionStatus };
+  return { signals: snapshot };
 }

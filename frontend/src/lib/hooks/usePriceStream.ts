@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useSyncExternalStore } from "react";
-import { useWebSocket } from "./useWebSocket";
+import { useSyncExternalStore } from "react";
 
 interface PriceData {
   ticker: string;
@@ -10,35 +9,27 @@ interface PriceData {
   changePercent: number;
 }
 
+let prices = new Map<string, PriceData>();
+const listeners = new Set<() => void>();
+
+function notify() {
+  listeners.forEach((l) => l());
+}
+
+export function updatePrice(data: PriceData) {
+  prices = new Map(prices).set(data.ticker, data);
+  notify();
+}
+
 export function usePriceStream() {
-  const { lastMessage, connectionStatus } = useWebSocket();
-  const pricesRef = useRef<Map<string, PriceData>>(new Map());
-  const lastProcessedRef = useRef<MessageEvent | null>(null);
-
-  const getSnapshot = useCallback(() => {
-    if (lastMessage && lastMessage !== lastProcessedRef.current) {
-      lastProcessedRef.current = lastMessage;
-      try {
-        const data = JSON.parse(lastMessage.data);
-        if (data.type === "price" && data.payload) {
-          const price = data.payload as PriceData;
-          pricesRef.current = new Map(pricesRef.current).set(price.ticker, price);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    }
-    return pricesRef.current;
-  }, [lastMessage]);
-
-  const prices = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     (cb) => {
-      cb();
-      return () => {};
+      listeners.add(cb);
+      return () => listeners.delete(cb);
     },
-    getSnapshot,
+    () => prices,
     () => new Map<string, PriceData>()
   );
 
-  return { prices, connectionStatus };
+  return { prices: snapshot };
 }

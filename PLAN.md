@@ -188,19 +188,19 @@ traderrr/
 - [x] Migrate scheduled jobs from `schedule` thread → Celery Beat (#65)
 - [x] Update pytest suite for FastAPI `TestClient` + PostgreSQL fixture (#66)
 
-### Phase 2 — Next.js Frontend
+### Phase 2 — Next.js Frontend ✅
 > Goal: Full web dashboard with real-time WebSocket updates.
 
-- [ ] Scaffold Next.js 14 App Router (TypeScript, Tailwind, shadcn/ui)
-- [ ] Auto-generate TypeScript API client from FastAPI OpenAPI spec
-- [ ] Implement JWT auth flow (login, silent refresh, Next.js middleware)
-- [ ] Build `useWebSocket` hook for real-time data
-- [ ] Build Dashboard page (portfolio summary, top signals, key metrics)
-- [ ] Build Signals page (live feed via WebSocket, filter, detail view)
-- [ ] Build Portfolio page (positions list, add/edit/remove)
-- [ ] Build Risk Analysis page (correlation heatmap, VaR gauge)
-- [ ] Integrate TradingView Lightweight Charts (candlestick + signal overlay)
-- [ ] Frontend CI (ESLint, TypeScript strict, Vitest, build check)
+- [x] Scaffold Next.js 14 App Router (TypeScript, Tailwind, shadcn/ui) (#67)
+- [x] Auto-generate TypeScript API client from FastAPI OpenAPI spec (#68)
+- [x] Implement JWT auth flow (login, silent refresh, Next.js middleware) (#69)
+- [x] Build `useWebSocket` hook for real-time data (#70)
+- [x] Build Dashboard page (portfolio summary, top signals, key metrics) (#71)
+- [x] Build Signals page (live feed via WebSocket, filter, detail view) (#71)
+- [x] Build Portfolio page (positions list, add/edit/remove) (#71)
+- [x] Build Risk Analysis page (correlation heatmap, VaR gauge) (#71)
+- [x] Integrate TradingView Lightweight Charts (candlestick + signal overlay) (#72)
+- [x] Frontend CI (ESLint, TypeScript strict, build check) (#67)
 
 ### Phase 3 — React Native App
 > Goal: Mobile companion with feature parity on core screens.

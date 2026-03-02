@@ -8,11 +8,14 @@ An algorithmic trading platform with regime-adaptive signal generation, portfoli
 
 ---
 
-## Status: Architecture Rebuild in Progress
+## Status: Backend + Frontend Complete
 
-The backend trading engine is complete and well-tested. The project is being restructured into a production-grade full-stack application. See [PLAN.md](PLAN.md) for the full roadmap and [open issues](../../issues) for work in progress.
+The backend (FastAPI) and frontend (Next.js) are implemented. The backend trading engine is well-tested and the web dashboard includes real-time WebSocket updates, JWT authentication, and full CRUD for portfolio management. See [PLAN.md](PLAN.md) for the full roadmap.
 
-**Target stack**: FastAPI · Next.js 14 · React Native (Expo) · PostgreSQL (Supabase) · WebSocket · Celery + Redis · Docker · pnpm monorepo
+**Completed**: Phase 0 (monorepo) · Phase 1 (FastAPI backend) · Phase 2 (Next.js frontend)
+**In progress**: Phase 3 (React Native) · Phase 4 (production polish)
+
+**Stack**: FastAPI · Next.js 14 · React Native (Expo) · PostgreSQL (Supabase) · WebSocket · Celery + Redis · Docker · pnpm monorepo
 
 ---
 
@@ -98,9 +101,7 @@ Base score: 0.5. Bonuses applied for:
 
 ## Development Setup
 
-> The monorepo is being assembled in Phase 0 (issues #57–#60). Until it lands, the existing backend runs standalone.
-
-### With Docker (target, coming in #59)
+### With Docker
 
 ```bash
 cp .env.example .env          # fill in DATABASE_URL, REDIS_URL, SECRET_KEY
@@ -109,14 +110,24 @@ docker compose up
 
 Services: FastAPI on `:8000`, Next.js on `:3000`, PostgreSQL on `:5432`, Redis on `:6379`, Celery worker + Beat, Flower on `:5555`.
 
-### Backend only (current state)
+### Backend only
 
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 pytest tests/ -v
-uvicorn app.main:app --reload   # after Phase 1 (#61–#66)
+uvicorn app.main:app --reload
+```
+
+### Frontend only
+
+```bash
+pnpm install
+pnpm --filter @traderrr/frontend dev    # starts Next.js at localhost:3000
+pnpm --filter @traderrr/frontend lint   # ESLint
+pnpm --filter @traderrr/frontend type-check  # TypeScript strict
+pnpm --filter @traderrr/frontend build  # production build
 ```
 
 ### Environment variables
@@ -129,6 +140,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=15
 REFRESH_TOKEN_EXPIRE_DAYS=7
 LOG_LEVEL=INFO
 ENVIRONMENT=development
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ---
