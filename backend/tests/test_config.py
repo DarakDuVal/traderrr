@@ -3,14 +3,10 @@ tests/test_config.py
 Test cases for configuration and database settings
 """
 
-import json
 import os
 import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-import pytest
+from unittest.mock import patch
 
 from tests import BaseTestCase
 from config.settings import Config, get_config, Settings, get_settings
@@ -20,23 +16,73 @@ from config.database import DatabaseConfig
 class TestConfigClass(BaseTestCase):
     """Test Config class and settings"""
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_portfolio_tickers(self):
-        """Test portfolio tickers configuration"""
-        tickers = Config.PORTFOLIO_TICKERS()
-        self.assertIsInstance(tickers, list)
+    def test_config_database_url(self):
+        """Test DATABASE_URL is a string"""
+        settings = Settings()
+        self.assertIsInstance(settings.DATABASE_URL, str)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_portfolio_weights(self):
-        """Test portfolio weights configuration"""
-        weights = Config.PORTFOLIO_WEIGHTS()
-        self.assertIsInstance(weights, dict)
+    def test_config_secret_key(self):
+        """Test SECRET_KEY is a string with minimum length"""
+        settings = Settings()
+        self.assertIsInstance(settings.SECRET_KEY, str)
+        self.assertGreaterEqual(len(settings.SECRET_KEY), 8)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_portfolio_value(self):
-        """Test portfolio total value configuration"""
-        value = Config.PORTFOLIO_VALUE()
-        self.assertIsInstance(value, (int, float))
+    def test_config_access_token_expire(self):
+        """Test ACCESS_TOKEN_EXPIRE_MINUTES is a positive integer"""
+        settings = Settings()
+        self.assertIsInstance(settings.ACCESS_TOKEN_EXPIRE_MINUTES, int)
+        self.assertGreater(settings.ACCESS_TOKEN_EXPIRE_MINUTES, 0)
+
+    def test_config_refresh_token_expire(self):
+        """Test REFRESH_TOKEN_EXPIRE_DAYS is a positive integer"""
+        settings = Settings()
+        self.assertIsInstance(settings.REFRESH_TOKEN_EXPIRE_DAYS, int)
+        self.assertGreater(settings.REFRESH_TOKEN_EXPIRE_DAYS, 0)
+
+    def test_config_redis_url(self):
+        """Test REDIS_URL is a string"""
+        settings = Settings()
+        self.assertIsInstance(settings.REDIS_URL, str)
+
+    def test_config_email_enabled(self):
+        """Test EMAIL_ENABLED is a boolean"""
+        settings = Settings()
+        self.assertIsInstance(settings.EMAIL_ENABLED, bool)
+
+    def test_config_alert_threshold(self):
+        """Test ALERT_THRESHOLD is a float between 0 and 1"""
+        settings = Settings()
+        self.assertIsInstance(settings.ALERT_THRESHOLD, float)
+        self.assertGreaterEqual(settings.ALERT_THRESHOLD, 0.0)
+        self.assertLessEqual(settings.ALERT_THRESHOLD, 1.0)
+
+    def test_config_rebalance_threshold(self):
+        """Test REBALANCE_THRESHOLD is a float between 0 and 1"""
+        settings = Settings()
+        self.assertIsInstance(settings.REBALANCE_THRESHOLD, float)
+        self.assertGreaterEqual(settings.REBALANCE_THRESHOLD, 0.0)
+        self.assertLessEqual(settings.REBALANCE_THRESHOLD, 1.0)
+
+    def test_config_var_confidence(self):
+        """Test VAR_CONFIDENCE is a float between 0 and 1"""
+        settings = Settings()
+        self.assertIsInstance(settings.VAR_CONFIDENCE, float)
+        self.assertGreaterEqual(settings.VAR_CONFIDENCE, 0.0)
+        self.assertLessEqual(settings.VAR_CONFIDENCE, 1.0)
+
+    def test_config_max_correlation(self):
+        """Test MAX_CORRELATION is a float between 0 and 1"""
+        settings = Settings()
+        self.assertIsInstance(settings.MAX_CORRELATION, float)
+        self.assertGreaterEqual(settings.MAX_CORRELATION, 0.0)
+        self.assertLessEqual(settings.MAX_CORRELATION, 1.0)
+
+    def test_config_max_sector_concentration(self):
+        """Test MAX_SECTOR_CONCENTRATION is a float between 0 and 1"""
+        settings = Settings()
+        self.assertIsInstance(settings.MAX_SECTOR_CONCENTRATION, float)
+        self.assertGreaterEqual(settings.MAX_SECTOR_CONCENTRATION, 0.0)
+        self.assertLessEqual(settings.MAX_SECTOR_CONCENTRATION, 1.0)
 
     def test_config_min_confidence(self):
         """Test minimum confidence threshold"""
@@ -44,12 +90,6 @@ class TestConfigClass(BaseTestCase):
         self.assertIsInstance(settings.MIN_CONFIDENCE, float)
         self.assertGreaterEqual(settings.MIN_CONFIDENCE, 0.0)
         self.assertLessEqual(settings.MIN_CONFIDENCE, 1.0)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_database_path(self):
-        """Test database path configuration"""
-        db_path = Config.DATABASE_PATH()
-        self.assertIsInstance(db_path, str)
 
     def test_config_update_interval(self):
         """Test signal update interval"""
@@ -82,50 +122,6 @@ class TestConfigClass(BaseTestCase):
         self.assertIsInstance(settings.VOLATILITY_LIMIT, float)
         self.assertGreater(settings.VOLATILITY_LIMIT, 0)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_backup_enabled(self):
-        """Test backup enabled setting"""
-        enabled = Config.BACKUP_ENABLED()
-        self.assertIsInstance(enabled, bool)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_api_host(self):
-        """Test API host configuration"""
-        host = Config.API_HOST()
-        self.assertIsInstance(host, str)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_api_port(self):
-        """Test API port configuration"""
-        port = Config.API_PORT()
-        self.assertIsInstance(port, int)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_dynamic_get(self):
-        """Test dynamic configuration access"""
-        weights = Config.get("portfolio.weights", {})
-        self.assertIsInstance(weights, dict)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_default_value(self):
-        """Test default value handling"""
-        value = Config.get("nonexistent.path", "default_value")
-        self.assertEqual(value, "default_value")
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_validate_config(self):
-        """Test configuration validation"""
-        issues = Config.validate_config()
-        self.assertIsInstance(issues, list)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_tickers_match_weights(self):
-        """Test that tickers match weights keys"""
-        tickers = Config.PORTFOLIO_TICKERS()
-        weights = Config.PORTFOLIO_WEIGHTS()
-        for ticker in tickers:
-            self.assertIn(ticker, weights)
-
 
 class TestEnvironmentConfigs(BaseTestCase):
     """Test environment-specific configurations"""
@@ -147,67 +143,43 @@ class TestEnvironmentConfigs(BaseTestCase):
             settings = Settings()
             self.assertEqual(settings.ENVIRONMENT, "testing")
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_development_config_debug(self):
-        """Test development config has debug enabled"""
-        self.assertTrue(DevelopmentConfig.DEBUG)
+    def test_config_is_settings_alias(self):
+        """Test that Config is an alias for Settings"""
+        self.assertIs(Config, Settings)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_development_config_testing(self):
-        """Test development config is not testing"""
-        self.assertFalse(DevelopmentConfig.TESTING)
+    def test_get_config_is_get_settings(self):
+        """Test that get_config is an alias for get_settings"""
+        self.assertIs(get_config, get_settings)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_development_config_database(self):
-        """Test development config database path"""
-        db_path = DevelopmentConfig.DATABASE_PATH()
-        self.assertIsInstance(db_path, str)
+    def test_database_url_sync_property(self):
+        """Test DATABASE_URL_SYNC strips +asyncpg"""
+        settings = Settings()
+        self.assertNotIn("+asyncpg", settings.DATABASE_URL_SYNC)
+        expected = settings.DATABASE_URL.replace("+asyncpg", "")
+        self.assertEqual(settings.DATABASE_URL_SYNC, expected)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_production_config_debug(self):
-        """Test production config has debug disabled"""
-        self.assertFalse(ProductionConfig.DEBUG)
+    def test_settings_log_level_default(self):
+        """Test LOG_LEVEL default is INFO"""
+        settings = Settings()
+        self.assertEqual(settings.LOG_LEVEL, "INFO")
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_production_config_testing(self):
-        """Test production config is not testing"""
-        self.assertFalse(ProductionConfig.TESTING)
+    def test_env_override_secret_key(self):
+        """Test SECRET_KEY can be overridden via environment variable"""
+        with patch.dict(os.environ, {"SECRET_KEY": "my-test-secret-key-value"}):
+            settings = Settings()
+            self.assertEqual(settings.SECRET_KEY, "my-test-secret-key-value")
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_testing_config_debug(self):
-        """Test testing config has debug enabled"""
-        self.assertTrue(TestingConfig.DEBUG)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_testing_config_testing(self):
-        """Test testing config has testing enabled"""
-        self.assertTrue(TestingConfig.TESTING)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_testing_config_min_confidence(self):
-        """Test testing config has lowered confidence threshold"""
-        test_conf = TestingConfig.MIN_CONFIDENCE()
-        prod_conf = ProductionConfig.MIN_CONFIDENCE()
-        self.assertLess(test_conf, prod_conf)
+    def test_env_override_database_url(self):
+        """Test DATABASE_URL can be overridden via environment variable"""
+        test_url = "postgresql+asyncpg://user:pass@host:5432/testdb"
+        with patch.dict(os.environ, {"DATABASE_URL": test_url}):
+            settings = Settings()
+            self.assertEqual(settings.DATABASE_URL, test_url)
 
     def test_get_config_returns_settings(self):
         """Test get_config returns a Settings instance"""
         config = get_config()
         self.assertIsInstance(config, Settings)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_get_config_testing(self):
-        """Test get_config returns TestingConfig"""
-        with patch.dict(os.environ, {"FLASK_ENV": "testing"}):
-            config = get_config()
-            self.assertEqual(config, TestingConfig)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_get_config_production(self):
-        """Test get_config returns ProductionConfig"""
-        with patch.dict(os.environ, {"FLASK_ENV": "production"}):
-            config = get_config()
-            self.assertEqual(config, ProductionConfig)
 
 
 class TestDatabaseConfig(BaseTestCase):
@@ -290,21 +262,17 @@ class TestDatabaseConfig(BaseTestCase):
 class TestConfigValidation(BaseTestCase):
     """Test configuration validation"""
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_validate_portfolio_weights(self):
-        """Test portfolio weight validation"""
-        weights = Config.PORTFOLIO_WEIGHTS()
-        if weights:
-            total = sum(weights.values())
-            self.assertGreater(total, 0.5)
-            self.assertLess(total, 1.5)
+    def test_validate_confidence_thresholds(self):
+        """Test VAR_CONFIDENCE is between 0 and 1"""
+        settings = Settings()
+        self.assertGreaterEqual(settings.VAR_CONFIDENCE, 0.0)
+        self.assertLessEqual(settings.VAR_CONFIDENCE, 1.0)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_validate_tickers_non_empty(self):
-        """Test that portfolio tickers are defined"""
-        tickers = Config.PORTFOLIO_TICKERS()
-        if tickers:
-            self.assertGreater(len(tickers), 0)
+    def test_validate_concentration_limits(self):
+        """Test MAX_SECTOR_CONCENTRATION is between 0 and 1"""
+        settings = Settings()
+        self.assertGreater(settings.MAX_SECTOR_CONCENTRATION, 0.0)
+        self.assertLess(settings.MAX_SECTOR_CONCENTRATION, 1.0)
 
     def test_validate_risk_parameters(self):
         """Test risk management parameters are reasonable"""
@@ -329,72 +297,40 @@ class TestConfigValidation(BaseTestCase):
         self.assertGreater(settings.MOMENTUM_THRESHOLD, 0)
         self.assertGreater(settings.MEAN_REVERSION_THRESHOLD, 0)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_validate_api_settings(self):
-        """Test API configuration is valid"""
-        host = Config.API_HOST()
-        port = Config.API_PORT()
-
 
 class TestConfigurationPersistence(BaseTestCase):
-    """Test configuration save and load operations"""
+    """Test configuration persistence and serialization"""
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_can_load(self):
-        """Test that configuration can be loaded"""
-        config_data = Config._config_data or Config._load_config()
-        self.assertIsInstance(config_data, dict)
+    def test_settings_model_config(self):
+        """Test that model_config has expected keys"""
+        self.assertIn("env_file", Settings.model_config)
+        self.assertIn("case_sensitive", Settings.model_config)
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_has_default_values(self):
-        """Test that default configuration has required keys"""
-        default_config = Config._get_default_config()
-        self.assertIsInstance(default_config, dict)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_default_portfolio_section(self):
-        """Test default portfolio configuration"""
-        default_config = Config._get_default_config()
-        portfolio = default_config.get("portfolio", {})
-        self.assertIn("tickers", portfolio)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_default_signals_section(self):
-        """Test default signals configuration"""
-        default_config = Config._get_default_config()
-        signals = default_config.get("signals", {})
-        self.assertIn("min_confidence", signals)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_default_risk_section(self):
-        """Test default risk configuration"""
-        default_config = Config._get_default_config()
-        risk = default_config.get("risk", {})
-        self.assertIn("max_position_size", risk)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_default_data_section(self):
-        """Test default data configuration"""
-        default_config = Config._get_default_config()
-        data = default_config.get("data", {})
-        self.assertIn("backup_enabled", data)
+    def test_settings_serialization(self):
+        """Test Settings can be converted to a dict with expected fields"""
+        settings = Settings()
+        data = settings.model_dump()
+        self.assertIsInstance(data, dict)
+        self.assertIn("DATABASE_URL", data)
+        self.assertIn("SECRET_KEY", data)
+        self.assertIn("MIN_CONFIDENCE", data)
+        self.assertIn("ENVIRONMENT", data)
 
 
 class TestConfigErrorHandling(BaseTestCase):
     """Test configuration error handling"""
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_missing_file_returns_default(self):
-        """Test that missing config file returns defaults"""
-        config = Config._load_config()
-        self.assertIsInstance(config, dict)
+    def test_settings_unknown_field_ignored(self):
+        """Test that unknown fields are ignored (extra='ignore')"""
+        settings = Settings(unknown_field="value")
+        self.assertIsInstance(settings, Settings)
+        self.assertFalse(hasattr(settings, "unknown_field"))
 
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_invalid_json_returns_default(self):
-        """Test that invalid JSON config returns defaults"""
-        with patch("builtins.open", side_effect=json.JSONDecodeError("msg", "doc", 0)):
-            config = Config._load_config()
-            self.assertIsInstance(config, dict)
+    def test_settings_invalid_type_coercion(self):
+        """Test that string values are coerced to the correct type"""
+        settings = Settings(MIN_CONFIDENCE="0.5")
+        self.assertIsInstance(settings.MIN_CONFIDENCE, float)
+        self.assertEqual(settings.MIN_CONFIDENCE, 0.5)
 
     def test_database_config_invalid_path(self):
         """Test database config with invalid path"""
@@ -407,12 +343,6 @@ class TestConfigErrorHandling(BaseTestCase):
             invalid_db = DatabaseConfig(test_path)
             # Should not crash
             self.assertIsNotNone(invalid_db.db_path)
-
-    @pytest.mark.skip(reason="Config method removed in FastAPI migration")
-    def test_config_get_nested_nonexistent(self):
-        """Test getting deeply nested non-existent config"""
-        value = Config.get("this.does.not.exist", "default")
-        self.assertEqual(value, "default")
 
 
 class TestConfigEnvironmentVariables(BaseTestCase):
