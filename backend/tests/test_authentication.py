@@ -617,6 +617,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Ensure roles exist
@@ -645,6 +646,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Call ensure_roles_exist twice
@@ -669,6 +671,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Ensure admin role exists
@@ -710,6 +713,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Query for admin user directly - if none found, returns False
@@ -741,6 +745,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             result = create_admin_from_env(session)
@@ -762,6 +767,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Delete existing user
@@ -790,6 +796,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Ensure admin exists
@@ -832,6 +839,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             # Should not raise an exception regardless of whether admin exists
@@ -858,6 +866,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             result = create_admin_from_env(session)
@@ -879,6 +888,7 @@ class TestAuthInitialization:
         db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
             ensure_roles_exist(session)
@@ -901,11 +911,11 @@ class TestAuthService:
     def setup_method(self) -> None:
         """Set up test database and service"""
         from app.db import DatabaseManager
-        from config.settings import Config
 
         self.db_manager = DatabaseManager(
             "sqlite:///:memory:"
         )
+        Base.metadata.create_all(self.db_manager.engine)
         self.session = self.db_manager.get_session()
 
         # Ensure roles exist
