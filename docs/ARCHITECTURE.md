@@ -189,7 +189,7 @@ Based on the decisions above, the recommended stack is:
 ### Frontend
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| **Framework** | Next.js 14+ (App Router) | React-based; SSR; file-based routing |
+| **Framework** | Next.js 16 (App Router) | React-based; SSR; file-based routing |
 | **Language** | TypeScript | Strict mode for type safety |
 | **State management** | Zustand or TanStack Query | Lightweight; fits data-fetching patterns |
 | **Charts** | Lightweight Charts (TradingView) + Recharts | OHLCV candles + portfolio analytics |
@@ -630,70 +630,71 @@ Remove IBM Cloud–specific dependencies and target container-based deployment:
 
 ## 10. Roadmap
 
-### Phase 0 — Foundation (Weeks 1–2)
+> **Note**: The roadmap below was the initial proposal. Implementation followed a revised plan with different phase boundaries — see [PLAN.md](../PLAN.md) for the authoritative phase breakdown and completion status.
+>
+> **Current status**: Phase 0 (monorepo), Phase 1 (FastAPI backend), and Phase 2 (Next.js frontend) are complete. Phase 3 (React Native) and Phase 4 (production polish) are in progress.
+
+### Phase 0 — Foundation ✅
 
 > **Goal**: Restructure repo without breaking anything.
 
-- [ ] Move existing code into `backend/` directory
-- [ ] Update all import paths and CI workflows
-- [ ] Scaffold `frontend/` with Next.js + TypeScript + Tailwind + shadcn/ui
-- [ ] Add `docker-compose.yml` for local full-stack dev
-- [ ] Update root `Makefile` with full-stack commands
-- [ ] Verify all existing tests still pass
+- [x] Move existing code into `backend/` directory
+- [x] Update all import paths and CI workflows
+- [x] Scaffold `frontend/` with Next.js + TypeScript + Tailwind + shadcn/ui
+- [x] Add `docker-compose.yml` for local full-stack dev
+- [x] Update root `Makefile` with full-stack commands
+- [x] Verify all existing tests still pass
 
-### Phase 1 — Frontend MVP (Weeks 3–6)
+### Phase 1 — FastAPI Backend ✅
 
-> **Goal**: A working web dashboard consuming the existing Flask API.
+> **Goal**: Full backend rebuilt on FastAPI with WebSocket, Celery, Supabase.
 
-- [ ] Implement login/auth flow (JWT)
-- [ ] Build Dashboard page (portfolio summary, top signals)
-- [ ] Build Signals page (signal list, filters, signal detail)
-- [ ] Build Portfolio page (position list, add/edit/remove)
-- [ ] Integrate TradingView Lightweight Charts for candlestick view
-- [ ] Add Recharts for portfolio value and allocation charts
-- [ ] Auto-generate TypeScript API client from OpenAPI spec
-- [ ] Add frontend CI (ESLint, Prettier, TypeScript checks, Vitest)
-- [ ] PWA setup (`next-pwa` for mobile installability)
+- [x] Scaffold FastAPI app with Pydantic BaseSettings
+- [x] Rebuild auth layer (JWT with python-jose / passlib)
+- [x] Port all API route handlers (signals, portfolio, risk, admin)
+- [x] Implement WebSocket endpoint for real-time signal/price feed
+- [x] Set up Celery + Redis; define tasks (market data fetch, signal generation)
+- [x] Add PostgreSQL support to `docker-compose.yml`
+- [x] Update tests to use FastAPI `TestClient`
+- [x] Update CI for new backend structure
 
-### Phase 2 — Backend Evolution (Weeks 7–10)
+### Phase 2 — Next.js Frontend ✅
 
-> **Goal**: Migrate API layer to FastAPI while preserving all core logic.
+> **Goal**: Full web dashboard with real-time WebSocket updates.
 
-- [ ] Set up FastAPI alongside Flask (WSGI mount strategy)
-- [ ] Migrate routes one-by-one to FastAPI with Pydantic schemas
-- [ ] Replace `schedule` thread with APScheduler
-- [ ] Add SSE endpoint for real-time signal/price updates
-- [ ] Switch config to Pydantic `BaseSettings`
-- [ ] Add PostgreSQL support to `docker-compose.yml`
-- [ ] Update tests to use FastAPI `TestClient`
-- [ ] Remove Flask once all routes are migrated
-- [ ] Update CI for new backend structure
+- [x] Implement login/auth flow (JWT)
+- [x] Auto-generate TypeScript API client from OpenAPI spec
+- [x] Build Dashboard page (portfolio summary, top signals, key metrics)
+- [x] Build Signals page (live feed via WebSocket, filter, detail view)
+- [x] Build Portfolio page (position list, add/edit/remove)
+- [x] Build Risk Analysis page (correlation heatmap, VaR, stress tests)
+- [x] Integrate TradingView Lightweight Charts for candlestick view
+- [x] Add Recharts for portfolio value and allocation charts
+- [x] Add frontend CI (ESLint, TypeScript checks, build)
 
-### Phase 3 — Polish & Production (Weeks 11–14)
+### Phase 3 — React Native App
 
-> **Goal**: Production-ready full-stack deployment.
+> **Goal**: Mobile companion with feature parity on core screens.
 
-- [ ] Risk analysis page (correlation heatmap, VaR gauge, stress tests)
-- [ ] Portfolio optimization page (interactive risk/return sliders)
+- [ ] Scaffold Expo app in `mobile/`; configure Expo Router
+- [ ] Extract shared `packages/types` and `packages/api-client` packages
+- [ ] Implement auth (Expo SecureStore for JWT tokens)
+- [ ] Build Dashboard, Signals, and Portfolio screens
+- [ ] Mobile CI (Expo type check, lint, EAS build check)
+
+### Phase 4 — Polish & Production
+
+> **Goal**: Production-ready deployment, advanced features.
+
+- [ ] Multi-stage production Docker images (minimal, hardened)
+- [ ] Supabase production environment setup and migration
 - [ ] Dark/light theme
 - [ ] Notification system (email alerts, in-app notifications)
 - [ ] End-to-end tests with Playwright
-- [ ] Production Docker images (multi-stage, minimal)
-- [ ] Deploy pipeline (staging → production)
-- [ ] Performance optimization (caching, lazy loading, code splitting)
-- [ ] Documentation update (user guide, developer guide)
-
-### Phase 4 — Companion App & Advanced Features (Weeks 15+)
-
-> **Goal**: Mobile companion and advanced trading features.
-
-- [ ] React Native companion app (or enhanced PWA)
-- [ ] WebSocket upgrade for live order book / price streaming
-- [ ] Celery + Redis for scalable background jobs
-- [ ] Multi-user portfolio support (user-scoped data)
-- [ ] Backtesting UI (visual backtest configuration and results)
-- [ ] Alert system (price alerts, signal alerts via push notification)
-- [ ] TimescaleDB for time-series data at scale
+- [ ] Production deploy pipeline (staging → production)
+- [ ] Multi-portfolio management
+- [ ] Scenario management
+- [ ] Broker system for signal subscribers
 
 ---
 
@@ -701,7 +702,7 @@ Remove IBM Cloud–specific dependencies and target container-based deployment:
 
 | # | Decision | **Final choice** |
 |---|----------|-----------------|
-| 1 | Frontend framework | **React + Next.js 14** (App Router) |
+| 1 | Frontend framework | **React + Next.js 16** (App Router) |
 | 2 | Repo structure | **Monorepo** — pnpm workspaces + Turborepo |
 | 3 | Backend framework | **FastAPI** — clean rebuild (no Flask migration) |
 | 4 | Production database | **PostgreSQL via Supabase** |

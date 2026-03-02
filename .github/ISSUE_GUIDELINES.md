@@ -33,7 +33,7 @@ Welcome! These guidelines help us maintain clarity, context, and direction for a
 Title: [BUG] ValueError when portfolio has zero positions
 
 What's happening?
-The API returns a 500 error when calling /api/portfolio-performance
+The API returns a 500 error when calling /api/v1/portfolio-performance
 with an empty portfolio.
 
 Expected behavior
@@ -42,7 +42,7 @@ Should return 200 with empty array or meaningful message.
 Steps to reproduce
 1. Create new account
 2. Don't add any positions
-3. Call GET /api/portfolio-performance
+3. Call GET /api/v1/portfolio-performance
 ```
 
 ---
@@ -280,10 +280,10 @@ Expected behavior
 Should return 200 with an array of signal records, or 400 if request is invalid.
 
 Steps to reproduce
-1. Start API: python main.py
+1. Start API: cd backend && uvicorn app.main:app --reload
 2. Create portfolio with 2+ years of signal history
-3. Run: curl "http://localhost:5000/api/signal-history?start=2022-01-01&end=2024-11-27" \
-        -H "Authorization: Bearer test-api-key-67890"
+3. Run: curl "http://localhost:8000/api/v1/signal-history?start=2022-01-01&end=2024-11-27" \
+        -H "Authorization: Bearer <token>"
 4. See 500 error
 
 Environment
@@ -316,15 +316,15 @@ Users want to analyze their portfolio data in Excel/spreadsheets.
 Currently they can only view through API or web dashboard.
 
 Proposed solution
-Add endpoint: GET /api/portfolio/export?format=csv
+Add endpoint: GET /api/v1/portfolio/export?format=csv
 Returns CSV file with columns: ticker, shares, entry_price, current_price,
 gain_loss, gain_loss_pct, last_updated
 
 Example usage
 ```python
 response = client.get(
-    '/api/portfolio/export?format=csv',
-    headers={'Authorization': 'Bearer my-api-key'}
+    '/api/v1/portfolio/export?format=csv',
+    headers={'Authorization': 'Bearer <token>'}
 )
 df = pd.read_csv(StringIO(response.text))
 ```
@@ -365,7 +365,7 @@ Impact: New developers on Windows (at least 1-2 per month based on issues)
 ## Need Help?
 
 - **General questions**: Use [Discussions](../../discussions)
-- **How to use**: Check [README](../../blob/develop/README.md) and [API docs](../../blob/develop/docs/API.md)
+- **How to use**: Check [README](../../blob/develop/README.md) and [docs/](../../tree/develop/docs)
 - **Security concern**: Use [GitHub Security Advisory](../../security/advisories)
 - **Something else**: Open a blank issue with clear details
 

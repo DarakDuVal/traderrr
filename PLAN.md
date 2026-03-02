@@ -10,7 +10,7 @@
 
 | # | Topic | Decision |
 |---|-------|----------|
-| 1 | Frontend framework | **React + Next.js 14** (App Router) |
+| 1 | Frontend framework | **React + Next.js 16** (App Router) |
 | 2 | Repository structure | **Monorepo** (pnpm workspaces + Turborepo) |
 | 3 | Backend framework | **FastAPI** — clean rebuild, no incremental Flask migration |
 | 4 | Production database | **PostgreSQL via Supabase** |
@@ -38,7 +38,7 @@
 ### Frontend (`frontend/`)
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14+ (App Router, TypeScript) |
+| Framework | Next.js 16 (App Router, TypeScript) |
 | Styling | Tailwind CSS + shadcn/ui |
 | Data fetching | TanStack Query |
 | API client | Auto-generated from FastAPI OpenAPI spec |
@@ -167,14 +167,14 @@ traderrr/
 
 ## Phases & Milestones
 
-### Phase 0 — Monorepo Foundation
+### Phase 0 — Monorepo Foundation ✅
 > Goal: Restructure repo, set up tooling, Docker stack — nothing breaks.
 
-- [ ] Create monorepo structure (pnpm workspaces + Turborepo)
-- [ ] Move existing backend code into `backend/`; update imports & CI paths
-- [ ] Create `docker-compose.yml` (FastAPI + PostgreSQL + Redis + Celery worker + Celery Beat)
-- [ ] Update GitHub Actions workflows for monorepo
-- [ ] Create root `Makefile` (dev, test, build, lint targets)
+- [x] Create monorepo structure (pnpm workspaces + Turborepo) (#57)
+- [x] Move existing backend code into `backend/`; update imports & CI paths (#57)
+- [x] Create `docker-compose.yml` (FastAPI + PostgreSQL + Redis + Celery worker + Celery Beat) (#58)
+- [x] Update GitHub Actions workflows for monorepo (#59)
+- [x] Create root `Makefile` (dev, test, build, lint targets) (#60)
 
 ### Phase 1 — FastAPI Backend ✅
 > Goal: Full backend rebuilt on FastAPI with WebSocket, Celery, Supabase.
@@ -191,7 +191,7 @@ traderrr/
 ### Phase 2 — Next.js Frontend ✅
 > Goal: Full web dashboard with real-time WebSocket updates.
 
-- [x] Scaffold Next.js 14 App Router (TypeScript, Tailwind, shadcn/ui) (#67)
+- [x] Scaffold Next.js App Router (TypeScript, Tailwind, shadcn/ui) (#67)
 - [x] Auto-generate TypeScript API client from FastAPI OpenAPI spec (#68)
 - [x] Implement JWT auth flow (login, silent refresh, Next.js middleware) (#69)
 - [x] Build `useWebSocket` hook for real-time data (#70)
@@ -246,7 +246,7 @@ These modules contain the trading logic and require no changes during the rebuil
 ## GitHub Issues Tracking
 
 All implementation work is tracked as GitHub issues.
-Phases are labeled `phase-0` through `phase-3`.
+Phases are labeled `phase-0` through `phase-4`.
 Areas are labeled `backend`, `frontend`, `mobile`, `infrastructure`.
 
-See: [Open Issues](../../issues?q=is%3Aopen)
+See: [Open Issues](https://github.com/DarakDuVal/traderrr/issues?q=is%3Aopen) · [Closed Issues](https://github.com/DarakDuVal/traderrr/issues?q=is%3Aclosed)
