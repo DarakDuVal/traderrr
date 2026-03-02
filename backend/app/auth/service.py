@@ -12,7 +12,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.models.user import User, Role, RoleEnum
+from app.models.user import User, Role, RoleEnum, APIKey
+from app.auth.security import APIKeySecurity
 
 logger = logging.getLogger(__name__)
 
@@ -183,3 +184,110 @@ class AuthService:
         except Exception as e:
             session.rollback()
             return False, "Password reset failed"
+
+    # ── API Key Management ────────────────────────────────────────────────
+
+    @staticmethod
+    def create_api_key(
+        session: Session,
+        user: User,
+        name: str,
+        expires_in_days: Optional[int] = None,
+    ) -> Tuple[str, "APIKey"]:
+        """Create a new API key for a user.
+
+        Returns:
+            Tuple of (plaintext_key, api_key_record)
+        """
+        plaintext_key = APIKeySecurity.generate_api_key()
+        key_hash = APIKeySecurity.hash_api_key(plaintext_key)
+
+        expires_at = None
+        if expires_in_days is not None:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+
+        api_key = APIKey(
+            user_id=user.id,
+            key_hash=key_hash,
+            name=name,
+            expires_at=expires_at,
+            is_revoked=False,
+        )
+        session.add(api_key)
+        session.commit()
+        session.refresh(api_key)
+        logger.info("API key '%s' created for user %s", name, user.username)
+        return plaintext_key, api_key
+
+    @staticmethod
+    def verify_api_key(
+        session: Session,
+        plaintext_key: str,
+    ) -> Optional[User]:
+        """Verify an API key and return the associated user.
+
+        Returns:
+            User if key is valid, None otherwise.
+        """
+        key_hash = APIKeySecurity.hash_api_key(plaintext_key)
+        api_key = (
+            session.query(APIKey)
+            .filter_by(key_hash=key_hash, is_revoked=False)
+            .first()
+        )
+        if api_key is None:
+            return None
+        # Check expiration
+        if api_key.expires_at is not None:
+            if api_key.expires_at < datetime.now(timezone.utc):
+                return None
+        # Update last_used
+        try:
+            api_key.last_used = datetime.now(timezone.utc)
+            session.commit()
+        except Exception:
+            session.rollback()
+        return api_key.user
+
+    @staticmethod
+    def revoke_api_key(
+        session: Session,
+        api_key_id: int,
+        user: User,
+    ) -> bool:
+        """Revoke an API key.
+
+        Returns:
+            True if key was revoked, False if not found or not owned by user.
+        """
+        api_key = (
+            session.query(APIKey)
+            .filter_by(id=api_key_id, user_id=user.id)
+            .first()
+        )
+        if api_key is None:
+            return False
+        try:
+            api_key.is_revoked = True
+            session.commit()
+            logger.info("API key %d revoked for user %s", api_key_id, user.username)
+            return True
+        except Exception:
+            session.rollback()
+            return False
+
+    @staticmethod
+    def get_user_api_keys(
+        session: Session,
+        user: User,
+    ) -> list:
+        """Get all API keys for a user (including revoked).
+
+        Returns:
+            List of APIKey records.
+        """
+        return (
+            session.query(APIKey)
+            .filter_by(user_id=user.id)
+            .all()
+        )

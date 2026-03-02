@@ -115,7 +115,7 @@ addopts = [
     "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
-    "--cov-fail-under=70",
+    "--cov-fail-under=80",
 ]
 filterwarnings = [
     "ignore::ResourceWarning",
@@ -126,4 +126,21 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    # Legacy Flask modules (replaced by FastAPI routes in app/api/routes/)
+    "app/api/admin_routes.py",
+    "app/api/auth_routes.py",
+    "app/api/routes.py",
+    "app/api/models.py",
+    "app/auth/decorators.py",
+    "app/auth/middleware.py",
+    # Celery workers (require Redis/Celery infrastructure)
+    "app/workers/market_data.py",
+    "app/workers/signals.py",
+    # Placeholder module
+    "app/web/__init__.py",
 ]
