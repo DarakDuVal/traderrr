@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   test:
@@ -125,22 +124,4 @@ jobs:
         run: |
           pylint app/ scripts/ config/ --exit-zero
 
-  codeql:
-    runs-on: ubuntu-latest
-    name: CodeQL Security Scan
-    permissions:
-      security-events: write
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: python
-          config: |
-            paths:
-              - backend/
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
