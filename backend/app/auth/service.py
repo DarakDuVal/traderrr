@@ -1,5 +1,5 @@
 """
-Authentication service layer (FastAPI / python-jose / passlib)
+Authentication service layer (FastAPI / python-jose / bcrypt)
 
 Provides JWT creation/decoding and password hashing.
 """
@@ -8,8 +8,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
 
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
+from jose import jwt
 from sqlalchemy.orm import Session
 
 from app.models.user import User, Role, RoleEnum
@@ -18,19 +18,21 @@ logger = logging.getLogger(__name__)
 
 # ── Password hashing ─────────────────────────────────────────────────────
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 ALGORITHM = "HS256"
 
 
 def hash_password(plain: str) -> str:
-    """Hash a plaintext password."""
-    return pwd_context.hash(plain)  # type: ignore[no-any-return]
+    """Hash a plaintext password using bcrypt."""
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(plain.encode("utf-8"), salt).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    """Verify a plaintext password against its hash."""
-    return pwd_context.verify(plain, hashed)  # type: ignore[no-any-return]
+    """Verify a plaintext password against its bcrypt hash."""
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 # ── JWT tokens ────────────────────────────────────────────────────────────

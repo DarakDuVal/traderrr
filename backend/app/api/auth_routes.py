@@ -5,12 +5,11 @@ Provides user registration, login, and token management endpoints.
 """
 
 import logging
-from typing import Tuple, Any
+from typing import Tuple
 from flask import Blueprint, request, jsonify, Response
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from app.auth import AuthService, validate_password_strength
-from app.auth.decorators import require_login, require_api_key
+from app.auth import AuthService
+from app.auth.decorators import require_login
 from app.db import get_db_manager
 from app.models import User
 

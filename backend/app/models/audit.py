@@ -5,7 +5,6 @@ This module provides generic audit logging capability for tracking
 application events and user actions across the system.
 """
 
-from datetime import datetime
 from sqlalchemy import String, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column
 

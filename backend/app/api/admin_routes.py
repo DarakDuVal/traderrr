@@ -6,7 +6,7 @@ Requires admin role for access.
 """
 
 import logging
-from typing import Tuple, Any
+from typing import Tuple
 from flask import Blueprint, request, jsonify, Response
 
 from app.auth import AuthService

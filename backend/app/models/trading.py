@@ -6,7 +6,7 @@ Tables:
 - portfolio_performance: Portfolio performance metrics over time
 """
 
-from datetime import date as date_type, datetime
+from datetime import date as date_type
 from decimal import Decimal
 from sqlalchemy import Date, Index, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column

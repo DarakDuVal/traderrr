@@ -10,7 +10,6 @@ Provides administrative commands for:
 import sys
 import logging
 import click
-from typing import Optional
 
 # Setup logging
 logging.basicConfig(
@@ -150,7 +149,7 @@ def init_db() -> None:
         try:
             # Create all tables
             # Import all models to ensure they're registered with SQLAlchemy
-            from app.models import (
+            from app.models import (  # noqa: F401
                 Base,
                 User,
                 Role,
