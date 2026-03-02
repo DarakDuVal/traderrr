@@ -500,6 +500,23 @@ class TestPortfolioManager(BaseTestCase):
         super().setUp()
         from app.core.portfolio_manager import PortfolioManager
 
+        # Create the portfolio_positions table with schema expected by PortfolioManager
+        import sqlite3
+
+        conn = sqlite3.connect(self.test_db.name)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS portfolio_positions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                ticker TEXT NOT NULL,
+                shares REAL NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, ticker)
+            )
+        """)
+        conn.commit()
+        conn.close()
+
         self.pm = PortfolioManager(db_path=self.test_db.name)
 
     def tearDown(self):

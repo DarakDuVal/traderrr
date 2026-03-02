@@ -25,6 +25,11 @@ class TestDataManager(BaseTestCase):
     def setUp(self):
         """Set up test fixtures"""
         super().setUp()
+        # Initialize database tables before creating DataManager
+        from config.database import DatabaseConfig
+
+        db_config = DatabaseConfig(self.test_db.name)
+        db_config.init_database()
         self.dm = DataManager(db_path=self.test_db.name)
 
         # Create sample data

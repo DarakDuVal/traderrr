@@ -28,6 +28,7 @@ class DatabaseConfig:
             # Daily data table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS daily_data (
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     date DATE,
                     open REAL,
@@ -45,6 +46,7 @@ class DatabaseConfig:
             # Intraday data table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS intraday_data (
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     datetime TIMESTAMP,
                     open REAL,
@@ -73,6 +75,7 @@ class DatabaseConfig:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS signal_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     date DATE,
                     signal_type TEXT,
@@ -91,6 +94,7 @@ class DatabaseConfig:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS portfolio_performance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     date DATE,
                     portfolio_value REAL,
                     daily_return REAL,
@@ -116,10 +120,13 @@ class DatabaseConfig:
             # Portfolio positions table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS portfolio_positions (
-                    ticker TEXT PRIMARY KEY,
-                    shares REAL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
+                    ticker TEXT NOT NULL,
+                    shares REAL NOT NULL DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, ticker)
                 )
             """)
 

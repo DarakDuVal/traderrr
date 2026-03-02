@@ -73,6 +73,7 @@ class BaseTestCase(unittest.TestCase):
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS daily_data (
+                user_id INTEGER NOT NULL DEFAULT 1,
                 ticker TEXT, date DATE, open REAL, high REAL, low REAL,
                 close REAL, volume INTEGER, dividends REAL, stock_splits REAL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -81,6 +82,7 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS intraday_data (
+                user_id INTEGER NOT NULL DEFAULT 1,
                 ticker TEXT, datetime TIMESTAMP, open REAL, high REAL,
                 low REAL, close REAL, volume INTEGER,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -95,8 +97,9 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS signal_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT,
-                date DATE, signal_type TEXT, signal_value REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                ticker TEXT, date DATE, signal_type TEXT, signal_value REAL,
                 confidence REAL, entry_price REAL, target_price REAL,
                 stop_loss REAL, regime TEXT, reasons TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -104,9 +107,10 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS portfolio_performance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, date DATE,
-                portfolio_value REAL, daily_return REAL, volatility REAL,
-                sharpe_ratio REAL, max_drawdown REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                date DATE, portfolio_value REAL, daily_return REAL,
+                volatility REAL, sharpe_ratio REAL, max_drawdown REAL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -119,9 +123,12 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS portfolio_positions (
-                ticker TEXT PRIMARY KEY, shares REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                ticker TEXT NOT NULL, shares REAL NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, ticker)
             )
         """)
         cursor.execute("""
