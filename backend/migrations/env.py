@@ -40,7 +40,9 @@ target_metadata = Base.metadata
 
 # Get database URL from environment or use config file
 if database_url := os.getenv("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", database_url)
+    # Alembic runs synchronously — strip async driver prefix
+    sync_url = database_url.replace("+asyncpg", "")
+    config.set_main_option("sqlalchemy.url", sync_url)
 
 
 def run_migrations_offline() -> None:

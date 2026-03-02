@@ -1,20 +1,4 @@
 """
 app/api/__init__.py
-API package initialization
+API package initialization (FastAPI routers)
 """
-
-from .routes import api_bp
-from .models import (
-    SignalType,
-    MarketRegime,
-    TradingSignalResponse,
-    PortfolioMetricsResponse,
-)
-
-__all__ = [
-    "api_bp",
-    "SignalType",
-    "MarketRegime",
-    "TradingSignalResponse",
-    "PortfolioMetricsResponse",
-]

@@ -1,31 +1,23 @@
 """
-Authentication module
-
-Provides authentication, authorization, and security utilities.
+Authentication module (FastAPI / python-jose / passlib)
 """
 
-from app.auth.security import (
-    PasswordSecurity,
-    APIKeySecurity,
-    TokenSecurity,
+from app.auth.service import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
     validate_password_strength,
-)
-from app.auth.service import AuthService
-from app.auth.decorators import (
-    require_login,
-    require_role,
-    require_api_key,
-    require_authentication,
+    AuthService,
 )
 
 __all__ = [
-    "PasswordSecurity",
-    "APIKeySecurity",
-    "TokenSecurity",
+    "hash_password",
+    "verify_password",
+    "create_access_token",
+    "create_refresh_token",
+    "decode_token",
     "validate_password_strength",
     "AuthService",
-    "require_login",
-    "require_role",
-    "require_api_key",
-    "require_authentication",
 ]

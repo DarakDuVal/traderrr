@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Default: Celery worker.  Override CMD for beat in docker-compose.
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
+CMD ["python", "-m", "celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
