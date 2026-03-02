@@ -24,11 +24,14 @@ def _db_available() -> bool:
     try:
         from config.settings import get_settings
         from app.db import DatabaseManager
+        from sqlalchemy import text
 
         db = DatabaseManager(get_settings().DATABASE_URL_SYNC)
         session = db.get_session()
-        session.execute(__import__("sqlalchemy").text("SELECT 1"))
-        session.close()
+        try:
+            session.execute(text("SELECT 1"))
+        finally:
+            session.close()
         return True
     except Exception:
         return False
