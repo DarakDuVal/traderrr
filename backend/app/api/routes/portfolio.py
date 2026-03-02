@@ -76,7 +76,7 @@ async def update_position(
             status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
         )
     if body.shares is not None:
-        position.shares = float(body.shares)
+        position.shares = body.shares  # type: ignore[assignment]
     await db.flush()
     await db.refresh(position)
     return PositionResponse.model_validate(position)  # type: ignore[no-any-return]
