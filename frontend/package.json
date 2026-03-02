@@ -1,14 +1,37 @@
 {
   "name": "@traderrr/frontend",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "echo 'frontend build placeholder'",
-    "lint": "echo 'frontend lint placeholder'",
-    "dev": "echo 'frontend dev placeholder'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.62.0",
+    "@traderrr/api-client": "workspace:*",
     "@traderrr/types": "workspace:*",
-    "@traderrr/api-client": "workspace:*"
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "next": "16.1.6",
+    "next-themes": "^0.4.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^2.6.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
