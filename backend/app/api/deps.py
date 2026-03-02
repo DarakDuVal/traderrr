@@ -12,7 +12,12 @@ from typing import AsyncIterator, Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from config.settings import Settings, get_settings
 from app.auth.service import decode_token
@@ -70,6 +75,7 @@ async def get_db(
 
 # ── Current user (JWT) ────────────────────────────────────────────────────
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
@@ -94,6 +100,7 @@ async def get_current_user(
 
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
+
     result = await db.execute(
         select(User).options(selectinload(User.role)).where(User.id == int(user_id))
     )
@@ -109,8 +116,10 @@ async def get_current_user(
 
 # ── Role-based access ─────────────────────────────────────────────────────
 
+
 def require_role(*allowed_roles: str) -> Callable:
     """Return a dependency that checks the user's role."""
+
     async def _check_role(
         current_user: User = Depends(get_current_user),
     ) -> User:
@@ -120,4 +129,5 @@ def require_role(*allowed_roles: str) -> Callable:
                 detail=f"Access denied. Required role: {', '.join(allowed_roles)}",
             )
         return current_user
+
     return _check_role

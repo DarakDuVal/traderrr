@@ -36,7 +36,9 @@ async def get_portfolio(
     return [PositionResponse.model_validate(p) for p in positions]
 
 
-@router.post("/positions", response_model=PositionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/positions", response_model=PositionResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_position(
     body: PositionCreate,
     db: AsyncSession = Depends(get_db),
@@ -70,7 +72,9 @@ async def update_position(
     )
     position = result.scalar_one_or_none()
     if not position:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
+        )
     if body.shares is not None:
         position.shares = body.shares
     await db.flush()
@@ -93,7 +97,9 @@ async def delete_position(
     )
     position = result.scalar_one_or_none()
     if not position:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Position not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
+        )
     await db.delete(position)
 
 

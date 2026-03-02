@@ -105,9 +105,7 @@ async def refresh(
 
     user_id = payload.get("sub")
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.role))
-        .where(User.id == int(user_id))
+        select(User).options(selectinload(User.role)).where(User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
 

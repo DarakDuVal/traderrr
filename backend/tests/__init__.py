@@ -204,14 +204,16 @@ class SampleDataGenerator:
             daily_return = np.random.normal(0.0005, 0.01)
             new_value = values[-1] * (1 + daily_return)
             values.append(new_value)
-            performance.append({
-                "date": (datetime.now() - timedelta(days=days - i)).date(),
-                "portfolio_value": new_value,
-                "daily_return": daily_return,
-                "volatility": 0.15,
-                "sharpe_ratio": 1.2,
-                "max_drawdown": 0.05,
-            })
+            performance.append(
+                {
+                    "date": (datetime.now() - timedelta(days=days - i)).date(),
+                    "portfolio_value": new_value,
+                    "daily_return": daily_return,
+                    "volatility": 0.15,
+                    "sharpe_ratio": 1.2,
+                    "max_drawdown": 0.05,
+                }
+            )
         return performance
 
 
@@ -227,6 +229,7 @@ class YFinanceMockHelper:
                 [ticker_data.get(t, pd.DataFrame()).assign(Ticker=t) for t in tickers],
                 ignore_index=True,
             )
+
         return mock_download
 
     @staticmethod
@@ -234,8 +237,10 @@ class YFinanceMockHelper:
         class MockTicker:
             def __init__(self, ticker_name):
                 self.ticker_name = ticker_name
+
             def history(self, period="1y", start=None, end=None):
                 return SampleDataGenerator.generate_ohlcv_data(self.ticker_name)
+
             def info(self):
                 return {
                     "symbol": self.ticker_name,
@@ -244,4 +249,5 @@ class YFinanceMockHelper:
                     "industry": "Software",
                     "marketCap": 2000000000000,
                 }
+
         return MockTicker

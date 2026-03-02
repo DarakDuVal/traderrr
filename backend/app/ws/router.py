@@ -98,9 +98,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         try:
             while True:
                 await asyncio.sleep(30)
-                await websocket.send_text(
-                    json.dumps(_make_message("ping"))
-                )
+                await websocket.send_text(json.dumps(_make_message("ping")))
         except Exception:
             pass
 

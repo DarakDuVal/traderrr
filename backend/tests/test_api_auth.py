@@ -269,9 +269,7 @@ class TestAPIKeyManagement:
     def test_create_access_token_returns_jwt(self) -> None:
         """Test that create_access_token returns a JWT string"""
         secret = "test-secret-key-for-jwt-testing-32chars"
-        token = create_access_token(
-            subject="test_user", role="user", secret_key=secret
-        )
+        token = create_access_token(subject="test_user", role="user", secret_key=secret)
         assert isinstance(token, str)
         # JWT tokens have 3 parts separated by dots
         assert token.count(".") == 2
@@ -288,10 +286,6 @@ class TestAPIKeyManagement:
     def test_create_access_token_different_users(self) -> None:
         """Test that different users get different tokens"""
         secret = "test-secret-key-for-jwt-testing-32chars"
-        token1 = create_access_token(
-            subject="user1", role="user", secret_key=secret
-        )
-        token2 = create_access_token(
-            subject="user2", role="user", secret_key=secret
-        )
+        token1 = create_access_token(subject="user1", role="user", secret_key=secret)
+        token2 = create_access_token(subject="user2", role="user", secret_key=secret)
         assert token1 != token2

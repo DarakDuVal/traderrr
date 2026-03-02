@@ -20,7 +20,9 @@ class CorrelationResponse(BaseModel):
 
 class StressTestRequest(BaseModel):
     scenario: str = Field(..., description="Scenario name or description")
-    market_change: float = Field(..., description="Market change as decimal (-0.20 = -20%)")
+    market_change: float = Field(
+        ..., description="Market change as decimal (-0.20 = -20%)"
+    )
     volatility_multiplier: float = Field(1.5, gt=0, description="Volatility multiplier")
 
 

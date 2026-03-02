@@ -39,8 +39,10 @@ async def list_signals(
     result = await db.execute(query)
     signals = result.scalars().all()
 
-    count_q = select(func.count()).select_from(SignalHistory).where(
-        SignalHistory.user_id == current_user.id
+    count_q = (
+        select(func.count())
+        .select_from(SignalHistory)
+        .where(SignalHistory.user_id == current_user.id)
     )
     total = (await db.execute(count_q)).scalar() or 0
 

@@ -62,12 +62,17 @@ async def create_user(
     )
     if existing.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Username or email already exists"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already exists",
         )
 
-    role_obj = (await db.execute(select(Role).where(Role.name == role))).scalar_one_or_none()
+    role_obj = (
+        await db.execute(select(Role).where(Role.name == role))
+    ).scalar_one_or_none()
     if not role_obj:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Role '{role}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Role '{role}' not found"
+        )
 
     user = User(
         username=username,
@@ -101,7 +106,9 @@ async def deactivate_user(
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     user.status = "inactive"
     await db.flush()
     return {"detail": f"User {user.username} deactivated"}

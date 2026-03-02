@@ -297,7 +297,9 @@ class TestJWTTokens:
         """Test access token creation"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
         token = create_access_token(
-            subject=user.id, role=user.role.name, secret_key=self.SECRET,
+            subject=user.id,
+            role=user.role.name,
+            secret_key=self.SECRET,
         )
 
         assert token is not None
@@ -308,7 +310,9 @@ class TestJWTTokens:
         """Test that token contains user_id"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
         token = create_access_token(
-            subject=user.id, role=user.role.name, secret_key=self.SECRET,
+            subject=user.id,
+            role=user.role.name,
+            secret_key=self.SECRET,
         )
 
         # Token should be decodable (basic JWT structure check)
@@ -342,7 +346,9 @@ class TestAPIKeyManagement:
         yield session
         session.close()
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_create_api_key(self, db_with_user):
         """Test API key creation"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
@@ -356,7 +362,9 @@ class TestAPIKeyManagement:
         assert api_key_record.name == "Test Key"
         assert api_key_record.user_id == user.id
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_create_api_key_with_expiration(self, db_with_user):
         """Test API key creation with expiration"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
@@ -367,7 +375,9 @@ class TestAPIKeyManagement:
 
         assert api_key_record.expires_at is not None
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_verify_api_key(self, db_with_user):
         """Test API key verification"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
@@ -380,7 +390,9 @@ class TestAPIKeyManagement:
         assert verified_user is not None
         assert verified_user.id == user.id
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_revoke_api_key(self, db_with_user):
         """Test API key revocation"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
@@ -397,7 +409,9 @@ class TestAPIKeyManagement:
         verified_user = AuthService.verify_api_key(db_with_user, plaintext_key)
         assert verified_user is None
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_get_user_api_keys(self, db_with_user):
         """Test listing user API keys"""
         user = db_with_user.query(User).filter_by(username="testuser").first()
@@ -486,7 +500,11 @@ class TestAuthenticationAPI:
     def _seed_user(self, db_session, username, email, password):
         """Seed a user via sync session for endpoint testing."""
         AuthService.register_user(
-            db_session, username, email, password, role_name=RoleEnum.USER,
+            db_session,
+            username,
+            email,
+            password,
+            role_name=RoleEnum.USER,
         )
 
     def test_login_endpoint(self, db_session, client, seed_roles):
@@ -505,7 +523,10 @@ class TestAuthenticationAPI:
     def test_register_invalid_password(self, db_session, client, seed_roles):
         """Test registration with invalid password via AuthService"""
         success, user, error = AuthService.register_user(
-            db_session, "testuser", "test@example.com", "weak",
+            db_session,
+            "testuser",
+            "test@example.com",
+            "weak",
             role_name=RoleEnum.USER,
         )
 
@@ -614,9 +635,7 @@ class TestAuthInitialization:
         from app.db import DatabaseManager
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -643,9 +662,7 @@ class TestAuthInitialization:
         from app.db import DatabaseManager
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -668,9 +685,7 @@ class TestAuthInitialization:
         from app.db import DatabaseManager
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -710,9 +725,7 @@ class TestAuthInitialization:
         from app.db import DatabaseManager
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -742,9 +755,7 @@ class TestAuthInitialization:
         os.environ.pop("ADMIN_USERNAME", None)
         os.environ.pop("ADMIN_PASSWORD", None)
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -764,9 +775,7 @@ class TestAuthInitialization:
         os.environ["ADMIN_USERNAME"] = "envadmin"
         os.environ["ADMIN_PASSWORD"] = "EnvAdminPass123"
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -793,9 +802,7 @@ class TestAuthInitialization:
         from app.db import DatabaseManager
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -836,9 +843,7 @@ class TestAuthInitialization:
         os.environ.pop("ADMIN_USERNAME", None)
         os.environ.pop("ADMIN_PASSWORD", None)
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -863,9 +868,7 @@ class TestAuthInitialization:
         os.environ["ADMIN_USERNAME"] = username
         os.environ["ADMIN_PASSWORD"] = "TempPass123"
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -885,9 +888,7 @@ class TestAuthInitialization:
         from app.models import Role, RoleEnum
         from config.settings import Config
 
-        db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(db_manager.engine)
         session = db_manager.get_session()
         try:
@@ -912,9 +913,7 @@ class TestAuthService:
         """Set up test database and service"""
         from app.db import DatabaseManager
 
-        self.db_manager = DatabaseManager(
-            "sqlite:///:memory:"
-        )
+        self.db_manager = DatabaseManager("sqlite:///:memory:")
         Base.metadata.create_all(self.db_manager.engine)
         self.session = self.db_manager.get_session()
 
@@ -1132,7 +1131,9 @@ class TestAuthService:
         assert isinstance(token, str)
         assert token.count(".") == 2
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_create_api_key_success(self) -> None:
         """Test successful API key creation"""
         from app.auth.service import AuthService
@@ -1159,7 +1160,9 @@ class TestAuthService:
         assert api_key.name == "test-key"
         assert api_key.is_revoked is False
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_create_api_key_with_expiration(self) -> None:
         """Test API key creation with expiration"""
         from app.auth.service import AuthService
@@ -1186,7 +1189,9 @@ class TestAuthService:
         assert api_key is not None
         assert api_key.expires_at is not None
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_verify_api_key_valid(self) -> None:
         """Test API key verification with valid key"""
         from app.auth.service import AuthService
@@ -1212,7 +1217,9 @@ class TestAuthService:
         assert verified_user is not None
         assert verified_user.id == user.id
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_verify_api_key_invalid(self) -> None:
         """Test API key verification with invalid key"""
         from app.auth.service import AuthService
@@ -1221,7 +1228,9 @@ class TestAuthService:
 
         assert verified_user is None
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_revoke_api_key_success(self) -> None:
         """Test successful API key revocation"""
         from app.auth.service import AuthService
@@ -1249,7 +1258,9 @@ class TestAuthService:
         revoked_key = self.session.query(APIKey).filter_by(id=api_key.id).first()
         assert revoked_key.is_revoked is True
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_revoke_api_key_not_found(self) -> None:
         """Test revocation of non-existent API key"""
         from app.auth.service import AuthService
@@ -1269,7 +1280,9 @@ class TestAuthService:
 
         assert success is False
 
-    @pytest.mark.skip(reason="API key management not yet implemented in FastAPI AuthService")
+    @pytest.mark.skip(
+        reason="API key management not yet implemented in FastAPI AuthService"
+    )
     def test_get_user_api_keys(self) -> None:
         """Test listing user API keys"""
         from app.auth.service import AuthService
@@ -1364,14 +1377,21 @@ class TestAuthenticationCompleteFlow:
 
     SECRET = "test-secret-key-for-jwt-testing-32chars"
 
-    def _seed_user(self, db_session, username, email, password, role_name=RoleEnum.USER):
+    def _seed_user(
+        self, db_session, username, email, password, role_name=RoleEnum.USER
+    ):
         """Seed a user via sync session."""
-        AuthService.register_user(db_session, username, email, password, role_name=role_name)
+        AuthService.register_user(
+            db_session, username, email, password, role_name=role_name
+        )
 
     def test_scenario_first_time_registration(self, db_session, seed_roles):
         """BDD: First-time user registration with unique username and email"""
         success, user, error = AuthService.register_user(
-            db_session, "newuser", "newuser@example.com", "FirstPass123",
+            db_session,
+            "newuser",
+            "newuser@example.com",
+            "FirstPass123",
             role_name=RoleEnum.USER,
         )
 
@@ -1383,12 +1403,18 @@ class TestAuthenticationCompleteFlow:
     def test_scenario_registration_duplicate_username(self, db_session, seed_roles):
         """BDD: Registration fails with duplicate username"""
         AuthService.register_user(
-            db_session, "duplicate", "user1@example.com", "Pass1234",
+            db_session,
+            "duplicate",
+            "user1@example.com",
+            "Pass1234",
             role_name=RoleEnum.USER,
         )
 
         success, user, error = AuthService.register_user(
-            db_session, "duplicate", "user2@example.com", "Pass1234",
+            db_session,
+            "duplicate",
+            "user2@example.com",
+            "Pass1234",
             role_name=RoleEnum.USER,
         )
 
@@ -1397,7 +1423,9 @@ class TestAuthenticationCompleteFlow:
 
     def test_scenario_returning_user_login(self, db_session, client, seed_roles):
         """BDD: Returning user logs in with valid credentials"""
-        self._seed_user(db_session, "returning", "returning@example.com", "ReturnPass123")
+        self._seed_user(
+            db_session, "returning", "returning@example.com", "ReturnPass123"
+        )
 
         response = client.post(
             "/api/v1/auth/login",
@@ -1410,7 +1438,9 @@ class TestAuthenticationCompleteFlow:
 
     def test_scenario_user_with_valid_token(self, db_session, client, seed_roles):
         """BDD: User with valid token accesses portfolio"""
-        self._seed_user(db_session, "tokenuser", "tokenuser@example.com", "TokenPass123")
+        self._seed_user(
+            db_session, "tokenuser", "tokenuser@example.com", "TokenPass123"
+        )
 
         login_response = client.post(
             "/api/v1/auth/login",
@@ -1429,7 +1459,9 @@ class TestAuthenticationCompleteFlow:
 
     def test_scenario_user_logout(self, db_session, client, seed_roles):
         """BDD: User can logout successfully"""
-        self._seed_user(db_session, "logoutuser", "logoutuser@example.com", "LogoutPass123")
+        self._seed_user(
+            db_session, "logoutuser", "logoutuser@example.com", "LogoutPass123"
+        )
 
         login_response = client.post(
             "/api/v1/auth/login",
@@ -1446,9 +1478,13 @@ class TestAuthenticationCompleteFlow:
         data = response.json()
         assert "logged out" in data["detail"].lower()
 
-    def test_scenario_invalid_password_login_fails(self, db_session, client, seed_roles):
+    def test_scenario_invalid_password_login_fails(
+        self, db_session, client, seed_roles
+    ):
         """BDD: Login fails with invalid password"""
-        self._seed_user(db_session, "invalidpass", "invalidpass@example.com", "CorrectPass123")
+        self._seed_user(
+            db_session, "invalidpass", "invalidpass@example.com", "CorrectPass123"
+        )
 
         response = client.post(
             "/api/v1/auth/login",
@@ -1468,7 +1504,10 @@ class TestAuthenticationCompleteFlow:
     def test_scenario_weak_password_registration_fails(self, db_session, seed_roles):
         """BDD: Registration fails with weak password"""
         success, user, error = AuthService.register_user(
-            db_session, "weakpass", "weakpass@example.com", "weak",
+            db_session,
+            "weakpass",
+            "weakpass@example.com",
+            "weak",
             role_name=RoleEnum.USER,
         )
 
@@ -1478,7 +1517,10 @@ class TestAuthenticationCompleteFlow:
     def test_scenario_registration_missing_fields(self, db_session, seed_roles):
         """BDD: Registration fails with missing fields"""
         success, user, error = AuthService.register_user(
-            db_session, "nopass", "nopass@example.com", "",
+            db_session,
+            "nopass",
+            "nopass@example.com",
+            "",
             role_name=RoleEnum.USER,
         )
 
