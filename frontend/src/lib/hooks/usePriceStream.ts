@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useCallback, useSyncExternalStore } from "react";
 import { useWebSocket } from "./useWebSocket";
 
 interface PriceData {
@@ -12,21 +12,33 @@ interface PriceData {
 
 export function usePriceStream() {
   const { lastMessage, connectionStatus } = useWebSocket();
-  const [prices, setPrices] = useState<Map<string, PriceData>>(new Map());
+  const pricesRef = useRef<Map<string, PriceData>>(new Map());
+  const lastProcessedRef = useRef<MessageEvent | null>(null);
 
-  useEffect(() => {
-    if (!lastMessage) return;
-
-    try {
-      const data = JSON.parse(lastMessage.data);
-      if (data.type === "price" && data.payload) {
-        const price = data.payload as PriceData;
-        setPrices((prev) => new Map(prev).set(price.ticker, price));
+  const getSnapshot = useCallback(() => {
+    if (lastMessage && lastMessage !== lastProcessedRef.current) {
+      lastProcessedRef.current = lastMessage;
+      try {
+        const data = JSON.parse(lastMessage.data);
+        if (data.type === "price" && data.payload) {
+          const price = data.payload as PriceData;
+          pricesRef.current = new Map(pricesRef.current).set(price.ticker, price);
+        }
+      } catch {
+        // Ignore parse errors
       }
-    } catch {
-      // Ignore parse errors
     }
+    return pricesRef.current;
   }, [lastMessage]);
+
+  const prices = useSyncExternalStore(
+    (cb) => {
+      cb();
+      return () => {};
+    },
+    getSnapshot,
+    () => new Map<string, PriceData>()
+  );
 
   return { prices, connectionStatus };
 }
