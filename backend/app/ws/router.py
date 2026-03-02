@@ -71,7 +71,7 @@ def _make_message(msg_type: str, payload: dict | None = None) -> dict:
     }
 
 
-@router.websocket("/ws")
+@router.websocket("/ws")  # type: ignore[misc, untyped-decorator]
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """
     WebSocket endpoint with JWT query-parameter authentication
@@ -98,9 +98,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         try:
             while True:
                 await asyncio.sleep(30)
-                await websocket.send_text(
-                    json.dumps(_make_message("ping"))
-                )
+                await websocket.send_text(json.dumps(_make_message("ping")))
         except Exception:
             pass
 

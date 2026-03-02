@@ -26,9 +26,9 @@ class DatabaseConfig:
             cursor = conn.cursor()
 
             # Daily data table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS daily_data (
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     date DATE,
                     open REAL,
@@ -41,13 +41,12 @@ class DatabaseConfig:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (ticker, date)
                 )
-            """
-            )
+            """)
 
             # Intraday data table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS intraday_data (
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     datetime TIMESTAMP,
                     open REAL,
@@ -58,12 +57,10 @@ class DatabaseConfig:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (ticker, datetime)
                 )
-            """
-            )
+            """)
 
             # Metadata table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS metadata (
                     ticker TEXT PRIMARY KEY,
                     company_name TEXT,
@@ -72,14 +69,13 @@ class DatabaseConfig:
                     market_cap REAL,
                     last_updated TIMESTAMP
                 )
-            """
-            )
+            """)
 
             # Signal history table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS signal_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     ticker TEXT,
                     date DATE,
                     signal_type TEXT,
@@ -92,14 +88,13 @@ class DatabaseConfig:
                     reasons TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """
-            )
+            """)
 
             # Portfolio performance table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS portfolio_performance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
                     date DATE,
                     portfolio_value REAL,
                     daily_return REAL,
@@ -108,12 +103,10 @@ class DatabaseConfig:
                     max_drawdown REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """
-            )
+            """)
 
             # System events table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS system_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     event_type TEXT,
@@ -122,35 +115,31 @@ class DatabaseConfig:
                     severity TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """
-            )
+            """)
 
             # Portfolio positions table
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS portfolio_positions (
-                    ticker TEXT PRIMARY KEY,
-                    shares REAL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL DEFAULT 1,
+                    ticker TEXT NOT NULL,
+                    shares REAL NOT NULL DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, ticker)
                 )
-            """
-            )
+            """)
 
             # Create indexes for performance
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_daily_data_ticker_date 
                 ON daily_data(ticker, date DESC)
-            """
-            )
+            """)
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_signal_history_ticker_date
                 ON signal_history(ticker, date DESC)
-            """
-            )
+            """)
 
             conn.commit()
             conn.close()

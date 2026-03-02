@@ -26,8 +26,8 @@ from app.models.user import User, Role, RoleEnum
 from app.auth.service import hash_password, create_access_token
 from config.settings import Settings
 
-
 # ── Warning suppression (preserved from legacy conftest) ──────────────────
+
 
 def pytest_configure(config):
     warnings.filterwarnings("ignore", category=ResourceWarning)
@@ -60,6 +60,7 @@ _TEST_SECRET = "test-secret-key-for-jwt-testing-32chars"
 
 
 # ── File-based SQLite for shared sync/async access ───────────────────────
+
 
 @pytest.fixture()
 def db_file():
@@ -106,6 +107,7 @@ def db_session(db_engine):
 
 
 # ── Seed roles and test user ──────────────────────────────────────────────
+
 
 @pytest.fixture()
 def seed_roles(db_session):
@@ -159,6 +161,7 @@ def admin_user(seed_roles):
 
 def _get_test_settings(db_file: str):
     """Return a factory for test Settings pointing at the given db file."""
+
     def _factory() -> Settings:
         return Settings(
             DATABASE_URL=f"sqlite+aiosqlite:///{db_file}",
@@ -166,10 +169,12 @@ def _get_test_settings(db_file: str):
             ENVIRONMENT="testing",
             REDIS_URL="redis://localhost:6379/0",
         )
+
     return _factory
 
 
 # ── FastAPI TestClient ────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def client(db_file, db_engine, seed_roles):
@@ -207,6 +212,7 @@ def client(db_file, db_engine, seed_roles):
 
 
 # ── Auth headers ──────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def auth_headers(test_user) -> dict:

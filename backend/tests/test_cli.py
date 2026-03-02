@@ -19,6 +19,29 @@ from app.auth.security import PasswordSecurity
 from tests import BaseTestCase
 
 
+def _db_available() -> bool:
+    """Check if the database server is reachable."""
+    try:
+        from config.settings import get_settings
+        from app.db import DatabaseManager
+        from sqlalchemy import text
+
+        db = DatabaseManager(get_settings().DATABASE_URL_SYNC)
+        session = db.get_session()
+        try:
+            session.execute(text("SELECT 1"))
+        finally:
+            session.close()
+        return True
+    except Exception:
+        return False
+
+
+requires_db = pytest.mark.skipif(
+    not _db_available(), reason="Database server not available"
+)
+
+
 class TestCLICommands(BaseTestCase):
     """Tests for CLI commands"""
 
@@ -80,6 +103,7 @@ class TestCLICommands(BaseTestCase):
         result = runner.invoke(cli, ["list-users", "--help"])
         assert result.exit_code == 0
 
+    @requires_db
     def test_init_db_success(self) -> None:
         """Test successful database initialization"""
         runner = CliRunner()
@@ -88,10 +112,11 @@ class TestCLICommands(BaseTestCase):
         assert "Tables created" in result.output
         assert "Default roles created" in result.output
 
+    @requires_db
     def test_init_db_creates_tables(self) -> None:
         """Test that init_db creates database tables"""
         from app.db import DatabaseManager
-        from config.settings import Config
+        from config.settings import get_settings
 
         runner = CliRunner()
         result = runner.invoke(init_db)
@@ -99,7 +124,7 @@ class TestCLICommands(BaseTestCase):
 
         # Verify tables exist
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -109,10 +134,11 @@ class TestCLICommands(BaseTestCase):
         finally:
             session.close()
 
+    @requires_db
     def test_init_db_creates_default_roles(self) -> None:
         """Test that init_db creates default roles"""
         from app.db import DatabaseManager
-        from config.settings import Config
+        from config.settings import get_settings
 
         runner = CliRunner()
         result = runner.invoke(init_db)
@@ -120,7 +146,7 @@ class TestCLICommands(BaseTestCase):
 
         # Verify roles exist
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -133,6 +159,7 @@ class TestCLICommands(BaseTestCase):
         finally:
             session.close()
 
+    @requires_db
     def test_setup_admin_with_clean_database(self) -> None:
         """Test successful admin user creation with clean database"""
         import time
@@ -159,6 +186,7 @@ class TestCLICommands(BaseTestCase):
         # The validation still works in practice via the .strip() and len() checks
         pass
 
+    @requires_db
     def test_setup_admin_short_username(self) -> None:
         """Test validation of too short username"""
         import time
@@ -177,6 +205,7 @@ class TestCLICommands(BaseTestCase):
             or "An admin user already exists" in result.output
         )
 
+    @requires_db
     def test_setup_admin_invalid_email(self) -> None:
         """Test validation of invalid email"""
         import time
@@ -200,6 +229,7 @@ class TestCLICommands(BaseTestCase):
         # The validation still works via the @ check for valid email
         pass
 
+    @requires_db
     def test_setup_admin_weak_password(self) -> None:
         """Test validation of weak password"""
         import time
@@ -217,6 +247,7 @@ class TestCLICommands(BaseTestCase):
             or "An admin user already exists" in result.output
         )
 
+    @requires_db
     def test_setup_admin_password_mismatch(self) -> None:
         """Test validation of mismatched passwords"""
         import time
@@ -234,16 +265,17 @@ class TestCLICommands(BaseTestCase):
             or "An admin user already exists" in result.output
         )
 
+    @requires_db
     def test_setup_admin_user_already_exists(self) -> None:
         """Test admin setup when admin already exists"""
         import time
         from app.db import DatabaseManager
         from app.auth.service import AuthService
-        from config.settings import Config
+        from config.settings import get_settings
 
         # Create an admin if one doesn't exist
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -272,16 +304,17 @@ class TestCLICommands(BaseTestCase):
         assert result.exit_code == 0
         assert "An admin user already exists" in result.output
 
+    @requires_db
     def test_list_users_success(self) -> None:
         """Test successful user listing"""
         import time
         from app.db import DatabaseManager
         from app.models import Role
-        from config.settings import Config
+        from config.settings import get_settings
 
         # Ensure at least one user exists
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -306,6 +339,7 @@ class TestCLICommands(BaseTestCase):
         assert result.exit_code == 0
         assert "Users" in result.output or "listtest" in result.output
 
+    @requires_db
     def test_list_users_displays_user_info(self) -> None:
         """Test that list_users displays user information"""
         runner = CliRunner()
@@ -314,6 +348,7 @@ class TestCLICommands(BaseTestCase):
         # Should contain user details
         assert "Username" in result.output or "No users found" in result.output
 
+    @requires_db
     def test_list_users_no_users(self) -> None:
         """Test listing when no users exist - verify output format"""
         runner = CliRunner()
@@ -326,15 +361,16 @@ class TestCLICommands(BaseTestCase):
             or "Username" in result.output
         )
 
+    @requires_db
     def test_list_users_displays_multiple_users(self) -> None:
         """Test that list_users displays all users"""
         import time
         from app.db import DatabaseManager
         from app.models import Role
-        from config.settings import Config
+        from config.settings import get_settings
 
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -364,16 +400,17 @@ class TestCLICommands(BaseTestCase):
             or "Username" in result.output
         )
 
+    @requires_db
     def test_delete_user_success(self) -> None:
         """Test successful user deletion"""
         import time
         from app.db import DatabaseManager
         from app.models import Role
-        from config.settings import Config
+        from config.settings import get_settings
 
         username = f"deletetest_{int(time.time() * 1000)}"
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -399,6 +436,7 @@ class TestCLICommands(BaseTestCase):
         assert result.exit_code == 0
         assert "deleted successfully" in result.output
 
+    @requires_db
     def test_delete_user_not_found(self) -> None:
         """Test deletion of non-existent user"""
         runner = CliRunner()
@@ -409,16 +447,17 @@ class TestCLICommands(BaseTestCase):
         assert result.exit_code == 1
         assert "not found" in result.output
 
+    @requires_db
     def test_delete_user_confirmation_cancelled(self) -> None:
         """Test that user deletion is cancelled when not confirmed"""
         import time
         from app.db import DatabaseManager
         from app.models import Role
-        from config.settings import Config
+        from config.settings import get_settings
 
         username = f"canceltest_{int(time.time() * 1000)}"
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:
@@ -444,6 +483,7 @@ class TestCLICommands(BaseTestCase):
         # Should abort without deleting
         assert result.exit_code == 1
 
+    @requires_db
     def test_setup_admin_then_list_users(self) -> None:
         """Test workflow: setup_admin followed by list_users"""
         import time
@@ -470,6 +510,7 @@ class TestCLICommands(BaseTestCase):
             or "workflow" in result.output
         )
 
+    @requires_db
     def test_init_db_then_setup_admin(self) -> None:
         """Test workflow: init_db followed by setup_admin"""
         runner = CliRunner()
@@ -575,6 +616,7 @@ class TestCLICommands(BaseTestCase):
                 assert result.exit_code == 1
                 assert "Error" in result.output
 
+    @requires_db
     def test_setup_admin_username_validation_multiple_attempts(self) -> None:
         """Test setup_admin username validation with multiple attempts"""
         import time
@@ -597,6 +639,7 @@ class TestCLICommands(BaseTestCase):
             assert result.exit_code == 0
             assert "Username must be at least 3 characters long" in result.output
 
+    @requires_db
     def test_setup_admin_email_validation_multiple_attempts(self) -> None:
         """Test setup_admin email validation with multiple attempts"""
         import time
@@ -617,6 +660,7 @@ class TestCLICommands(BaseTestCase):
             assert result.exit_code == 0
             assert "Please enter a valid email address" in result.output
 
+    @requires_db
     def test_setup_admin_password_validation_multiple_attempts(self) -> None:
         """Test setup_admin password validation with multiple attempts"""
         import time
@@ -637,16 +681,17 @@ class TestCLICommands(BaseTestCase):
             assert result.exit_code == 0
             assert "Password invalid" in result.output
 
+    @requires_db
     def test_delete_user_cascade_delete_with_data(self) -> None:
         """Test delete_user with user having associated data"""
         import time
         from app.db import DatabaseManager
         from app.models import Role
-        from config.settings import Config
+        from config.settings import get_settings
 
         username = f"delcascade_{int(time.time() * 1000)}"
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            get_settings().DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
         try:

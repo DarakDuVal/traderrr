@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse)  # type: ignore[misc, untyped-decorator]
 async def login(
     body: LoginRequest,
     response: Response,
@@ -75,7 +75,7 @@ async def login(
     return TokenResponse(access_token=access)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse)  # type: ignore[misc, untyped-decorator]
 async def refresh(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -104,10 +104,13 @@ async def refresh(
         )
 
     user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.role))
-        .where(User.id == int(user_id))
+        select(User).options(selectinload(User.role)).where(User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
 
@@ -126,14 +129,14 @@ async def refresh(
     return TokenResponse(access_token=access)
 
 
-@router.post("/logout")
+@router.post("/logout")  # type: ignore[misc, untyped-decorator]
 async def logout(response: Response) -> dict:
     """Clear the refresh_token cookie."""
     response.delete_cookie(key="refresh_token", path="/api/v1/auth")
     return {"detail": "Logged out successfully"}
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse)  # type: ignore[misc, untyped-decorator]
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """Return current authenticated user profile."""
     return UserResponse(

@@ -39,7 +39,7 @@ def setup_admin() -> None:
         from app.auth.service import AuthService
         from app.auth.security import validate_password_strength
         from app.models import RoleEnum
-        from config.settings import Config
+        from config.settings import get_settings
 
         click.echo("\n" + "=" * 60)
         click.echo("Admin User Setup")
@@ -47,8 +47,9 @@ def setup_admin() -> None:
 
         # Get database session
         try:
+            settings = get_settings()
             db_manager = DatabaseManager(
-                Config.DATABASE_URL or "sqlite:///data/market_data.db"
+                settings.DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
             )
             session = db_manager.get_session()
         except Exception as e:
@@ -136,12 +137,13 @@ def init_db() -> None:
     try:
         from app.db import DatabaseManager
         from app.auth.init import ensure_roles_exist
-        from config.settings import Config
+        from config.settings import get_settings
 
         click.echo("Initializing database...")
 
+        settings = get_settings()
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            settings.DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
 
@@ -197,12 +199,13 @@ def delete_user(username: str) -> None:
     try:
         from app.db import DatabaseManager
         from app.models import User
-        from config.settings import Config
+        from config.settings import get_settings
 
         click.echo(f"Deleting user: {username}")
 
+        settings = get_settings()
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            settings.DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
 
@@ -234,10 +237,11 @@ def list_users() -> None:
     try:
         from app.db import DatabaseManager
         from app.models import User
-        from config.settings import Config
+        from config.settings import get_settings
 
+        settings = get_settings()
         db_manager = DatabaseManager(
-            Config.DATABASE_URL or "sqlite:///data/market_data.db"
+            settings.DATABASE_URL_SYNC or "sqlite:///data/market_data.db"
         )
         session = db_manager.get_session()
 

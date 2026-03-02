@@ -29,9 +29,7 @@ class TestWebSocket:
 
     @patch("app.ws.router.get_settings", _ws_test_settings)
     def test_ws_connects_with_valid_token(self, client, test_user):
-        token = create_access_token(
-            test_user.id, test_user.role.name, _TEST_SECRET, 60
-        )
+        token = create_access_token(test_user.id, test_user.role.name, _TEST_SECRET, 60)
         with client.websocket_connect(f"/ws?token={token}") as ws:
             # Connection succeeded — just close gracefully
             pass

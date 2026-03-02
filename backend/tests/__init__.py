@@ -73,6 +73,7 @@ class BaseTestCase(unittest.TestCase):
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS daily_data (
+                user_id INTEGER NOT NULL DEFAULT 1,
                 ticker TEXT, date DATE, open REAL, high REAL, low REAL,
                 close REAL, volume INTEGER, dividends REAL, stock_splits REAL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -81,6 +82,7 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS intraday_data (
+                user_id INTEGER NOT NULL DEFAULT 1,
                 ticker TEXT, datetime TIMESTAMP, open REAL, high REAL,
                 low REAL, close REAL, volume INTEGER,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -95,8 +97,9 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS signal_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT,
-                date DATE, signal_type TEXT, signal_value REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                ticker TEXT, date DATE, signal_type TEXT, signal_value REAL,
                 confidence REAL, entry_price REAL, target_price REAL,
                 stop_loss REAL, regime TEXT, reasons TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -104,9 +107,10 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS portfolio_performance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, date DATE,
-                portfolio_value REAL, daily_return REAL, volatility REAL,
-                sharpe_ratio REAL, max_drawdown REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                date DATE, portfolio_value REAL, daily_return REAL,
+                volatility REAL, sharpe_ratio REAL, max_drawdown REAL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -119,9 +123,12 @@ class BaseTestCase(unittest.TestCase):
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS portfolio_positions (
-                ticker TEXT PRIMARY KEY, shares REAL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL DEFAULT 1,
+                ticker TEXT NOT NULL, shares REAL NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, ticker)
             )
         """)
         cursor.execute("""
@@ -204,14 +211,16 @@ class SampleDataGenerator:
             daily_return = np.random.normal(0.0005, 0.01)
             new_value = values[-1] * (1 + daily_return)
             values.append(new_value)
-            performance.append({
-                "date": (datetime.now() - timedelta(days=days - i)).date(),
-                "portfolio_value": new_value,
-                "daily_return": daily_return,
-                "volatility": 0.15,
-                "sharpe_ratio": 1.2,
-                "max_drawdown": 0.05,
-            })
+            performance.append(
+                {
+                    "date": (datetime.now() - timedelta(days=days - i)).date(),
+                    "portfolio_value": new_value,
+                    "daily_return": daily_return,
+                    "volatility": 0.15,
+                    "sharpe_ratio": 1.2,
+                    "max_drawdown": 0.05,
+                }
+            )
         return performance
 
 
@@ -227,6 +236,7 @@ class YFinanceMockHelper:
                 [ticker_data.get(t, pd.DataFrame()).assign(Ticker=t) for t in tickers],
                 ignore_index=True,
             )
+
         return mock_download
 
     @staticmethod
@@ -234,8 +244,10 @@ class YFinanceMockHelper:
         class MockTicker:
             def __init__(self, ticker_name):
                 self.ticker_name = ticker_name
+
             def history(self, period="1y", start=None, end=None):
                 return SampleDataGenerator.generate_ohlcv_data(self.ticker_name)
+
             def info(self):
                 return {
                     "symbol": self.ticker_name,
@@ -244,4 +256,5 @@ class YFinanceMockHelper:
                     "industry": "Software",
                     "marketCap": 2000000000000,
                 }
+
         return MockTicker

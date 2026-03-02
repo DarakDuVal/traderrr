@@ -499,6 +499,11 @@ class TestPortfolioManager(BaseTestCase):
         """Set up test fixtures"""
         super().setUp()
         from app.core.portfolio_manager import PortfolioManager
+        from config.database import DatabaseConfig
+
+        # Initialize database tables (includes portfolio_positions with correct schema)
+        db_config = DatabaseConfig(self.test_db.name)
+        db_config.init_database()
 
         self.pm = PortfolioManager(db_path=self.test_db.name)
 

@@ -143,7 +143,7 @@ def require_api_key(f: Callable) -> Callable:
 
             try:
                 # First try to verify as API key
-                user = AuthService.verify_api_key(session, token)
+                user = AuthService.verify_api_key(session, token)  # type: ignore[attr-defined]
                 if user:
                     # Store user in request context
                     request.user = user  # type: ignore[attr-defined]
@@ -230,7 +230,7 @@ def require_authentication(f: Callable) -> Callable:
                 db_manager = get_db_manager()
                 session = db_manager.get_session()
                 try:
-                    user = AuthService.verify_api_key(session, api_key)
+                    user = AuthService.verify_api_key(session, api_key)  # type: ignore[attr-defined]
                     if user:
                         request.user = user  # type: ignore[attr-defined]
                         return f(*args, **kwargs)
