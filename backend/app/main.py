@@ -91,7 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(ws_router)
 
     # ── Health endpoint ───────────────────────────────────────────────────
-    @app.get("/health", tags=["health"])
+    @app.get("/health", tags=["health"])  # type: ignore[misc, untyped-decorator]
     async def health_check() -> dict:
         """Return service health with database status."""
         db_status = "disconnected"

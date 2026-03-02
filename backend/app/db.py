@@ -149,7 +149,7 @@ class DatabaseManager:
         # Enable foreign key constraints for SQLite
         if is_sqlite:
 
-            @event.listens_for(Engine, "connect")
+            @event.listens_for(Engine, "connect")  # type: ignore[misc, untyped-decorator]
             def set_sqlite_pragma(dbapi_conn: Any, connection_record: Any) -> None:
                 """Enable foreign keys in SQLite"""
                 cursor = dbapi_conn.cursor()

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
-@auth_bp.route("/register", methods=["POST"])
+@auth_bp.route("/register", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 def register() -> Tuple[Response, int]:
     """Register a new user
 
@@ -45,7 +45,7 @@ def register() -> Tuple[Response, int]:
         # Check if registration is allowed
         from config.settings import Config
 
-        if not Config.ALLOW_REGISTRATION:
+        if not Config.ALLOW_REGISTRATION:  # type: ignore[attr-defined]
             return jsonify({"error": "Registration is disabled"}), 403
 
         data = request.get_json()
@@ -98,7 +98,7 @@ def register() -> Tuple[Response, int]:
         return jsonify({"error": "Registration failed"}), 500
 
 
-@auth_bp.route("/login", methods=["POST"])
+@auth_bp.route("/login", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 def login() -> Tuple[Response, int]:
     """Login with username and password
 
@@ -142,7 +142,7 @@ def login() -> Tuple[Response, int]:
                 return jsonify({"error": error}), 401
 
             # Create access token
-            access_token = AuthService.create_access_token(user)
+            access_token = AuthService.create_access_token(user)  # type: ignore[attr-defined]
 
             logger.info(f"User logged in: {username}")
             return (
@@ -169,7 +169,7 @@ def login() -> Tuple[Response, int]:
         return jsonify({"error": "Login failed"}), 500
 
 
-@auth_bp.route("/refresh", methods=["POST"])
+@auth_bp.route("/refresh", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 @require_login
 def refresh_token() -> Tuple[Response, int]:
     """Refresh JWT access token
@@ -186,7 +186,7 @@ def refresh_token() -> Tuple[Response, int]:
         user: User = request.user  # type: ignore[attr-defined]
 
         # Create new access token
-        access_token = AuthService.create_access_token(user)
+        access_token = AuthService.create_access_token(user)  # type: ignore[attr-defined]
 
         return jsonify({"success": True, "access_token": access_token}), 200
 
@@ -195,7 +195,7 @@ def refresh_token() -> Tuple[Response, int]:
         return jsonify({"error": "Token refresh failed"}), 500
 
 
-@auth_bp.route("/api-keys", methods=["GET"])
+@auth_bp.route("/api-keys", methods=["GET"])  # type: ignore[misc, untyped-decorator]
 @require_login
 def list_api_keys() -> Tuple[Response, int]:
     """List user's API keys
@@ -224,7 +224,7 @@ def list_api_keys() -> Tuple[Response, int]:
         session = db_manager.get_session()
 
         try:
-            api_keys = AuthService.get_user_api_keys(session, user)
+            api_keys = AuthService.get_user_api_keys(session, user)  # type: ignore[attr-defined]
 
             return (
                 jsonify(
@@ -259,7 +259,7 @@ def list_api_keys() -> Tuple[Response, int]:
         return jsonify({"error": "Failed to list API keys"}), 500
 
 
-@auth_bp.route("/api-keys", methods=["POST"])
+@auth_bp.route("/api-keys", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 @require_login
 def create_api_key() -> Tuple[Response, int]:
     """Create new API key for user
@@ -308,7 +308,7 @@ def create_api_key() -> Tuple[Response, int]:
         session = db_manager.get_session()
 
         try:
-            plaintext_key, api_key_record = AuthService.create_api_key(
+            plaintext_key, api_key_record = AuthService.create_api_key(  # type: ignore[attr-defined]
                 session, user, name, expires_in_days
             )
 
@@ -345,7 +345,7 @@ def create_api_key() -> Tuple[Response, int]:
         return jsonify({"error": "Failed to create API key"}), 500
 
 
-@auth_bp.route("/api-keys/<int:key_id>", methods=["DELETE"])
+@auth_bp.route("/api-keys/<int:key_id>", methods=["DELETE"])  # type: ignore[misc, untyped-decorator]
 @require_login
 def revoke_api_key(key_id: int) -> Tuple[Response, int]:
     """Revoke an API key
@@ -366,7 +366,7 @@ def revoke_api_key(key_id: int) -> Tuple[Response, int]:
         session = db_manager.get_session()
 
         try:
-            success = AuthService.revoke_api_key(session, key_id, user)
+            success = AuthService.revoke_api_key(session, key_id, user)  # type: ignore[attr-defined]
 
             if not success:
                 return jsonify({"error": "API key not found"}), 404
@@ -382,7 +382,7 @@ def revoke_api_key(key_id: int) -> Tuple[Response, int]:
         return jsonify({"error": "Failed to revoke API key"}), 500
 
 
-@auth_bp.route("/logout", methods=["POST"])
+@auth_bp.route("/logout", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 def logout() -> Tuple[Response, int]:
     """Logout the current user
 

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/metrics", response_model=RiskMetricsResponse)
+@router.get("/metrics", response_model=RiskMetricsResponse)  # type: ignore[misc, untyped-decorator]
 async def get_risk_metrics(
     current_user: User = Depends(get_current_user),
 ) -> RiskMetricsResponse:
@@ -34,7 +34,7 @@ async def get_risk_metrics(
     )
 
 
-@router.get("/correlation", response_model=CorrelationResponse)
+@router.get("/correlation", response_model=CorrelationResponse)  # type: ignore[misc, untyped-decorator]
 async def get_correlation(
     current_user: User = Depends(get_current_user),
 ) -> CorrelationResponse:
@@ -42,7 +42,7 @@ async def get_correlation(
     return CorrelationResponse(tickers=[], matrix=[])
 
 
-@router.post("/stress-test", response_model=StressTestResponse)
+@router.post("/stress-test", response_model=StressTestResponse)  # type: ignore[misc, untyped-decorator]
 async def stress_test(
     body: StressTestRequest,
     current_user: User = Depends(get_current_user),

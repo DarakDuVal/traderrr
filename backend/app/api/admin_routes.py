@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
-@admin_bp.route("/users", methods=["GET"])
+@admin_bp.route("/users", methods=["GET"])  # type: ignore[misc, untyped-decorator]
 @require_login
 @require_role(RoleEnum.ADMIN)
 def list_users() -> Tuple[Response, int]:
@@ -79,7 +79,7 @@ def list_users() -> Tuple[Response, int]:
         return jsonify({"error": "Failed to list users"}), 500
 
 
-@admin_bp.route("/users/<int:user_id>", methods=["GET"])
+@admin_bp.route("/users/<int:user_id>", methods=["GET"])  # type: ignore[misc, untyped-decorator]
 @require_login
 @require_role(RoleEnum.ADMIN)
 def get_user(user_id: int) -> Tuple[Response, int]:
@@ -135,7 +135,7 @@ def get_user(user_id: int) -> Tuple[Response, int]:
         return jsonify({"error": "Failed to get user"}), 500
 
 
-@admin_bp.route("/users/<int:user_id>", methods=["PATCH"])
+@admin_bp.route("/users/<int:user_id>", methods=["PATCH"])  # type: ignore[misc, untyped-decorator]
 @require_login
 @require_role(RoleEnum.ADMIN)
 def update_user(user_id: int) -> Tuple[Response, int]:
@@ -219,7 +219,7 @@ def update_user(user_id: int) -> Tuple[Response, int]:
         return jsonify({"error": "Failed to update user"}), 500
 
 
-@admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@admin_bp.route("/users/<int:user_id>", methods=["DELETE"])  # type: ignore[misc, untyped-decorator]
 @require_login
 @require_role(RoleEnum.ADMIN)
 def delete_user(user_id: int) -> Tuple[Response, int]:
@@ -261,7 +261,7 @@ def delete_user(user_id: int) -> Tuple[Response, int]:
         return jsonify({"error": "Failed to delete user"}), 500
 
 
-@admin_bp.route("/users/<int:user_id>/reset-password", methods=["POST"])
+@admin_bp.route("/users/<int:user_id>/reset-password", methods=["POST"])  # type: ignore[misc, untyped-decorator]
 @require_login
 @require_role(RoleEnum.ADMIN)
 def reset_user_password(user_id: int) -> Tuple[Response, int]:

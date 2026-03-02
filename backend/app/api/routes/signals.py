@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("", response_model=SignalListResponse)
+@router.get("", response_model=SignalListResponse)  # type: ignore[misc, untyped-decorator]
 async def list_signals(
     ticker: Optional[str] = Query(None),
     signal_type: Optional[str] = Query(None),
@@ -52,7 +52,7 @@ async def list_signals(
     )
 
 
-@router.get("/{ticker}", response_model=SignalListResponse)
+@router.get("/{ticker}", response_model=SignalListResponse)  # type: ignore[misc, untyped-decorator]
 async def signals_by_ticker(
     ticker: str,
     db: AsyncSession = Depends(get_db),
@@ -76,7 +76,7 @@ async def signals_by_ticker(
     )
 
 
-@router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/generate", status_code=status.HTTP_202_ACCEPTED)  # type: ignore[misc, untyped-decorator]
 async def generate_signals(
     admin_user: User = Depends(require_role("admin")),
 ) -> dict:

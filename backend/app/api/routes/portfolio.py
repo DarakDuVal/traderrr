@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("", response_model=list[PositionResponse])
+@router.get("", response_model=list[PositionResponse])  # type: ignore[misc, untyped-decorator]
 async def get_portfolio(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -38,7 +38,7 @@ async def get_portfolio(
 
 @router.post(
     "/positions", response_model=PositionResponse, status_code=status.HTTP_201_CREATED
-)
+)  # type: ignore[misc, untyped-decorator]
 async def add_position(
     body: PositionCreate,
     db: AsyncSession = Depends(get_db),
@@ -53,10 +53,10 @@ async def add_position(
     db.add(position)
     await db.flush()
     await db.refresh(position)
-    return PositionResponse.model_validate(position)
+    return PositionResponse.model_validate(position)  # type: ignore[no-any-return]
 
 
-@router.put("/positions/{position_id}", response_model=PositionResponse)
+@router.put("/positions/{position_id}", response_model=PositionResponse)  # type: ignore[misc, untyped-decorator]
 async def update_position(
     position_id: int,
     body: PositionUpdate,
@@ -76,13 +76,13 @@ async def update_position(
             status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
         )
     if body.shares is not None:
-        position.shares = body.shares
+        position.shares = float(body.shares)
     await db.flush()
     await db.refresh(position)
-    return PositionResponse.model_validate(position)
+    return PositionResponse.model_validate(position)  # type: ignore[no-any-return]
 
 
-@router.delete("/positions/{position_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/positions/{position_id}", status_code=status.HTTP_204_NO_CONTENT)  # type: ignore[misc, untyped-decorator]
 async def delete_position(
     position_id: int,
     db: AsyncSession = Depends(get_db),
@@ -103,7 +103,7 @@ async def delete_position(
     await db.delete(position)
 
 
-@router.get("/performance", response_model=list[PerformanceResponse])
+@router.get("/performance", response_model=list[PerformanceResponse])  # type: ignore[misc, untyped-decorator]
 async def get_performance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

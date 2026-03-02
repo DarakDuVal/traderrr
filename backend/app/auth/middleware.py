@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def setup_auth_middleware(app: Flask) -> None:
     """Setup authentication middleware for Flask app"""
 
-    @app.before_request
+    @app.before_request  # type: ignore[misc, untyped-decorator]
     def check_jwt_token() -> Optional[Tuple[Response, int]]:
         """Check JWT token on each request and inject user context"""
         # Skip auth check for public endpoints
@@ -112,7 +112,7 @@ def setup_auth_middleware(app: Flask) -> None:
                 return jsonify({"error": "Invalid token"}), 401
             return None
 
-    @app.teardown_request
+    @app.teardown_request  # type: ignore[misc, untyped-decorator]
     def close_session(exception: Optional[BaseException] = None) -> None:
         """Close database session at end of request"""
         session = g.pop("session", None)

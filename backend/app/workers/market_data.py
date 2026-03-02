@@ -3,14 +3,15 @@ Celery tasks for market data fetching.
 """
 
 import logging
+from typing import Any
 
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_market_data(self, ticker: str) -> dict:
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)  # type: ignore[misc, untyped-decorator]
+def fetch_market_data(self: Any, ticker: str) -> dict:
     """Fetch and store OHLCV data for a single ticker."""
     try:
         logger.info("Fetching market data for %s", ticker)
@@ -28,14 +29,14 @@ def fetch_market_data(self, ticker: str) -> dict:
         raise self.retry(exc=exc)
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_all_tickers(self) -> dict:
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)  # type: ignore[misc, untyped-decorator]
+def fetch_all_tickers(self: Any) -> dict:
     """Fan-out: dispatch fetch_market_data for each ticker."""
     try:
         logger.info("Dispatching fetch_market_data for all tickers")
         from app.core.portfolio_manager import PortfolioManager
 
-        pm = PortfolioManager()
+        pm = PortfolioManager(db_path="data/market_data.db")
         tickers = pm.get_tickers() or []
         for ticker in tickers:
             fetch_market_data.delay(ticker)
@@ -45,7 +46,7 @@ def fetch_all_tickers(self) -> dict:
         raise self.retry(exc=exc)
 
 
-@celery_app.task
+@celery_app.task  # type: ignore[misc, untyped-decorator]
 def cleanup_old_data() -> dict:
     """Daily data cleanup task."""
     logger.info("Running daily data cleanup")

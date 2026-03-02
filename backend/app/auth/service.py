@@ -25,12 +25,12 @@ ALGORITHM = "HS256"
 
 def hash_password(plain: str) -> str:
     """Hash a plaintext password."""
-    return pwd_context.hash(plain)
+    return str(pwd_context.hash(plain))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     """Verify a plaintext password against its hash."""
-    return pwd_context.verify(plain, hashed)
+    return bool(pwd_context.verify(plain, hashed))
 
 
 # ── JWT tokens ────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ def create_access_token(
         "exp": expire,
         "type": "access",
     }
-    return jwt.encode(payload, secret_key, algorithm=ALGORITHM)
+    return str(jwt.encode(payload, secret_key, algorithm=ALGORITHM))
 
 
 def create_refresh_token(
@@ -65,7 +65,7 @@ def create_refresh_token(
         "exp": expire,
         "type": "refresh",
     }
-    return jwt.encode(payload, secret_key, algorithm=ALGORITHM)
+    return str(jwt.encode(payload, secret_key, algorithm=ALGORITHM))
 
 
 def decode_token(token: str, secret_key: str) -> Dict[str, Any]:
@@ -73,7 +73,7 @@ def decode_token(token: str, secret_key: str) -> Dict[str, Any]:
 
     Raises JWTError / ExpiredSignatureError on failure.
     """
-    return jwt.decode(token, secret_key, algorithms=[ALGORITHM])
+    return dict(jwt.decode(token, secret_key, algorithms=[ALGORITHM]))
 
 
 # ── Convenience wrappers (used by existing code) ─────────────────────────

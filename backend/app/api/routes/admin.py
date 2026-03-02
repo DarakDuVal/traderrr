@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/users", response_model=list[UserResponse])
+@router.get("/users", response_model=list[UserResponse])  # type: ignore[misc, untyped-decorator]
 async def list_users(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(require_role("admin")),
@@ -39,7 +39,7 @@ async def list_users(
     ]
 
 
-@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)  # type: ignore[misc, untyped-decorator]
 async def create_user(
     username: str,
     email: str,
@@ -96,7 +96,7 @@ async def create_user(
     )
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
+@router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)  # type: ignore[misc, untyped-decorator]
 async def deactivate_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
@@ -114,7 +114,7 @@ async def deactivate_user(
     return {"detail": f"User {user.username} deactivated"}
 
 
-@router.get("/system")
+@router.get("/system")  # type: ignore[misc, untyped-decorator]
 async def system_status(
     admin: User = Depends(require_role("admin")),
 ) -> dict:

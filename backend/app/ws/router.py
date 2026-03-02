@@ -71,7 +71,7 @@ def _make_message(msg_type: str, payload: dict | None = None) -> dict:
     }
 
 
-@router.websocket("/ws")
+@router.websocket("/ws")  # type: ignore[misc, untyped-decorator]
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """
     WebSocket endpoint with JWT query-parameter authentication

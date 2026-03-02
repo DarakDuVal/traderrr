@@ -111,7 +111,7 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
         )
-    return user
+    return user  # type: ignore[no-any-return]
 
 
 # ── Role-based access ─────────────────────────────────────────────────────
