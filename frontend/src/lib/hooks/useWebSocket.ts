@@ -23,8 +23,8 @@ export function useWebSocket(): UseWebSocketReturn {
   const connect = useCallback(() => {
     if (!accessToken || !isAuthenticated) return;
 
-    const wsUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000")
-      .replace(/^http/, "ws");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const wsUrl = apiUrl.replace(/^https/, "wss").replace(/^http/, "ws");
 
     setConnectionStatus("connecting");
     const ws = new WebSocket(`${wsUrl}/ws?token=${accessToken}`);
