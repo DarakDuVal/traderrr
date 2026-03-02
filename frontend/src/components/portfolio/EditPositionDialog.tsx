@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { PositionResponse } from "@traderrr/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,13 @@ interface EditPositionDialogProps {
 
 export function EditPositionDialog({ open, onOpenChange, position, onSubmit, loading }: EditPositionDialogProps) {
   const [shares, setShares] = useState("");
+  const [lastPositionId, setLastPositionId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (position) setShares(position.shares.toString());
-  }, [position]);
+  // Sync state when a different position is selected (replaces useEffect)
+  if (position && position.id !== lastPositionId) {
+    setLastPositionId(position.id);
+    setShares(position.shares.toString());
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

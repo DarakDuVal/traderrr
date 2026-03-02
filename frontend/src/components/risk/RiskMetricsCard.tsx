@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RiskMetricsCardProps { metrics: RiskMetricsResponse; }
 
-function MetricItem({ label, value, format = "percent" }: { label: string; value: number | null; format?: "percent" | "decimal" }) {
+function MetricItem({ label, value, format = "percent" }: { label: string; value: number | null | undefined; format?: "percent" | "decimal" }) {
   const display = value == null ? "—" : format === "percent" ? `${(value * 100).toFixed(2)}%` : value.toFixed(4);
   return (
     <div>
