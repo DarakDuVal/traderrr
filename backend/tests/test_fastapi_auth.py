@@ -112,3 +112,44 @@ class TestMeEndpoint:
     def test_me_unauthenticated(self, client):
         resp = client.get("/api/v1/auth/me")
         assert resp.status_code in (401, 403)
+
+
+class TestRefreshEndpoint:
+    def test_refresh_without_cookie(self, client):
+        resp = client.post("/api/v1/auth/refresh")
+        assert resp.status_code == 401
+
+    def test_refresh_with_invalid_cookie(self, client):
+        client.cookies.set("refresh_token", "invalid.token")
+        resp = client.post("/api/v1/auth/refresh")
+        assert resp.status_code == 401
+
+    def test_refresh_with_access_token_type(self, client, test_user):
+        # Use an access token as refresh — should fail (wrong type)
+        token = create_access_token(
+            test_user.id, test_user.role.name, _TEST_SECRET, 60
+        )
+        client.cookies.set("refresh_token", token)
+        resp = client.post("/api/v1/auth/refresh")
+        assert resp.status_code == 401
+
+    def test_refresh_success(self, client, test_user):
+        token = create_refresh_token(test_user.id, _TEST_SECRET, 7)
+        client.cookies.set("refresh_token", token)
+        resp = client.post("/api/v1/auth/refresh")
+        assert resp.status_code == 200
+        assert "access_token" in resp.json()
+
+
+class TestLoginInactiveUser:
+    def test_login_inactive_user(self, client, db_session, test_user):
+        # Deactivate the user
+        test_user.status = "inactive"
+        db_session.commit()
+
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "testuser", "password": "TestPass123"},
+        )
+        assert resp.status_code == 401
+        assert "not active" in resp.json()["detail"]
