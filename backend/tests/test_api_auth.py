@@ -1,59 +1,27 @@
 """
-Tests for app/api/auth.py JWT and API key authentication
+Tests for app/api/auth.py API key management
 
 Tests cover:
-- JWT initialization
-- Token creation and validation
-- API key validation
+- API key store configuration
+- API key generation, validation, revocation, and listing
+- JWT token creation via app.auth.service
 """
 
 import pytest
-from flask import Flask
-from flask_jwt_extended import create_access_token, decode_token
 from datetime import timedelta
 
-from app import create_app
 from app.api.auth import (
-    init_jwt,
     VALID_API_KEYS,
     generate_api_key,
     validate_api_key,
     revoke_api_key,
     list_api_keys,
-    create_access_token_for_user,
-    require_api_key,
 )
+from app.auth.service import create_access_token, decode_token
 
 
-class TestJWTInitialization:
-    """Test JWT authentication initialization"""
-
-    def test_init_jwt_configures_app(self) -> None:
-        """Test that init_jwt properly configures Flask app"""
-        app = Flask(__name__)
-        jwt_manager = init_jwt(app)
-
-        assert jwt_manager is not None
-        assert "JWT_SECRET_KEY" in app.config
-        assert "JWT_ACCESS_TOKEN_EXPIRES" in app.config
-        assert isinstance(app.config["JWT_ACCESS_TOKEN_EXPIRES"], timedelta)
-
-    def test_init_jwt_sets_secret_key(self) -> None:
-        """Test that JWT secret key is configured"""
-        app = Flask(__name__)
-        init_jwt(app)
-
-        assert app.config["JWT_SECRET_KEY"] is not None
-        assert len(app.config["JWT_SECRET_KEY"]) > 0
-
-    def test_init_jwt_sets_expiration(self) -> None:
-        """Test that JWT expiration is configured"""
-        app = Flask(__name__)
-        init_jwt(app)
-
-        expiration = app.config["JWT_ACCESS_TOKEN_EXPIRES"]
-        assert isinstance(expiration, timedelta)
-        assert expiration.total_seconds() > 0
+class TestAPIKeyStore:
+    """Test API key store configuration"""
 
     def test_api_key_store_exists(self) -> None:
         """Test that API key store is configured"""
@@ -70,14 +38,6 @@ class TestJWTInitialization:
         """Test that test API key exists"""
         assert "test-api-key-67890" in VALID_API_KEYS
         assert VALID_API_KEYS["test-api-key-67890"] == "test_user"
-
-    def test_jwt_initialization_with_real_app(self) -> None:
-        """Test JWT initialization with real Flask app"""
-        app = create_app()
-        with app.app_context():
-            assert "JWT_SECRET_KEY" in app.config
-            assert "JWT_ACCESS_TOKEN_EXPIRES" in app.config
-            assert app.config["JWT_SECRET_KEY"] is not None
 
     def test_api_keys_are_strings(self) -> None:
         """Test that all API keys and values are strings"""
@@ -97,14 +57,34 @@ class TestJWTInitialization:
             assert len(username) > 0
             assert isinstance(username, str)
 
-    def test_jwt_manager_returned(self) -> None:
-        """Test that init_jwt returns JWTManager instance"""
-        from flask_jwt_extended import JWTManager
 
-        app = Flask(__name__)
-        jwt_manager = init_jwt(app)
+class TestJWTTokenCreation:
+    """Test JWT token creation via auth service"""
 
-        assert isinstance(jwt_manager, JWTManager)
+    def test_create_access_token(self) -> None:
+        """Test access token creation returns valid JWT"""
+        token = create_access_token(
+            subject="testuser", role="user", secret_key="test-secret-key-32chars-min"
+        )
+        assert isinstance(token, str)
+        assert token.count(".") == 2  # JWT has 3 parts
+
+    def test_create_and_decode_token(self) -> None:
+        """Test that created token can be decoded"""
+        secret = "test-secret-key-for-jwt-testing-32chars"
+        token = create_access_token(
+            subject=1, role="user", secret_key=secret, expires_minutes=60
+        )
+        payload = decode_token(token, secret)
+        assert payload["sub"] == "1"
+        assert payload["role"] == "user"
+
+    def test_different_users_get_different_tokens(self) -> None:
+        """Test that different users get different tokens"""
+        secret = "test-secret-key-for-jwt-testing-32chars"
+        token1 = create_access_token(subject="user1", role="user", secret_key=secret)
+        token2 = create_access_token(subject="user2", role="user", secret_key=secret)
+        assert token1 != token2
 
 
 class TestAPIKeyManagement:
@@ -286,104 +266,32 @@ class TestAPIKeyManagement:
         assert len(keys) == 1
         assert key2[-8:] in keys
 
-    def test_create_access_token_for_user_returns_string(self) -> None:
-        """Test that create_access_token_for_user returns a string token"""
-        app = create_app()
-        with app.app_context():
-            token = create_access_token_for_user("test_user")
+    def test_create_access_token_returns_jwt(self) -> None:
+        """Test that create_access_token returns a JWT string"""
+        secret = "test-secret-key-for-jwt-testing-32chars"
+        token = create_access_token(
+            subject="test_user", role="user", secret_key=secret
+        )
+        assert isinstance(token, str)
+        # JWT tokens have 3 parts separated by dots
+        assert token.count(".") == 2
 
-            assert isinstance(token, str)
-            # JWT tokens have 3 parts separated by dots
-            assert token.count(".") == 2
-
-    def test_create_access_token_for_user_with_custom_expiration(self) -> None:
+    def test_create_access_token_with_custom_expiration(self) -> None:
         """Test token creation with custom expiration"""
-        app = create_app()
-        with app.app_context():
-            custom_expiry = timedelta(hours=1)
-            token = create_access_token_for_user(
-                "test_user", expires_delta=custom_expiry
-            )
-
-            assert isinstance(token, str)
-            assert token.count(".") == 2
+        secret = "test-secret-key-for-jwt-testing-32chars"
+        token = create_access_token(
+            subject="test_user", role="user", secret_key=secret, expires_minutes=60
+        )
+        assert isinstance(token, str)
+        assert token.count(".") == 2
 
     def test_create_access_token_different_users(self) -> None:
         """Test that different users get different tokens"""
-        app = create_app()
-        with app.app_context():
-            token1 = create_access_token_for_user("user1")
-            token2 = create_access_token_for_user("user2")
-
-            assert token1 != token2
-
-    def test_require_api_key_decorator_valid_key(self) -> None:
-        """Test require_api_key decorator with valid API key"""
-        app = create_app()
-
-        @require_api_key
-        def protected_route() -> dict:
-            return {"message": "success"}
-
-        with app.test_request_context(
-            headers={"Authorization": "Bearer demo-api-key-12345"}
-        ):
-            result = protected_route()
-            assert result == {"message": "success"}
-
-    def test_require_api_key_decorator_missing_header(self) -> None:
-        """Test require_api_key decorator without authorization header"""
-        app = create_app()
-
-        @require_api_key
-        def protected_route() -> dict:
-            return {"message": "success"}
-
-        with app.test_request_context():
-            result, status = protected_route()
-            assert status == 401
-            assert "Missing authorization header" in result["error"]
-
-    def test_require_api_key_decorator_invalid_format(self) -> None:
-        """Test require_api_key decorator with invalid header format"""
-        app = create_app()
-
-        @require_api_key
-        def protected_route() -> dict:
-            return {"message": "success"}
-
-        with app.test_request_context(headers={"Authorization": "InvalidFormat"}):
-            result, status = protected_route()
-            assert status == 401
-            assert "Missing authorization header" in result["error"]
-
-    def test_require_api_key_decorator_invalid_key(self) -> None:
-        """Test require_api_key decorator with invalid API key"""
-        app = create_app()
-
-        @require_api_key
-        def protected_route() -> dict:
-            return {"message": "success"}
-
-        with app.test_request_context(
-            headers={"Authorization": "Bearer invalid-key-12345"}
-        ):
-            result, status = protected_route()
-            assert status == 401
-            assert "Invalid API key" in result["error"]
-
-    def test_require_api_key_decorator_stores_username(self) -> None:
-        """Test that decorator stores username in g object"""
-        from flask import g
-
-        app = create_app()
-
-        @require_api_key
-        def protected_route() -> dict:
-            return {"username": g.username}
-
-        with app.test_request_context(
-            headers={"Authorization": "Bearer demo-api-key-12345"}
-        ):
-            result = protected_route()
-            assert result["username"] == "demo_user"
+        secret = "test-secret-key-for-jwt-testing-32chars"
+        token1 = create_access_token(
+            subject="user1", role="user", secret_key=secret
+        )
+        token2 = create_access_token(
+            subject="user2", role="user", secret_key=secret
+        )
+        assert token1 != token2

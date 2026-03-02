@@ -1,18 +1,13 @@
 """
 app/api/auth.py
-Authentication and authorization for the API
+API key management utilities
+
+Provides in-memory API key storage and management functions.
+JWT authentication is handled by app.auth.service (python-jose).
 """
 
-from flask_jwt_extended import (
-    JWTManager,
-    create_access_token,
-)
-from functools import wraps
-from flask import request, Flask
-from datetime import timedelta
-import os
 import secrets
-from typing import Dict, Optional, Any, Callable
+from typing import Dict, Optional
 
 # ============================================================================
 # API KEY STORE (Replace with database in production)
@@ -23,99 +18,6 @@ VALID_API_KEYS: Dict[str, str] = {
     "demo-api-key-12345": "demo_user",
     "test-api-key-67890": "test_user",
 }
-
-# ============================================================================
-# JWT INITIALIZATION
-# ============================================================================
-
-
-def init_jwt(app: Flask) -> JWTManager:
-    """
-    Initialize JWT authentication for the Flask app
-
-    Args:
-        app: Flask application instance
-
-    Returns:
-        JWTManager: Configured JWT manager instance
-    """
-    from config.settings import Config
-
-    # Get secret key and token expiry from config
-    secret_key = Config.JWT_SECRET_KEY
-    token_expires = Config.JWT_ACCESS_TOKEN_EXPIRES
-
-    app.config["JWT_SECRET_KEY"] = secret_key
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=token_expires)
-
-    jwt = JWTManager(app)
-
-    @jwt.user_lookup_loader
-    def user_lookup_callback(
-        _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
-    ) -> str:
-        """Load user identity from JWT"""
-        identity: str = jwt_data["sub"]
-        return identity
-
-    @jwt.additional_claims_loader
-    def add_claims_to_access_token(identity: str) -> Dict[str, str]:
-        """Add custom claims to JWT token"""
-        return {"username": identity, "api_version": "1.0.0"}
-
-    return jwt
-
-
-# ============================================================================
-# API KEY VALIDATION
-# ============================================================================
-
-
-def require_api_key(f: Callable[..., Any]) -> Callable[..., Any]:
-    """
-    Decorator to require API key authentication
-
-    Validates the Bearer token in the Authorization header against
-    valid API keys. Uses "Authorization: Bearer <api_key>" format.
-
-    Usage:
-        @require_api_key
-        def my_route():
-            return {'data': 'value'}
-    """
-
-    @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
-        # Get authorization header
-        auth_header = request.headers.get("Authorization", "")
-
-        # Extract token from "Bearer <token>" format
-        token = None
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]  # Remove "Bearer " prefix
-
-        # Validate token exists
-        if not token:
-            return {
-                "error": "Missing authorization header. Use: Authorization: Bearer <api_key>",
-                "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
-            }, 401
-
-        # Validate token is in whitelist
-        if token not in VALID_API_KEYS:
-            return {
-                "error": "Invalid API key",
-                "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
-            }, 401
-
-        # Store username in request context (via g object for proper context storage)
-        from flask import g
-
-        g.username = VALID_API_KEYS[token]
-
-        return f(*args, **kwargs)
-
-    return decorated_function
 
 
 # ============================================================================
@@ -189,34 +91,6 @@ def list_api_keys(username: str) -> list:
     """
     keys = [key[-8:] for key, user in VALID_API_KEYS.items() if user == username]
     return keys
-
-
-# ============================================================================
-# JWT TOKEN GENERATION
-# ============================================================================
-
-
-def create_access_token_for_user(
-    username: str, expires_delta: Optional[timedelta] = None
-) -> str:
-    """
-    Create a JWT access token for a user
-
-    This is for programmatic access (e.g., integration tests, scripts).
-    For API access, users should use API keys instead.
-
-    Args:
-        username: Username to create token for
-        expires_delta: Token expiration time (default: 30 days)
-
-    Returns:
-        str: JWT access token
-    """
-    if expires_delta is None:
-        expires_delta = timedelta(days=30)
-
-    token: str = create_access_token(identity=username, expires_delta=expires_delta)
-    return token
 
 
 # ============================================================================
