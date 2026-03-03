@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile || pnpm install
 
+      - name: Build shared packages
+        run: pnpm --filter @traderrr/types build && pnpm --filter @traderrr/api-client build
+
       - name: Lint
         run: pnpm --filter mobile lint
 
@@ -41,4 +44,4 @@ jobs:
         run: pnpm --filter mobile type-check
 
       - name: Expo export dry-run
-        run: pnpm --filter mobile expo export --dump-sourcemap --output-dir /tmp/expo-export || echo "Expo export dry-run skipped (placeholder)"
+        run: cd mobile && npx expo export --dump-sourcemap --output-dir /tmp/expo-export || echo "Expo export dry-run skipped"
