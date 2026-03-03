@@ -3,9 +3,11 @@ import * as SecureStore from "expo-secure-store";
 const ACCESS_TOKEN_KEY = "traderrr_access_token";
 const REFRESH_TOKEN_KEY = "traderrr_refresh_token";
 
-export async function storeTokens(access: string, refresh: string): Promise<void> {
+export async function storeTokens(access: string, refresh?: string): Promise<void> {
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, access);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refresh);
+  if (refresh) {
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refresh);
+  }
 }
 
 export async function getAccessToken(): Promise<string | null> {
@@ -17,6 +19,8 @@ export async function getRefreshToken(): Promise<string | null> {
 }
 
 export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await Promise.all([
+    SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+    SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+  ]);
 }

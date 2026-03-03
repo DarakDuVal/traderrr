@@ -21,7 +21,7 @@ export default function SignalsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<FilterType>("ALL");
-  const [tickerFilter, setTickerFilter] = useState("");
+  const [tickerFilter] = useState("");
   const { signals: liveSignals, connectionStatus } = useSignalStream();
 
   const fetchSignals = useCallback(async () => {

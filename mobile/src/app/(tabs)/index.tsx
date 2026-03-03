@@ -99,7 +99,7 @@ export default function DashboardScreen() {
 
         <Card style={styles.flex1}>
           <CardHeader>
-            <CardTitle>Daily P&amp;L</CardTitle>
+            <CardTitle>Daily P&L</CardTitle>
           </CardHeader>
           <CardContent>
             <Text style={[styles.bigValue, { color: dailyPnL >= 0 ? "#22c55e" : "#ef4444" }]}>

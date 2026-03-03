@@ -1,8 +1,6 @@
 import { useState, useCallback } from "react";
 import type { SignalResponse } from "@traderrr/types";
 import { useWebSocket } from "./useWebSocket";
-import type { ConnectionStatus } from "./useWebSocket";
-
 const MAX_SIGNALS = 100;
 
 export function useSignalStream() {
@@ -18,5 +16,5 @@ export function useSignalStream() {
 
   const { connectionStatus, send, reconnect } = useWebSocket(handleMessage);
 
-  return { signals, connectionStatus: connectionStatus as ConnectionStatus, send, reconnect };
+  return { signals, connectionStatus, send, reconnect };
 }

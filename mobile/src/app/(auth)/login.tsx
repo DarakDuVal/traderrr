@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
     try {
       const tokenRes = await apiClient.login(username, password);
-      await storeTokens(tokenRes.access_token, "");
+      await storeTokens(tokenRes.access_token);
       router.replace("/(tabs)");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
